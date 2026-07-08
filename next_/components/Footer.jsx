@@ -66,14 +66,6 @@ const Footer = () => {
           font-size: 0.6rem; letter-spacing: 0.2em;
           text-transform: uppercase; color: rgba(255, 255, 255, 0.6);
         }
-        .footer-mark-v1 {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: 2rem; font-weight: 400;
-          letter-spacing: 0.8em; color: #ffffff; text-transform: uppercase;
-          text-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
-          margin-left: 0.8em;
-          opacity: 0.9;
-        }
         .footer-logo-v1 {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
           font-size: 1.8rem; letter-spacing: 0.25em; color: #ffffff;
@@ -89,7 +81,6 @@ const Footer = () => {
         }
         @media (max-width: 576px) {
           .footer-bottom-v1 { justify-content: center; text-align: center; }
-          .footer-mark-v1 { display: none; }
         }
       `}</style>
 
@@ -114,7 +105,6 @@ const Footer = () => {
         </div>
         <div className="footer-bottom-v1">
           <p>&copy; 2026 <span style={{ fontWeight: 800, letterSpacing: '0.15em', fontFamily: 'var(--font-primary, inherit)' }}>FYLEX</span></p>
-          <div className="footer-mark-v1">F · Y · L · E · X</div>
           <p>Crafted with Intention</p>
         </div>
       </footer>

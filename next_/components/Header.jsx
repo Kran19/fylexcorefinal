@@ -114,7 +114,7 @@ const Header = () => {
           flex-direction: column;
           justify-content: space-between;
           width: 22px;
-          height: 8px;
+          height: 14px;
           cursor: pointer;
         }
 
@@ -128,20 +128,18 @@ const Header = () => {
         }
 
         .hamburger-v1.open span:nth-child(1) {
-          transform: translateY(3.25px) rotate(45deg);
+          transform: translateY(6.25px) rotate(45deg);
         }
 
         .hamburger-v1.open span:nth-child(2) {
-          transform: translateY(-3.25px) rotate(-45deg);
+          opacity: 0;
         }
 
-        .trigger-text {
-          font-family: 'Inter', sans-serif;
-          font-size: 0.95rem;
-          color: #fff;
-          font-weight: 500;
-          letter-spacing: 0.02em;
+        .hamburger-v1.open span:nth-child(3) {
+          transform: translateY(-6.25px) rotate(-45deg);
         }
+
+
 
         .header-right-item {
           display: flex; align-items: center; gap: 8px;
@@ -306,7 +304,6 @@ const Header = () => {
         }
         @media (max-width: 768px) {
           .header-right { gap: 15px; }
-          .trigger-text { display: none; }
           .header-right-item span { display: none; }
         }
       `}</style>
@@ -349,12 +346,12 @@ const Header = () => {
 
       <header className={`nav-v1 ${isScrolled ? 'scrolled' : ''} ${scrollDir === 'down' && isScrolled && !isMenuOpen ? 'hidden' : ''}`}>
         <div className="header-left">
-          <button className="nav-trigger" onClick={toggleMenu}>
+          <button className="nav-trigger" onClick={toggleMenu} title={isMenuOpen ? 'Close' : 'Menu'}>
             <div className={`hamburger-v1 ${isMenuOpen ? 'open' : ''}`}>
               <span></span>
               <span></span>
+              <span></span>
             </div>
-            <span className="trigger-text">{isMenuOpen ? 'Close' : 'Menu'}</span>
           </button>
         </div>
 

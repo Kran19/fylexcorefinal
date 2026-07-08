@@ -2095,6 +2095,14 @@ function DiscoverContent() {
             <span className="cfg-heritage-eyebrow">More than keeping time</span>
             <h2 className="cfg-heritage-heading">Made around preference</h2>
             <p className="cfg-heritage-text">{product.heritageText}</p>
+            <div className="cfg-sold-stats" onClick={() => openInfoModal(product)} style={{ marginTop: '30px' }}>
+              <span className="shimmer-sweep"></span>
+              <span className="stats-label" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Configurations Sold</span>
+              <div className="cfg-see-variants">
+                <span>see variants</span>
+                <div className="cfg-info-icon">i</div>
+              </div>
+            </div>
           </div>
           <div className="cfg-heritage-right">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', alignItems: 'flex-end', width: '100%' }}>
@@ -2105,14 +2113,6 @@ function DiscoverContent() {
                   style={{ width: '100%', filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.1))' }}
                 />
               )}
-              <div className="cfg-sold-stats" onClick={() => openInfoModal(product)}>
-                <span className="shimmer-sweep"></span>
-                <span className="stats-label" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Configurations Sold</span>
-                <div className="cfg-see-variants">
-                  <span>see variants</span>
-                  <div className="cfg-info-icon">i</div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -2125,7 +2125,7 @@ function DiscoverContent() {
               <div style={{ marginBottom: '56px' }}>
                 <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888', marginBottom: '12px' }}>Compatible Straps</p>
                 <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                  Complete the Look
+                  Add to the look
                 </h2>
               </div>
 
