@@ -14,8 +14,6 @@ export default function BoxesPage() {
   
   const [formData, setFormData] = useState({
     name: '',
-    price: '',
-    stock: '',
     isActive: true,
     imageId: null,
     imageObj: null
@@ -51,8 +49,6 @@ export default function BoxesPage() {
       setEditingBox(box);
       setFormData({
         name: box.name,
-        price: box.price,
-        stock: box.stock,
         isActive: box.isActive,
         imageId: box.imageId || null,
         imageObj: box.image || null
@@ -61,8 +57,6 @@ export default function BoxesPage() {
       setEditingBox(null);
       setFormData({
         name: '',
-        price: '',
-        stock: '',
         isActive: true,
         imageId: null,
         imageObj: null
@@ -137,8 +131,6 @@ export default function BoxesPage() {
             <thead>
               <tr className="bg-gray-100 border-b">
                 <th className="p-4">Name</th>
-                <th className="p-4">Price</th>
-                <th className="p-4">Stock</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 text-right">Actions</th>
               </tr>
@@ -159,8 +151,6 @@ export default function BoxesPage() {
                       )}
                       <span>{box.name}</span>
                     </td>
-                    <td className="p-4">Rs. {box.price}</td>
-                    <td className="p-4">{box.stock}</td>
                     <td className="p-4">
                       {box.isActive ? (
                         <span className="text-green-500 flex items-center gap-1"><FaCheck /> Active</span>
@@ -204,27 +194,6 @@ export default function BoxesPage() {
                   className="w-full border rounded p-2 focus:outline-none focus:border-black"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Price *</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  className="w-full border rounded p-2 focus:outline-none focus:border-black"
-                  value={formData.price}
-                  onChange={(e) => setFormData({...formData, price: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Stock *</label>
-                <input 
-                  type="number" 
-                  className="w-full border rounded p-2 focus:outline-none focus:border-black"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({...formData, stock: e.target.value})}
                   required
                 />
               </div>
