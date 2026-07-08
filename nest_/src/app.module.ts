@@ -24,6 +24,7 @@ import { SpecificationModule } from './modules/product/specification/specificati
 import { FaqModule } from './modules/content/faq/faq.module';
 import { PolicyModule } from './policy/policy.module';
 import { BeltModule } from './modules/belt/belt.module';
+import { BoxModule } from './modules/box/box.module';
 
 @Module({
   imports: [
