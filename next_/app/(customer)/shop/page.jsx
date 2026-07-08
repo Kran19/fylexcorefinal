@@ -6,9 +6,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import Lenis from 'lenis';
 import Link from 'next/link';
-import { fetchProducts } from '../../../lib/api';
+import { fetchProducts, fetchVariant } from '../../../lib/api';
 import cmsService from '@/services/cms.service';
-import { getFileUrl, resolveProductImage, getDisplayData } from '@/lib/utils';
+import { getFileUrl, resolveProductImage, getDisplayData, resolveProductBackground } from '@/lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -21,6 +21,7 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [activeWatchIndex, setActiveWatchIndex] = useState(0);
   const [videoSettings, setVideoSettings] = useState({});
+  const [founderVariant, setFounderVariant] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -55,6 +56,13 @@ export default function Shop() {
             if (s.group === 'video' || s.group === 'shop_page') videoMap[s.key] = s.value;
           });
           setVideoSettings(videoMap);
+          
+          if (videoMap.founder_watch_id) {
+            const variantRes = await fetchVariant(videoMap.founder_watch_id);
+            if (variantRes.success && variantRes.data) {
+                setFounderVariant(variantRes.data);
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to load shop data:', err);
@@ -601,14 +609,7 @@ export default function Shop() {
             <p className="shop-bt" style={{ color: '#ccc', lineHeight: 1.8, fontSize: '16px', maxWidth: '500px' }}>
               Every component is meticulously sourced, but the final creation doesn't exist until you command it. From the casing to the dial, our watchmakers wait for your instructions.
             </p>
-            <div style={{ marginTop: '40px', display: 'flex', gap: '15px' }}>
-              <Link href="/products" style={{ fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase', border: '1px solid rgba(255,255,255,0.2)', padding: '12px 24px', display: 'inline-block', color: '#fff', textDecoration: 'none' }}>
-                Best Sellers
-              </Link>
-              <Link href="/pre-configure" style={{ fontSize: '12px', letterSpacing: '0.2em', textTransform: 'uppercase', background: '#fff', border: '1px solid #fff', padding: '12px 24px', display: 'inline-block', color: '#000', textDecoration: 'none' }}>
-                Configure
-              </Link>
-            </div>
+
           </div>
           <div style={{ flex: '1 1 500px', position: 'relative' }}>
             <img src="/assets/fylex-watch-v2/hero.png" alt="The Assembly Room" style={{ width: '100%', borderRadius: '4px', filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.5))' }} />
@@ -637,16 +638,94 @@ export default function Shop() {
           }}>
             From The Founder
           </h2>
-          <div style={{
-            fontSize: '1.2rem',
-            lineHeight: '1.8',
-            color: '#ccc',
-            fontWeight: '300',
-            fontStyle: 'italic',
-            whiteSpace: 'pre-wrap'
-          }}>
-            {videoSettings.founder_message || 'Welcome to our premium watch collection. Crafted with precision and passion.'}
-          </div>
+          
+          {(() => {
+            return (
+              <>
+                <div style={{
+                  fontSize: '1.2rem',
+                  lineHeight: '1.8',
+                  color: '#ccc',
+                  fontWeight: '300',
+                  fontStyle: 'italic',
+                  whiteSpace: 'pre-wrap',
+                  marginBottom: founderVariant ? '50px' : '0'
+                }}>
+                  {videoSettings.founder_message || 'Welcome to our premium watch collection. Crafted with precision and passion.'}
+                </div>
+                
+                {founderVariant && (
+                  <Link 
+                    href={`/configure?watch=${founderVariant.productId}${founderVariant.combinationHash ? `&variant=${founderVariant.combinationHash}` : ''}`}
+                    style={{
+                      display: 'inline-block',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '12px',
+                      padding: '40px',
+                      textDecoration: 'none',
+                      color: '#fff',
+                      transition: 'transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                      e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <h3 style={{
+                      fontSize: '14px',
+                      letterSpacing: '0.2em',
+                      textTransform: 'uppercase',
+                      color: 'var(--fyl-gold)',
+                      marginBottom: '20px',
+                      fontWeight: '600'
+                    }}>
+                      The Founder's Pick
+                    </h3>
+                    <img 
+                      src={getFileUrl(founderVariant.image || founderVariant.product?.image)} 
+                      alt={founderVariant.product?.name || founderVariant.sku}
+                      style={{
+                        width: '250px',
+                        height: '250px',
+                        objectFit: 'contain',
+                        margin: '0 auto 20px',
+                        filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))'
+                      }}
+                    />
+                    <h4 style={{
+                      fontFamily: 'Avenir, sans-serif',
+                      fontSize: '24px',
+                      fontWeight: '500',
+                      marginBottom: '10px'
+                    }}>
+                      {founderVariant.product?.name || 'Watch'} - {founderVariant.sku}
+                    </h4>
+                    <div 
+                      className="bf"
+                      style={{
+                        marginTop: '15px',
+                        padding: '12px 24px',
+                        background: 'transparent',
+                        border: '1px solid var(--fyl-gold)',
+                        color: 'var(--fyl-gold)',
+                        letterSpacing: '0.2em'
+                      }}
+                    >
+                      View This Configuration
+                    </div>
+                  </Link>
+                )}
+              </>
+            );
+          })()}
         </div>
       </section>
 

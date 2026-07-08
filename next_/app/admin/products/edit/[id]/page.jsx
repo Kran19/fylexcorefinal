@@ -23,6 +23,7 @@ const EditProductPage = () => {
     const taxClasses = data.taxClasses || [];
     const [tags, setTags] = useState([]);
     const [belts, setBelts] = useState([]);
+    const [boxes, setBoxes] = useState([]);
 
     const [processing, setProcessing] = useState(true);
     const [submitting, setSubmitting] = useState(false);
@@ -50,7 +51,9 @@ const EditProductPage = () => {
         discoverHeroBgImage: '',
         isFeatured: false,
         canSellBelts: false,
-        beltIds: []
+        beltIds: [],
+        canShowBoxes: false,
+        boxIds: []
     });
 
     const [categoryDetails, setCategoryDetails] = useState(null);
@@ -151,14 +154,16 @@ const EditProductPage = () => {
         setProcessing(true);
         
         try {
-            const [prodRes, tagsRes, beltsRes] = await Promise.all([
+            const [prodRes, tagsRes, beltsRes, boxesRes] = await Promise.all([
                 api.getProduct(productId),
                 api.getTags(),
-                api.getBelts()
+                api.getBelts(),
+                api.getBoxes()
             ]);
 
             if (tagsRes.success) setTags(tagsRes.data);
             if (beltsRes.success) setBelts(beltsRes.data);
+            if (boxesRes.success) setBoxes(boxesRes.data);
 
             if (prodRes.success) {
                 const p = prodRes.data;
@@ -213,7 +218,9 @@ const EditProductPage = () => {
                         return acc;
                     }, {}) || {},
                     beltIds: p.productBelts?.map(b => b.beltId.toString()) || [],
-                    canSellBelts: p.productBelts?.length > 0
+                    canSellBelts: p.productBelts?.length > 0,
+                    boxIds: p.productBoxes?.map(b => b.boxId.toString()) || [],
+                    canShowBoxes: p.productBoxes?.length > 0
                 }));
 
                 // Note: Step locking has been removed. All tabs are accessible.
@@ -458,7 +465,7 @@ const EditProductPage = () => {
         }
 
         setSubmitting(true);
-        const { canSellBelts, ...formData } = form;
+        const { canSellBelts, canShowBoxes, ...formData } = form;
         const payload = {
             ...formData,
             status: submitStatus,
@@ -480,6 +487,7 @@ const EditProductPage = () => {
             galleryIds: form.gallery.map(g => g.id),
             images: [form.heroImage?.url, ...form.gallery.map(g => g.url)].filter(Boolean),
             ...(form.canSellBelts ? { beltIds: form.beltIds } : {}),
+            ...(form.canShowBoxes ? { boxIds: form.boxIds } : {}),
             specifications: Object.entries(form.specifications || {}).map(([id, val]) => {
                 const specItem = categoryDetails?.specGroups?.flatMap(sg => sg.specGroup.specifications).find(s => s.specification.id.toString() === id);
                 const isDropdown = specItem?.specification.type === 'select';
@@ -664,23 +672,23 @@ const EditProductPage = () => {
                                         </div>
 
                                         {/* Belts Configuration */}
-                                        <div className="md:col-span-2 border border-gray-200 rounded-xl p-4 bg-gray-50/50">
-                                            <div className="flex items-center gap-2 mb-4">
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+                                            <div className="flex items-center gap-3">
                                                 <input 
                                                     type="checkbox" 
                                                     id="canSellBelts" 
                                                     name="canSellBelts" 
                                                     checked={form.canSellBelts} 
-                                                    onChange={handleChange} 
-                                                    className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                    onChange={handleChange}
+                                                    className="w-5 h-5 text-black border-gray-300 rounded focus:ring-black cursor-pointer"
                                                 />
                                                 <label htmlFor="canSellBelts" className="text-sm font-bold text-gray-900 cursor-pointer">
                                                     Allow customers to buy additional belts for this watch
                                                 </label>
                                             </div>
-                                            
+
                                             {form.canSellBelts && (
-                                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div className="pl-8 pt-4 border-t border-gray-50">
                                                     <label className="block text-sm font-medium text-gray-700 !mb-2">Select Compatible Belts</label>
                                                     {belts.length === 0 ? (
                                                         <p className="text-sm text-gray-500 italic">No belts found. Please create belts in the Belts section first.</p>
@@ -688,20 +696,71 @@ const EditProductPage = () => {
                                                         <div className="flex flex-wrap gap-2">
                                                             {belts.map(belt => (
                                                                 <button
-                                                                    key={belt.id}
                                                                     type="button"
-                                                                    onClick={() => setForm(prev => ({
-                                                                        ...prev,
-                                                                        beltIds: prev.beltIds.includes(belt.id.toString())
-                                                                            ? prev.beltIds.filter(id => id !== belt.id.toString())
-                                                                            : [...prev.beltIds, belt.id.toString()]
-                                                                    }))}
+                                                                    key={belt.id}
+                                                                    onClick={() => {
+                                                                        setForm(prev => ({
+                                                                            ...prev,
+                                                                            beltIds: prev.beltIds.includes(belt.id.toString())
+                                                                                ? prev.beltIds.filter(id => id !== belt.id.toString())
+                                                                                : [...prev.beltIds, belt.id.toString()]
+                                                                        }));
+                                                                    }}
                                                                     className={`!px-3 !py-1 rounded-lg text-xs font-medium transition-all ${form.beltIds.includes(belt.id.toString())
-                                                                        ? 'bg-indigo-600 text-white shadow-sm border border-indigo-600'
-                                                                        : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-400'
-                                                                        }`}
+                                                                        ? 'bg-black text-white shadow-md'
+                                                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                                    }`}
                                                                 >
                                                                     {belt.name} (Rs. {belt.price})
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Boxes Configuration */}
+                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+                                            <div className="flex items-center gap-3">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="canShowBoxes" 
+                                                    name="canShowBoxes" 
+                                                    checked={form.canShowBoxes} 
+                                                    onChange={handleChange}
+                                                    className="w-5 h-5 text-black border-gray-300 rounded focus:ring-black cursor-pointer"
+                                                />
+                                                <label htmlFor="canShowBoxes" className="text-sm font-bold text-gray-900 cursor-pointer">
+                                                    Show packaging boxes on the product page
+                                                </label>
+                                            </div>
+
+                                            {form.canShowBoxes && (
+                                                <div className="pl-8 pt-4 border-t border-gray-50">
+                                                    <label className="block text-sm font-medium text-gray-700 !mb-2">Select Display Boxes</label>
+                                                    {boxes.length === 0 ? (
+                                                        <p className="text-sm text-gray-500 italic">No boxes found. Please create boxes in the Boxes section first.</p>
+                                                    ) : (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {boxes.map(box => (
+                                                                <button
+                                                                    type="button"
+                                                                    key={box.id}
+                                                                    onClick={() => {
+                                                                        setForm(prev => ({
+                                                                            ...prev,
+                                                                            boxIds: prev.boxIds.includes(box.id.toString())
+                                                                                ? prev.boxIds.filter(id => id !== box.id.toString())
+                                                                                : [...prev.boxIds, box.id.toString()]
+                                                                        }));
+                                                                    }}
+                                                                    className={`!px-3 !py-1 rounded-lg text-xs font-medium transition-all ${form.boxIds.includes(box.id.toString())
+                                                                        ? 'bg-black text-white shadow-md'
+                                                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                                    }`}
+                                                                >
+                                                                    {box.name}
                                                                 </button>
                                                             ))}
                                                         </div>

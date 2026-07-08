@@ -49,6 +49,7 @@ import { BeltModule } from './modules/belt/belt.module';
     ReportsModule,
     FaqModule,
     PolicyModule,
+    BoxModule,
   ],
   controllers: [AppController],
   providers: [AppService],

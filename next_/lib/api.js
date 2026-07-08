@@ -78,6 +78,7 @@ async function request(method, path, body = null, options = {}) {
 // Products API
 export const fetchProducts = () => request('GET', '/products?status=active');
 export const fetchFeaturedProducts = () => request('GET', '/products/featured');
+export const fetchVariant = (id) => request('GET', `/variants/${id}`);
 
 // Cart API
 export const fetchCart = (userId) => request('GET', userId ? `/cart?userId=${userId}` : '/cart');

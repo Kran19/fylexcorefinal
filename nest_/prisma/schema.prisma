@@ -398,6 +398,7 @@ model Media {
   reviewImages     ReviewImage[]
   variantImages    VariantImage[]
   beltImages       Belt[]           @relation("BeltImage")
+  boxImages        Box[]            @relation("BoxImage")
 
   @@index([disk], map: "media_disk_index")
   @@index([mimeType], map: "media_mime_type_index")
@@ -705,6 +706,7 @@ model Product {
   upSellsFrom         UpSellProduct[]        @relation("ProductUpSellTargets")
   productCareSteps    ProductCareStep[]
   productBelts        ProductBelt[]
+  productBoxes        ProductBox[]
 
   @@index([status], map: "products_status_index")
   @@index([brandId], map: "products_brand_id_foreign")
@@ -2251,6 +2253,31 @@ model ProductBelt {
   @@id([productId, beltId])
   @@index([beltId], map: "product_belts_belt_id_foreign")
   @@map("product_belts")
+}
+
+model Box {
+  id          Int           @id @default(autoincrement())
+  name        String
+  isActive    Boolean       @default(true) @map("is_active")
+  imageId     Int?          @map("image_id")
+  image       Media?        @relation("BoxImage", fields: [imageId], references: [id])
+  createdAt   DateTime?     @default(now()) @map("created_at")
+  updatedAt   DateTime?     @updatedAt @map("updated_at")
+  productBoxes ProductBox[]
+
+  @@map("boxes")
+}
+
+model ProductBox {
+  productId Int      @map("product_id")
+  boxId     Int      @map("box_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  box       Box      @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  createdAt DateTime? @default(now()) @map("created_at")
+
+  @@id([productId, boxId])
+  @@index([boxId], map: "product_boxes_box_id_foreign")
+  @@map("product_boxes")
 }
 
 model ProductCareStep {

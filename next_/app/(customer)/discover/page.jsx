@@ -114,6 +114,14 @@ function DiscoverContent() {
                 name: pb.belt.name,
                 price: pb.belt.price,
                 stock: pb.belt.stock,
+                image: pb.belt.image?.url || pb.belt.image
+              })) || [],
+              productBoxes: p.productBoxes?.map(pb => ({
+                id: pb.box.id,
+                name: pb.box.name,
+                price: pb.box.price,
+                stock: pb.box.stock,
+                image: pb.box.image?.url || pb.box.image
               })) || [],
               totalSoldConfigurations: (p.variants || []).reduce((sum, v) => sum + (v.fakeSoldCount || 0), 0)
             };
@@ -2201,6 +2209,70 @@ function DiscoverContent() {
                       >
                         {addedBelts[belt.id] ? '✓ Added to Cart' : 'Add to Cart'}
                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── COMPATIBLE BOXES SECTION ── */}
+        {product.productBoxes?.length > 0 && (
+          <section style={{ background: '#f5f5f3', padding: '0 0 100px' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 40px' }}>
+              {/* Header */}
+              <div style={{ marginBottom: '56px' }}>
+                <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888', marginBottom: '12px' }}>Included Packaging</p>
+                <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                  Premium Boxes
+                </h2>
+              </div>
+
+              {/* Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '24px' }}>
+                {product.productBoxes.map(box => (
+                  <div key={box.id} className="group" style={{ cursor: 'default' }}>
+                    {/* Image box */}
+                    <div
+                      style={{
+                        background: '#ebebeb',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        paddingBottom: '120%',
+                        marginBottom: '20px',
+                        transition: 'background 0.3s',
+                      }}
+                    >
+                      {box.image ? (
+                        <img
+                          src={box.image}
+                          alt={box.name}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            padding: '32px',
+                            transition: 'transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)',
+                          }}
+                          className="group-hover:scale-105"
+                        />
+                      ) : (
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#aaa', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em'
+                        }}>No Image</div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ paddingBottom: '4px' }}>
+                      <h3 style={{ fontSize: '20px', fontWeight: 400, fontFamily: 'Georgia, serif', color: '#111', lineHeight: 1.25, marginBottom: '8px' }}>{box.name}</h3>
+                      <p style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '0.05em', color: '#888' }}>Included with order</p>
                     </div>
                   </div>
                 ))}

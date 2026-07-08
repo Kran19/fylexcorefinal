@@ -151,6 +151,16 @@ export const createTag = (data) => post('/tags', data);
 
 // ─── Belts ────────────────────────────────────────────────────
 export const getBelts = () => get('/belts');
+export const createBelt = (data) => post('/belts', data);
+export const updateBelt = (id, data) => put(`/belts/${id}`, data);
+export const deleteBelt = (id) => del(`/belts/${id}`);
+
+// ─── Boxes ────────────────────────────────────────────────────
+export const getBoxes = () => get('/boxes');
+export const createBox = (data) => post('/boxes', data);
+export const updateBox = (id, data) => put(`/boxes/${id}`, data);
+export const deleteBox = (id) => del(`/boxes/${id}`);
+
 export const updateTag = (id, data) => put(`/tags/${id}`, data);
 export const deleteTag = (id) => del(`/tags/${id}`);
 

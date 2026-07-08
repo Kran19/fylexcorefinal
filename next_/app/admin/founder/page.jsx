@@ -12,6 +12,7 @@ export default function FounderAdminPage() {
     const toast = useToast();
     const { data, loading, errors, refetch } = useAdminData();
     const [founderMessage, setFounderMessage] = useState('');
+    const [founderWatchId, setFounderWatchId] = useState('');
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState(null);
     const [isDirty, setIsDirty] = useState(false);
@@ -28,14 +29,38 @@ export default function FounderAdminPage() {
         return data.settings;
     }, [data.settings]);
 
+    const [variants, setVariants] = useState([]);
+    
     useEffect(() => {
-        if (remoteSettings && remoteSettings.founder_message !== undefined) {
-            setFounderMessage(remoteSettings.founder_message || '');
+        const fetchVariants = async () => {
+            const res = await api.getAllVariants(1, 100);
+            if (res.success && res.data) {
+                // If data has items array (pagination), or is array itself
+                setVariants(res.data.items || res.data || []);
+            }
+        };
+        fetchVariants();
+    }, []);
+
+    useEffect(() => {
+        if (remoteSettings) {
+            if (remoteSettings.founder_message !== undefined) {
+                setFounderMessage(remoteSettings.founder_message || '');
+            }
+            if (remoteSettings.founder_watch_id !== undefined) {
+                setFounderWatchId(remoteSettings.founder_watch_id || '');
+            }
         }
     }, [remoteSettings]);
 
     const handleChange = (e) => {
         setFounderMessage(e.target.value);
+        setIsDirty(true);
+        setSaveError(null);
+    };
+
+    const handleWatchChange = (e) => {
+        setFounderWatchId(e.target.value);
         setIsDirty(true);
         setSaveError(null);
     };
@@ -46,7 +71,10 @@ export default function FounderAdminPage() {
         setSaving(true);
         
         try {
-            const { error: err, success } = await api.saveSettings({ founder_message: founderMessage });
+            const { error: err, success } = await api.saveSettings({ 
+                founder_message: founderMessage,
+                founder_watch_id: founderWatchId
+            });
             if (err || success === false) { 
                 const msg = err || 'Failed to save founder message';
                 setSaveError(msg); 
@@ -115,6 +143,35 @@ export default function FounderAdminPage() {
                         }}
                         placeholder="Enter the founder's message here..."
                     />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', fontWeight: 600, color: '#111', marginBottom: 8, fontSize: 15 }}>
+                        Founder's Pick Watch
+                    </label>
+                    <p style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
+                        Select a configured watch to feature alongside the founder's message.
+                    </p>
+                    <select
+                        value={founderWatchId}
+                        onChange={handleWatchChange}
+                        style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '15px',
+                            color: '#111',
+                            fontFamily: 'inherit',
+                            backgroundColor: '#fff'
+                        }}
+                    >
+                        <option value="">Select a watch...</option>
+                        {variants && variants.map(variant => (
+                            <option key={variant.id} value={variant.id}>
+                                {variant.sku} - {variant.product?.name || 'Watch'} {variant.combinationHash ? `(${variant.combinationHash})` : ''}
+                            </option>
+                        ))}
+                    </select>
                 </div>
                 {saveError && (
                     <div style={{ color: '#ef4444', fontSize: 13, marginTop: 8 }}>

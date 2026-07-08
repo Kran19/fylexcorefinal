@@ -304,6 +304,20 @@ export class ProductService {
           }
         }
 
+        // Handle Boxes
+        if (dto.boxIds && dto.boxIds.length > 0) {
+          const boxData = dto.boxIds
+            .map((boxId: any) => ({
+              productId,
+              boxId: this.safeNumber(boxId, 'boxId'),
+            }))
+            .filter((b: any) => b.boxId !== null);
+          
+          if (boxData.length > 0) {
+            await tx.productBox.createMany({ data: boxData as any });
+          }
+        }
+
         return { ...product, images: this.parseJson(product.images) };
       });
     } catch (error) {
@@ -452,6 +466,15 @@ export class ProductService {
               }
             }
           },
+          productBoxes: {
+            include: {
+              box: {
+                include: {
+                  image: true
+                }
+              }
+            }
+          },
         },
       }),
     ]);
@@ -574,6 +597,15 @@ export class ProductService {
         productBelts: {
           include: {
             belt: {
+              include: {
+                image: true
+              }
+            }
+          }
+        },
+        productBoxes: {
+          include: {
+            box: {
               include: {
                 image: true
               }
@@ -939,6 +971,23 @@ export class ProductService {
             
             if (beltData.length > 0) {
               await tx.productBelt.createMany({ data: beltData as any });
+            }
+          }
+        }
+
+        // Handle Boxes
+        if (dto.boxIds !== undefined) {
+          await tx.productBox.deleteMany({ where: { productId } });
+          if (dto.boxIds.length > 0) {
+            const boxData = dto.boxIds
+              .map((boxId: any) => ({
+                productId,
+                boxId: this.safeNumber(boxId, 'boxId'),
+              }))
+              .filter((b: any) => b.boxId !== null);
+            
+            if (boxData.length > 0) {
+              await tx.productBox.createMany({ data: boxData as any });
             }
           }
         }
