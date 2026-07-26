@@ -151,6 +151,36 @@ function ConfigureContent() {
     loadProduct();
   }, [watchId]);
 
+  const getCompatibleOptions = (step) => {
+    if (!step || !step.options) return [];
+    if (!variants || variants.length === 0) return step.options;
+
+    const currentAttrId = step.id.toLowerCase();
+    
+    // Filter options: an option 'opt' for current attribute is compatible if there exists
+    // at least one variant that has 'opt' AND matches all OTHER current userSelections.
+    const filtered = step.options.filter(opt => {
+      return variants.some(v => {
+        const vAttrs = v.variantAttributes || [];
+        const hasOpt = vAttrs.some(va =>
+          va.attributeValue?.attribute?.name?.toLowerCase() === currentAttrId &&
+          va.attributeValue?.label === opt.name
+        );
+        if (!hasOpt) return false;
+
+        return Object.entries(userSelections).every(([selKey, selVal]) => {
+          if (selKey === currentAttrId || !selVal) return true;
+          return vAttrs.some(va =>
+            va.attributeValue?.attribute?.name?.toLowerCase() === selKey &&
+            va.attributeValue?.label === selVal
+          );
+        });
+      });
+    });
+
+    return filtered.length > 0 ? filtered : step.options;
+  };
+
   const previewImgRef = useRef(null);
   const configuratorRef = useRef(null);
   const storyRef = useRef(null);
@@ -415,7 +445,7 @@ function ConfigureContent() {
             <div className="c-selection-controls">
               <div className="step-title">{stepsData[currentStep]?.title}</div>
               <div className="options-row">
-                {stepsData[currentStep]?.options.map((opt, i) => (
+                {getCompatibleOptions(stepsData[currentStep]).map((opt, i) => (
                   <span key={i} className={`opt ${(isDialStep ? appliedDial === opt.dialImg : activeOpt === i) ? 'active' : ''}`}
                     onClick={() => {
                       if (isDialStep) { setAppliedDial(opt.dialImg); updatePreviewImage(opt.img); setUserSelections(prev => ({ ...prev, dial: opt.name })); }

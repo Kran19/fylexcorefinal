@@ -287,8 +287,8 @@ const AddProductPage = () => {
                                 { id: 'basic', label: 'Step 1: Basic Info', icon: 'fa-info-circle' },
                                 { id: 'story', label: 'Step 2: Story & Copy', icon: 'fa-align-left' },
                                 { id: 'taxonomy', label: 'Step 3: Taxonomy', icon: 'fa-tags' },
-                                { id: 'theme', label: 'Step 4: Visual Theme', icon: 'fa-palette' },
-                                { id: 'variants', label: 'Step 5: Variants', icon: 'fa-cubes' }
+                                { id: 'variants', label: 'Step 4: Product Variants', icon: 'fa-cubes' },
+                                { id: 'theme', label: 'Step 5: Visual Theme & Live Preview', icon: 'fa-palette' }
                             ].map(tab => {
                                 return (
                                 <button

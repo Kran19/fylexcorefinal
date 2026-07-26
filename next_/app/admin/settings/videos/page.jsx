@@ -62,6 +62,11 @@ const VideoSettingsPage = () => {
       return;
     }
 
+    if (file.size > 20 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Video file size exceeds maximum 20MB limit.' });
+      return;
+    }
+
     setUploadingKey(key);
     setMessage(null);
 

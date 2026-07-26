@@ -145,7 +145,7 @@ export default function BoxesPage() {
                   <tr key={box.id} className="border-b hover:bg-gray-50">
                     <td className="p-4 flex items-center gap-3">
                       {box.image ? (
-                        <img src={getFileUrl(box.image.fileName)} alt={box.name} className="w-10 h-10 object-cover rounded shadow-sm border border-gray-200" />
+                        <img src={getFileUrl(box.image.url || box.image.filePath || box.image.path || box.image.fileName || (typeof box.image === 'string' ? box.image : null))} alt={box.name} className="w-10 h-10 object-cover rounded shadow-sm border border-gray-200" />
                       ) : (
                         <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 border border-gray-200"><FaImage /></div>
                       )}

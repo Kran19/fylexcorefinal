@@ -210,6 +210,7 @@ export const deleteShippingMethod = (id) => del(`/system/shipping-methods/${id}`
 // ─── Media ────────────────────────────────────────────────────
 export const getMedia = () => get('/media');
 export const uploadMedia = (formData) => post('/media/upload', formData);
+export const updateMedia = (id, data) => put(`/media/${id}`, data);
 export const deleteMedia = (id) => del(`/media/${id}`);
 
 // ─── CMS (Pages, Banners, Sliders, Testimonials) ─────────────

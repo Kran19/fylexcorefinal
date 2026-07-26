@@ -577,6 +577,11 @@ const Checkout = () => {
                     <div style={{ color: '#059669', fontSize: '11px', fontWeight: 500 }}>
                       You Saved ₹{Math.round(totals.discount).toLocaleString()}!
                     </div>
+                    {totals.offerDescription && (
+                      <div style={{ color: '#047857', fontSize: '11px', marginTop: '6px', fontStyle: 'italic', borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '4px' }}>
+                        {totals.offerDescription}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="summary-line total">

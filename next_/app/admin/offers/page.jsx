@@ -171,8 +171,7 @@ const OffersPage = () => {
     const { name, value } = e.target;
     // Special validation for discountValue if percentage
     if (name === 'discountValue' && form.offerType === 'percentage') {
-      if (value !== '' && (!/^\d+$/.test(value) || value.length > 2)) return;
-      if (parseInt(value) > 99) return;
+      if (value !== '' && (!/^\d+$/.test(value) || parseInt(value) > 100)) return;
     }
 
     setForm(prev => ({

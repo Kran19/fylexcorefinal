@@ -93,6 +93,7 @@ const navItems = [
       { title: 'Home Page', path: '/admin/crm/home-sections' },
       { title: 'Video Settings', path: '/admin/settings/videos' },
       { title: 'Shop Page Settings', path: '/admin/settings/shop' },
+      { title: 'Design System', path: '/admin/settings/design' },
     ],
   },
   {

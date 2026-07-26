@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useAdminData } from '@/context/AdminDataContext';
 import MediaPickerModal from '@/components/admin/MediaPickerModal';
@@ -27,6 +27,9 @@ const EditProductPage = () => {
 
     const [processing, setProcessing] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const iframeRef = useRef(null);
+    
+
     
     const [form, setForm] = useState({
         name: '', slug: '', productCode: '',
@@ -64,8 +67,33 @@ const EditProductPage = () => {
     const [variants, setVariants] = useState([]);
     const [pickerTarget, setPickerTarget] = useState(null); // 'primary' | 'gallery' | {variantIndex, type}
     const [variantImageModal, setVariantImageModal] = useState(null); // { index, name }
+    const [pageThemeTab, setPageThemeTab] = useState('discover');
 
     const [isInitialized, setIsInitialized] = useState(false);
+
+    useEffect(() => {
+        if (iframeRef.current && activeTab === 'theme') {
+            iframeRef.current.contentWindow.postMessage({
+                type: 'PREVIEW_PRODUCT_THEME',
+                payload: {
+                    discoverBg: form.discoverBg,
+                    discoverTextColor: form.discoverTextColor,
+                    discoverAccentColor: form.discoverAccentColor,
+                    productsBg: form.productsBg,
+                    productsTextColor: form.productsTextColor,
+                    productsAccentColor: form.productsAccentColor,
+                    preConfigureBg: form.preConfigureBg,
+                    preConfigureTextColor: form.preConfigureTextColor,
+                    preConfigureAccentColor: form.preConfigureAccentColor
+                }
+            }, '*');
+        }
+    }, [
+        form.discoverBg, form.discoverTextColor, form.discoverAccentColor,
+        form.productsBg, form.productsTextColor, form.productsAccentColor,
+        form.preConfigureBg, form.preConfigureTextColor, form.preConfigureAccentColor,
+        activeTab, pageThemeTab
+    ]);
 
     useEffect(() => {
         if (!productId || processing) return;
@@ -149,6 +177,21 @@ const EditProductPage = () => {
         });
     };
 
+    const moveVariantOrder = (index, direction) => {
+        setVariants(prev => {
+            const next = [...prev];
+            const targetIndex = index + direction;
+            if (targetIndex >= 0 && targetIndex < next.length) {
+                [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+            }
+            return next;
+        });
+    };
+
+    const setPrimaryVariant = (index) => {
+        setVariants(prev => prev.map((v, i) => ({ ...v, isPrimary: i === index })));
+    };
+
     const fetchProductDetails = useCallback(async () => {
         if (!productId) return;
         setProcessing(true);
@@ -167,6 +210,15 @@ const EditProductPage = () => {
 
             if (prodRes.success) {
                 const p = prodRes.data;
+                
+                let parsedTheme = {};
+                if (p.theme) {
+                    try {
+                        parsedTheme = JSON.parse(p.theme);
+                    } catch (e) {
+                        console.error("Failed to parse theme JSON:", e);
+                    }
+                }
                 
                 // 1. Basic Form
                 setForm(prev => ({
@@ -195,6 +247,7 @@ const EditProductPage = () => {
                     videoUrl: p.videoUrl || '',
                     discoverHeroBgImage: p.discoverHeroBgImage || '',
                     isFeatured: p.isFeatured || false,
+                    ...parsedTheme,
                     // Hero Image: Prioritize MAIN media from ProductMedia table
                     heroImage: (p.productMedia?.find(pm => pm.type === 'MAIN'))
                         ? { 
@@ -460,14 +513,37 @@ const EditProductPage = () => {
 
         // Automatically set status to active if finalizing step 5 and currently draft
         let submitStatus = form.status;
-        if (activeTab === 'variants' && form.status === 'draft') {
+        if (activeTab === 'theme' && form.status === 'draft') {
             submitStatus = 'active';
         }
 
         setSubmitting(true);
-        const { canSellBelts, canShowBoxes, ...formData } = form;
+        const { 
+            canSellBelts, canShowBoxes, 
+            discoverBg, discoverTextColor, discoverAccentColor, discoverGradient,
+            productsBg, productsTextColor, productsAccentColor,
+            preConfigureBg, preConfigureTextColor, preConfigureAccentColor,
+            ...formData 
+        } = form;
+        
+        const themeJson = JSON.stringify({
+            discoverBg: form.discoverBg || form.bgColor || '#ffffff',
+            discoverTextColor: form.discoverTextColor || form.textColor || '#1a1a1a',
+            discoverAccentColor: form.discoverAccentColor || form.accentColor || '#c4a35a',
+            discoverGradient: form.discoverGradient || form.gradient || '',
+            productsBg: form.productsBg || form.bgColor || '#1a1a1a',
+            productsTextColor: form.productsTextColor || form.textColor || '#ffffff',
+            productsAccentColor: form.productsAccentColor || form.accentColor || '#c4a35a',
+            preConfigureBg: form.preConfigureBg || form.bgColor || '#ffffff',
+            preConfigureTextColor: form.preConfigureTextColor || form.textColor || '#1a1a1a',
+            preConfigureAccentColor: form.preConfigureAccentColor || form.accentColor || '#c4a35a',
+        });
         const payload = {
             ...formData,
+            theme: themeJson,
+            bgColor: form.discoverBg || form.bgColor || '#ffffff',
+            textColor: form.discoverTextColor || form.textColor || '#1a1a1a',
+            accentColor: form.discoverAccentColor || form.accentColor || '#c4a35a',
             status: submitStatus,
             shortDescription: form.shortDesc,
             videoUrl: form.videoUrl,
@@ -515,7 +591,7 @@ const EditProductPage = () => {
         const success = await updateRecord('products', productId, payload, api.updateProduct);
         setSubmitting(false);
         if (success) {
-            const tabs = ['basic', 'story', 'taxonomy', 'theme', 'variants'];
+            const tabs = ['basic', 'story', 'taxonomy', 'variants', 'theme'];
             const currentIndex = tabs.indexOf(activeTab);
             
             if (currentIndex < tabs.length - 1) {
@@ -547,8 +623,8 @@ const EditProductPage = () => {
                                 { id: 'basic', label: 'Step 1: Basic Info', icon: 'fa-info-circle' },
                                 { id: 'story', label: 'Step 2: Story & Copy', icon: 'fa-align-left' },
                                 { id: 'taxonomy', label: 'Step 3: Taxonomy', icon: 'fa-tags' },
-                                { id: 'theme', label: 'Step 4: Visual Theme', icon: 'fa-palette' },
-                                { id: 'variants', label: 'Step 5: Variants', icon: 'fa-cubes' }
+                                { id: 'variants', label: 'Step 4: Product Variants', icon: 'fa-cubes' },
+                                { id: 'theme', label: 'Step 5: Visual Theme & Live Preview', icon: 'fa-palette' }
                             ].map((tab, idx) => {
                                 return (
                                 <button
@@ -879,92 +955,165 @@ const EditProductPage = () => {
                                 </div>
                             )}
 
-                            {/* 4. Visual Theme */}
+                            {/* 5. Visual Theme & Real-Time Live Preview */}
                             {activeTab === 'theme' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                    <h3 className="text-xl font-bold text-gray-900 border-b !pb-2 !mb-2">UI Theme Customization</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <FormField label="Fonts color (primary)" name="textColor" type="color" value={form.textColor} onChange={handleChange} />
-                                        <FormField label="Fonts color (secondary)" name="accentColor" type="color" value={form.accentColor} onChange={handleChange} />
-                                        <FormField label="Product Details Page bg color" name="bgColor" type="color" value={form.bgColor} onChange={handleChange} />
-                                        <div className="md:col-span-2 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                            <label className="block text-sm font-bold text-gray-900 mb-3">Background Gradient (Linear)</label>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">Color 1 (Top Left)</label>
-                                                    <input 
-                                                        type="color" 
-                                                        className="w-full h-10 rounded cursor-pointer border border-gray-300"
-                                                        onChange={(e) => {
-                                                            const c1 = e.target.value;
-                                                            const c2 = form.gradient?.match(/#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/g)?.[1] || '#ffffff';
-                                                            setForm(prev => ({ ...prev, gradient: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)` }));
-                                                        }}
-                                                        value={form.gradient?.match(/#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/g)?.[0] || '#f5f7fa'}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-700 mb-1">Color 2 (Bottom Right)</label>
-                                                    <input 
-                                                        type="color" 
-                                                        className="w-full h-10 rounded cursor-pointer border border-gray-300"
-                                                        onChange={(e) => {
-                                                            const c1 = form.gradient?.match(/#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/g)?.[0] || '#f5f7fa';
-                                                            const c2 = e.target.value;
-                                                            setForm(prev => ({ ...prev, gradient: `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)` }));
-                                                        }}
-                                                        value={form.gradient?.match(/#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})/g)?.[1] || '#c3cfe2'}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="mt-4">
-                                                <FormField label="Or write custom CSS Gradient" name="gradient" value={form.gradient} onChange={handleChange} placeholder="linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)" />
-                                            </div>
-                                            {form.gradient && (
-                                                <div className="mt-3 h-12 rounded-lg border border-gray-200 shadow-inner" style={{ background: form.gradient }}></div>
-                                            )}
+                                    <div className="flex justify-between items-center border-b !pb-3">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-gray-900">Per-Page Visual Theme Customization</h3>
+                                            <p className="text-xs text-gray-500">Configure distinct background, text, and accent colors for Discover, Products, and Pre-Configure pages with real-time live layout analysis.</p>
                                         </div>
-                                        <div className="md:col-span-2 mt-4 pt-4 border-t border-gray-100">
-                                            <label className="block text-sm font-medium text-gray-700 mb-3">Discover Hero Background Image</label>
-                                            <p className="text-[10px] text-gray-400 font-medium italic mb-4">Optional background image used only on the Discover hero section. If empty, the system falls back to Page Background color.</p>
-                                            <div
-                                                onClick={() => setPickerTarget('discoverHeroBgImage')}
-                                                className="h-48 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-400 transition-all shadow-inner relative group"
-                                            >
-                                                {form.discoverHeroBgImage ? (
-                                                    <>
-                                                        <img src={getFileUrl(form.discoverHeroBgImage)} className="w-full h-full object-cover" alt="Discover Hero Background Preview" />
-                                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2">
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setPickerTarget('discoverHeroBgImage');
-                                                                }}
-                                                                className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-100"
-                                                                title="Replace Image"
-                                                            >
-                                                                <i className="fas fa-exchange-alt text-xs"></i>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setForm(prev => ({ ...prev, discoverHeroBgImage: '' }));
-                                                                }}
-                                                                className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600"
-                                                                title="Remove Image"
-                                                            >
-                                                                <i className="fas fa-trash-alt text-xs"></i>
-                                                            </button>
-                                                        </div>
-                                                    </>
-                                                ) : (
-                                                    <div className="text-center">
-                                                        <i className="fas fa-image text-gray-400 text-2xl mb-2"></i>
-                                                        <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Select Image</p>
+                                    </div>
+
+                                    {/* Live Preview & Color Controls Grid */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                        {/* Controls Column (6 Cols) */}
+                                        <div className="lg:col-span-6 space-y-6">
+                                            {/* Page Theme Selection Tabs */}
+                                            <div className="flex border-b border-gray-200 gap-2">
+                                                {[
+                                                    { id: 'discover', label: '1. Discover Page', icon: 'fa-compass' },
+                                                    { id: 'products', label: '2. Products Page', icon: 'fa-th-large' },
+                                                    { id: 'preConfigure', label: '3. Pre-Configure Page', icon: 'fa-sliders-h' },
+                                                ].map(pTab => (
+                                                    <button
+                                                        key={pTab.id}
+                                                        type="button"
+                                                        onClick={() => setPageThemeTab(pTab.id)}
+                                                        className={`!px-3 !py-2.5 text-xs font-bold rounded-t-lg transition-all flex items-center gap-2 border-b-2 cursor-pointer ${
+                                                            pageThemeTab === pTab.id
+                                                                ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
+                                                                : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                                                        }`}
+                                                    >
+                                                        <i className={`fas ${pTab.icon}`}></i>
+                                                        {pTab.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Tab 1: Discover Page Theme Controls */}
+                                            {pageThemeTab === 'discover' && (
+                                                <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
+                                                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                        <i className="fas fa-compass text-indigo-600"></i> Discover Page Theme
+                                                    </h4>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <FormField label="Discover Hero Background Color" name="discoverBg" type="color" value={form.discoverBg || form.bgColor || '#ffffff'} onChange={handleChange} />
+                                                        <FormField label="Discover Text Color (Title, Price)" name="discoverTextColor" type="color" value={form.discoverTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
+                                                        <FormField label="Discover Accent Color" name="discoverAccentColor" type="color" value={form.discoverAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
                                                     </div>
-                                                )}
+                                                </div>
+                                            )}
+
+                                            {/* Tab 2: Products Page Theme Controls */}
+                                            {pageThemeTab === 'products' && (
+                                                <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
+                                                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                        <i className="fas fa-th-large text-indigo-600"></i> Products Listing Card Theme
+                                                    </h4>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <FormField label="Card Background Color" name="productsBg" type="color" value={form.productsBg || form.bgColor || '#1a1a1a'} onChange={handleChange} />
+                                                        <FormField label="Card Text Color (Title, Price)" name="productsTextColor" type="color" value={form.productsTextColor || form.textColor || '#ffffff'} onChange={handleChange} />
+                                                        <FormField label="Card Accent Color (Tagline, Links)" name="productsAccentColor" type="color" value={form.productsAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Tab 3: Pre-Configure Page Theme Controls */}
+                                            {pageThemeTab === 'preConfigure' && (
+                                                <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
+                                                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                        <i className="fas fa-sliders-h text-indigo-600"></i> Pre-Configure Slide Theme
+                                                    </h4>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <FormField label="Pre-Configure Background Color" name="preConfigureBg" type="color" value={form.preConfigureBg || form.bgColor || '#ffffff'} onChange={handleChange} />
+                                                        <FormField label="Pre-Configure Text Color" name="preConfigureTextColor" type="color" value={form.preConfigureTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
+                                                        <FormField label="Pre-Configure Accent Color" name="preConfigureAccentColor" type="color" value={form.preConfigureAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Presets */}
+                                            <div className="!p-4 bg-white border border-gray-200 rounded-xl">
+                                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                                                    Curated Presets (Apply to active page)
+                                                </label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {[
+                                                        { name: 'Obsidian Dark', bg: '#0a0a0a', text: '#ffffff', accent: '#c4a35a' },
+                                                        { name: 'Pearl Light', bg: '#ffffff', text: '#111111', accent: '#c4a35a' },
+                                                        { name: 'Mist Blue', bg: '#e8edf3', text: '#111111', accent: '#3b82f6' },
+                                                    ].map((preset, pIdx) => (
+                                                        <button
+                                                            key={pIdx}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (pageThemeTab === 'discover') {
+                                                                    setForm(prev => ({ ...prev, discoverBg: preset.bg, discoverTextColor: preset.text, discoverAccentColor: preset.accent }));
+                                                                } else if (pageThemeTab === 'products') {
+                                                                    setForm(prev => ({ ...prev, productsBg: preset.bg, productsTextColor: preset.text, productsAccentColor: preset.accent }));
+                                                                } else {
+                                                                    setForm(prev => ({ ...prev, preConfigureBg: preset.bg, preConfigureTextColor: preset.text, preConfigureAccentColor: preset.accent }));
+                                                                }
+                                                            }}
+                                                            className="!p-2 text-left rounded border border-gray-200 hover:border-black transition-all bg-white cursor-pointer"
+                                                        >
+                                                            <div className="h-5 rounded text-[9px] font-bold flex items-center justify-center mb-1 shadow-inner" style={{ background: preset.bg, color: preset.text }}>Aa</div>
+                                                            <span className="text-[10px] font-semibold block text-center truncate">{preset.name}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Real-Time Live Preview Column (6 Cols) */}
+                                        <div className="lg:col-span-6 border border-gray-300 rounded-2xl overflow-hidden shadow-lg bg-gray-900 flex flex-col">
+                                            <div className="bg-gray-800 text-white !px-4 !py-3 flex justify-between items-center border-b border-gray-700">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                    <span className="text-xs font-bold uppercase tracking-wider">Real-Time Live Layout Preview</span>
+                                                </div>
+                                                <span className="text-[10px] bg-gray-700 px-2.5 py-0.5 rounded text-gray-300 font-semibold">
+                                                    {pageThemeTab === 'discover' ? 'Discover Page' : pageThemeTab === 'products' ? 'Products Page' : 'Pre-Configure Page'}
+                                                </span>
+                                            </div>
+
+                                            {/* Live Canvas View */}
+                                            <div className="flex-1 relative bg-black/5 rounded-b-2xl overflow-hidden" style={{ minHeight: '600px' }}>
+                                                {/* Desktop Only Preview Notice */}
+                                                <div className="absolute top-0 left-0 w-full bg-indigo-600/90 text-white text-[10px] font-bold tracking-widest uppercase py-1 text-center z-10 shadow-md backdrop-blur-sm">
+                                                    Interactive Live Preview
+                                                </div>
+                                                <iframe
+                                                    ref={iframeRef}
+                                                    src={
+                                                        pageThemeTab === 'discover' ? `/discover?watch=${productId}` :
+                                                        pageThemeTab === 'products' ? `/products` :
+                                                        `/pre-configure`
+                                                    }
+                                                    className="w-full h-full border-none"
+                                                    title="Real-Time Layout Preview"
+                                                    onLoad={() => {
+                                                        // Fire initial styles on load
+                                                        if (iframeRef.current) {
+                                                            iframeRef.current.contentWindow.postMessage({
+                                                                type: 'PREVIEW_PRODUCT_THEME',
+                                                                payload: {
+                                                                    discoverBg: form.discoverBg,
+                                                                    discoverTextColor: form.discoverTextColor,
+                                                                    discoverAccentColor: form.discoverAccentColor,
+                                                                    productsBg: form.productsBg,
+                                                                    productsTextColor: form.productsTextColor,
+                                                                    productsAccentColor: form.productsAccentColor,
+                                                                    preConfigureBg: form.preConfigureBg,
+                                                                    preConfigureTextColor: form.preConfigureTextColor,
+                                                                    preConfigureAccentColor: form.preConfigureAccentColor
+                                                                }
+                                                            }, '*');
+                                                        }
+                                                    }}
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -1015,6 +1164,7 @@ const EditProductPage = () => {
                                                     <table className="w-full border-collapse">
                                                         <thead>
                                                             <tr className="bg-gray-50 border-b border-gray-100">
+                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Order</th>
                                                                 <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Variant</th>
                                                                 <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">SKU</th>
                                                                 <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Actual Price</th>
@@ -1029,9 +1179,16 @@ const EditProductPage = () => {
                                                         <tbody className="divide-y divide-gray-50">
                                                             {variants.map((variant, vIdx) => (
                                                                 <tr key={vIdx} className="hover:bg-gray-50 transition-colors">
+                                                                    <td className="!px-4 !py-4">
+                                                                        <div className="flex items-center gap-1">
+                                                                            <button type="button" onClick={() => setPrimaryVariant(vIdx)} title={variant.isPrimary ? 'Primary Variant' : 'Make Primary'} className={`!p-1 rounded transition-all ${variant.isPrimary ? 'text-amber-500 bg-amber-50' : 'text-gray-300 hover:text-amber-500'}`}><i className="fas fa-star text-xs"></i></button>
+                                                                            <button type="button" onClick={() => moveVariantOrder(vIdx, -1)} disabled={vIdx === 0} className="!p-1 text-gray-400 hover:text-gray-800 disabled:opacity-30"><i className="fas fa-chevron-up text-xs"></i></button>
+                                                                            <button type="button" onClick={() => moveVariantOrder(vIdx, 1)} disabled={vIdx === variants.length - 1} className="!p-1 text-gray-400 hover:text-gray-800 disabled:opacity-30"><i className="fas fa-chevron-down text-xs"></i></button>
+                                                                        </div>
+                                                                    </td>
                                                                     <td className="!px-4 !py-4 text-sm font-bold text-gray-900">{variant.name}</td>
                                                                     <td className="!px-4 !py-4">
-                                                                        <input type="text" value={variant.sku} onChange={(e) => updateVariantField(vIdx, 'sku', e.target.value)} className="w-full bg-white border border-gray-200 rounded !px-2 !py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
+                                                                        <input type="text" value={variant.sku} onChange={(e) => updateVariantField(vIdx, 'sku', e.target.value)} className="min-w-[140px] w-full font-mono font-bold uppercase tracking-wider bg-slate-50 border border-slate-200 rounded-lg !px-3 !py-1.5 text-xs text-slate-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all" />
                                                                     </td>
                                                                     <td className="!px-4 !py-4">
                                                                         <input type="number" value={variant.comparePrice} onChange={(e) => updateVariantField(vIdx, 'comparePrice', e.target.value)} className="w-20 bg-white border border-gray-200 rounded !px-2 !py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
@@ -1098,7 +1255,7 @@ const EditProductPage = () => {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    const tabs = ['basic', 'story', 'taxonomy', 'theme', 'variants'];
+                                    const tabs = ['basic', 'story', 'taxonomy', 'variants', 'theme'];
                                     const currentIndex = tabs.indexOf(activeTab);
                                     if (currentIndex > 0) handleTabChange(tabs[currentIndex - 1]);
                                 }}
@@ -1107,7 +1264,7 @@ const EditProductPage = () => {
                                 <i className="fas fa-arrow-left mr-2"></i> Previous Step
                             </button>
                             
-                            {activeTab === 'variants' ? (
+                            {activeTab === 'theme' ? (
                                 <button
                                     type="button"
                                     onClick={handleSubmit}

@@ -6,6 +6,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
 import { OrderProvider } from '@/context/OrderContext';
+import { DesignSystemProvider } from '@/context/DesignSystemContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -15,7 +16,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <CartProvider>
             <WishlistProvider>
               <OrderProvider>
-                {children}
+                <DesignSystemProvider>
+                  {children}
+                </DesignSystemProvider>
               </OrderProvider>
             </WishlistProvider>
           </CartProvider>

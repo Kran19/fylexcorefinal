@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useWishlist } from '@/context/WishlistContext';
 import { fetchProducts } from '../../../lib/api';
-import { getFileUrl, resolveProductImage, getDisplayData } from '@/lib/utils';
+import { useDesignSystem } from '@/context/DesignSystemContext';
+import { getFileUrl, resolveProductImage, getDisplayData, getContrastTextColor, getPageTheme } from '@/lib/utils';
 import cmsService from '@/services/cms.service';
 
 const Products = () => {
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { productOverrides } = useDesignSystem();
   const [scrollDir, setScrollDir] = useState('up');
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeModalData, setActiveModalData] = useState(null);
@@ -52,6 +54,8 @@ const Products = () => {
             }
           });
 
+          const pageTheme = getPageTheme(p, 'products');
+
           return {
             id: p.id.toString(),
             num: String(idx + 1).padStart(2, '0'),
@@ -65,13 +69,13 @@ const Products = () => {
             totalStock: p.qty || 0,
             sold: p.soldCount || 0,
             theme: p.theme || 'champagne',
-            bgColor: p.bgColor || '#ffffff',
-            accentColor: p.accentColor || '#c4a35a',
-            accentRgb: hexToRgb(p.accentColor || '#c4a35a'),
-            textColor: p.textColor || '#1a1a1a',
-            gradient: p.gradient || '',
+            bgColor: pageTheme.bg,
+            accentColor: pageTheme.accentColor,
+            accentRgb: hexToRgb(pageTheme.accentColor),
+            textColor: pageTheme.textColor,
+            gradient: pageTheme.gradient || p.gradient || '',
             mistColor: p.mistColor || '',
-            mistRgb: hexToRgb(p.mistColor || p.accentColor || '#c4a35a'),
+            mistRgb: hexToRgb(p.mistColor || pageTheme.accentColor),
             combinations: soldCards
           };
         });
@@ -520,22 +524,28 @@ const Products = () => {
           color: #fff;
           box-shadow: 0 8px 20px rgba(255, 77, 77, 0.25);
         }
+        .p-price-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 24px;
+        }
         .p-price-tag {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
           font-size: 2rem;
           font-weight: 400;
           color: #ffffff;
           letter-spacing: -0.02em;
-          margin-bottom: 4px;
-          display: block;
+          margin-bottom: 0;
+          display: inline-block;
         }
         .p-inventory-status {
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 6px;
           font-size: 0.85rem;
           color: #999999; 
-          margin-bottom: 20px;
+          margin-bottom: 0;
           font-weight: 400;
           letter-spacing: 0.02em;
         }
@@ -704,7 +714,7 @@ const Products = () => {
         }
         .p-watch-image {
           width: 100%;
-          max-width: 520px;
+          max-width: 700px;
           z-index: 10;
           filter: drop-shadow(0 20px 40px rgba(0,0,0,0.08));
         }
@@ -873,67 +883,56 @@ const Products = () => {
            }
            .p-section-inner {
               width: 100%;
-              gap: 12px;
-              padding: 32px 7%;
+              gap: 8px;
+              padding: 40px 4%;
               display: grid;
-              grid-template-columns: 1fr auto;
-              align-items: start;
+              grid-template-columns: 0.8fr 1.2fr;
+              align-items: center;
               position: relative;
            }
            .p-content {
               text-align: left;
               order: 1;
               max-width: 100%;
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
            }
            
            .p-watch-wrap {
               order: 2;
               display: flex;
-              align-items: flex-start;
+              align-items: center;
               justify-content: center;
               position: relative;
-              width: 120px;
+              width: 100%;
+              max-width: none;
               flex-shrink: 0;
-              padding-top: 8px;
            }
            .p-watch-image {
               max-height: 130px;
               width: auto;
-              max-width: 120px;
+              max-width: 263px;
               object-fit: contain;
            }
            .p-subtitle { 
               font-size: 0.55rem; 
-              margin-bottom: 8px; 
-              letter-spacing: 0.2em; 
-              display: -webkit-box !important;
-              -webkit-line-clamp: 2;
-              -webkit-box-orient: vertical;
-              overflow: hidden;
-              line-height: 1.5;
+              margin-bottom: 4px; 
+              letter-spacing: 0.1em; 
+              line-height: 1.3;
            }
-           .p-title { font-size: 1.3rem; line-height: 1.15; margin-bottom: 2px; }
-           .p-tagline { font-size: 0.8rem; opacity: 0.7; margin-bottom: 10px; display: block !important; }
-           .p-description { 
-              display: -webkit-box !important;
-              -webkit-line-clamp: 3;
-              -webkit-box-orient: vertical;
-              overflow: hidden;
-              font-size: 0.8rem; 
-              line-height: 1.6; 
-              margin: 8px 0 14px; 
-              color: #999;
-              text-align: justify;
-              hyphens: auto;
-              -webkit-hyphens: auto;
-           }
-           .p-price-tag { font-size: 1.15rem; margin-bottom: 4px; }
-           .p-inventory-status { font-size: 0.7rem; margin-bottom: 8px; }
-           .p-link-luxury { font-size: 0.75rem; }
-           .p-actions-row { gap: 10px !important; }
+           .p-title { font-size: 1.4rem; line-height: 1.15; margin-bottom: 4px; }
+           .p-tagline { display: none !important; }
+           .p-description { display: none !important; }
+           .p-price-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; margin-bottom: 8px; }
+           .p-price-tag { font-size: 1.25rem; margin: 0; }
+           .p-inventory-status { font-size: 0.8rem; margin: 0; display: inline-flex; align-items: center; }
+           .p-link-luxury { font-size: 0.65rem; padding: 5px 10px; }
+           .p-link-luxury svg { width: 12px; height: 12px; }
+           .p-actions-row { gap: 6px !important; justify-content: flex-start; width: 100%; margin-top: 6px; }
            
-           .p-diffusion-glow { display: none !important; }
-           .p-soft-shadow { display: none !important; }
+           .p-diffusion-glow { display: block !important; scale: 0.7; opacity: 0.4; }
+           .p-soft-shadow { display: block !important; scale: 0.8; bottom: -20px; }
         }
       `}</style>
 
@@ -954,26 +953,40 @@ const Products = () => {
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </div>
-        <div className="products-hero-content">
-          <span className="hero-eyebrow">{videoSettings.products_hero_video_subtitle || "Wear It Your Way."}</span>
-          <h1>{videoSettings.products_hero_video_title || "FYLEX"}</h1>
-        </div>
       </section>
 
       {/* ═══ PRODUCT SECTIONS ═══ */}
       <div className="p-sections-list">
         {collections.map((col) => {
+          if (productOverrides) {
+            col.bgColor = productOverrides.productsBg || col.bgColor;
+            col.textColor = productOverrides.productsTextColor || col.textColor;
+            col.accentColor = productOverrides.productsAccentColor || col.accentColor;
+            col.gradient = productOverrides.productsGradient || col.gradient;
+            const hexToRgb = (hex) => {
+              if (!hex) return '196, 163, 90';
+              const cleanHex = hex.replace('#', '');
+              const r = parseInt(cleanHex.substring(0, 2), 16);
+              const g = parseInt(cleanHex.substring(2, 4), 16);
+              const b = parseInt(cleanHex.substring(4, 6), 16);
+              return `${r}, ${g}, ${b}`;
+            };
+            col.accentRgb = hexToRgb(col.accentColor);
+          }
+
           const sectionStyle = {
             background: col.gradient || `
               radial-gradient(circle at 100% 0%, rgba(${col.accentRgb}, 0.25) 0%, transparent 60%),
               radial-gradient(circle at 5% 40%, rgba(${col.accentRgb}, 0.15) 0%, transparent 50%),
-              linear-gradient(145deg, #020202 0%, #151515 40%, rgba(${col.accentRgb}, 0.05) 50%, #050505 100%)
+              linear-gradient(145deg, ${col.bgColor} 0%, ${col.bgColor} 100%)
             `
           };
 
           const mistStyle = {
             background: `radial-gradient(circle at 75% 35%, rgba(${col.mistRgb}, 0.35) 0%, transparent 80%)`
           };
+
+          const autoTextColor = getContrastTextColor(col.bgColor, col.textColor);
 
           return (
             <section key={col.id} className="p-section" style={sectionStyle}>
@@ -991,21 +1004,23 @@ const Products = () => {
               <div className="p-section-inner">
                 {/* Content Layer */}
                 <div className="p-content">
-                  <span className="p-subtitle">{col.subtitle}</span>
-                  <h2 className="p-title">
+                  <span className="p-subtitle" style={{ color: autoTextColor, opacity: 0.8 }}>{col.subtitle}</span>
+                  <h2 className="p-title" style={{ color: autoTextColor }}>
                     {col.title}
                     <em>{col.titleAccent}</em>
                   </h2>
-                  <span className="p-tagline">{col.tagline}</span>
-                  <p className="p-description">{col.description}</p>
+                  <span className="p-tagline" style={{ color: autoTextColor, opacity: 0.9 }}>{col.tagline}</span>
+                  <p className="p-description" style={{ color: autoTextColor, opacity: 0.7 }}>{col.description}</p>
 
-                  <span className="p-price-tag">{col.price}</span>
-                  <div className="p-inventory-status">
-                    <svg onClick={() => openInfoModal(col)} className="i-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" title="View previously configured combinations">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="16" x2="12" y2="12"></line>
-                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
+                  <div className="p-price-row">
+                    <span className="p-price-tag" style={{ color: autoTextColor }}>{col.price}</span>
+                    <div className="p-inventory-status">
+                      <svg onClick={() => openInfoModal(col)} className="i-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" title="View previously configured combinations" style={{ cursor: 'pointer' }}>
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                    </div>
                   </div>
                   <div className="p-actions-row">
                     <Link href={`/discover?watch=${col.id}`} className="p-link-luxury">

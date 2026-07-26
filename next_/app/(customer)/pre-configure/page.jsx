@@ -8,15 +8,25 @@ import 'swiper/css/pagination';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { fetchProducts } from '../../../lib/api';
-import { getDisplayData } from '../../../lib/utils';
+import { useDesignSystem } from '@/context/DesignSystemContext';
+import { getDisplayData, getPageTheme } from '../../../lib/utils';
 
 const PreConfigure = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState(new Set());
   const [swiperInstance, setSwiperInstance] = useState(null);
+  const { productOverrides } = useDesignSystem();
   const [activeCategory, setActiveCategory] = useState('All');
   const [categories, setCategories] = useState(['All']);
+  const [activeModalData, setActiveModalData] = useState(null);
+
+  const openInfoModal = (product) => {
+    setActiveModalData(product);
+  };
+  const closeInfoModal = () => {
+    setActiveModalData(null);
+  };
 
 
 
@@ -36,7 +46,8 @@ const PreConfigure = () => {
             }, p.variants[0]);
           }
 
-          const display = getDisplayData(p, cheapestVariant);
+          const display = getDisplayData(p);
+          const pageTheme = getPageTheme(p, 'preConfigure');
 
           return {
             id: p.id.toString(),
@@ -44,9 +55,9 @@ const PreConfigure = () => {
             price: display.formattedPrice,
             heroImage: display.image,
             theme: p.theme || 'champagne',
-            textColor: p.textColor || '#1a1a1a',
-            accentColor: p.accentColor || '#c4a35a',
-            bgColor: p.bgColor || '',
+            textColor: pageTheme.textColor,
+            accentColor: pageTheme.accentColor,
+            bgColor: pageTheme.bg,
             shortDescription: p.shortDescription || p.description || '',
             category: p.mainCategory?.name || 'Uncategorized'
           };
@@ -167,7 +178,7 @@ const PreConfigure = () => {
           width: 100%;
           height: 100%;
           object-fit: contain;
-          transform: scale(1.8);
+          transform: scale(1.0);
           filter: drop-shadow(0 30px 60px rgba(0,0,0,0.15));
           transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
         }
@@ -224,25 +235,31 @@ const PreConfigure = () => {
         .btn-read-more {
           background: none;
           border: none;
-          color: #c4a35a;
-          font-size: 0.85rem;
-          font-weight: 600;
+          color: var(--theme-accent, #c4a35a);
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
           cursor: pointer;
-          padding: 0;
-          margin-top: 4px;
-          text-decoration: underline;
-          text-underline-offset: 2px;
+          padding: 4px 0;
+          margin-top: 6px;
           pointer-events: auto;
           display: inline-block;
           text-align: left;
+          transition: opacity 0.3s ease;
+        }
+        .btn-read-more:hover {
+          opacity: 0.8;
         }
         .btn-configure {
-          display: inline-block;
-          padding: 8px 16px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 24px;
           background: #1a1a1a;
           color: #fff;
           text-decoration: none;
-          font-size: 10px;
+          font-size: 0.75rem;
           font-weight: 700;
           letter-spacing: 0.15em;
           text-transform: uppercase;
@@ -252,12 +269,32 @@ const PreConfigure = () => {
           box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         .btn-configure:hover, .btn-configure:active {
-          background: rgba(255, 255, 255, 0.1) !important;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border-color: rgba(255, 255, 255, 0.2);
+          background: rgba(26, 26, 26, 0.8) !important;
+          border-color: rgba(26, 26, 26, 0.8);
           transform: translateY(-2px);
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        .btn-explore {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 24px;
+          background: transparent;
+          color: var(--theme-accent, #c4a35a);
+          text-decoration: none;
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+          border-radius: 999px;
+          border: 1px solid var(--theme-accent, #c4a35a);
+        }
+        .btn-explore:hover, .btn-explore:active {
+          background: var(--theme-accent, #c4a35a);
+          color: #fff;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
 
         /* Custom Pagination Lines */
@@ -356,9 +393,9 @@ const PreConfigure = () => {
             color: var(--theme-text, #1a1a1a);
           }
           .product-name {
-            font-size: 5.5rem;
-            line-height: 0.85;
-            margin-bottom: 5px;
+            font-size: clamp(2.2rem, 3.8vw, 3.2rem);
+            line-height: 1.05;
+            margin-bottom: 10px;
             color: var(--theme-text, #1a1a1a);
           }
           .product-price {
@@ -383,12 +420,14 @@ const PreConfigure = () => {
           }
           .btn-configure {
             width: fit-content;
-            padding: 20px 50px;
-            font-size: 0.9rem;
+            padding: 12px 32px;
+            font-size: 0.8rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
             background: var(--theme-text, #1a1a1a);
             color: var(--theme-bg, #fff);
             border: none;
-            font-weight: 800;
+            font-weight: 700;
           }
           .btn-configure:hover {
             opacity: 0.9;
@@ -410,13 +449,13 @@ const PreConfigure = () => {
         }
 
         @media (max-width: 1024px) {
-          .product-image { transform: scale(1.6); }
+          .product-image { transform: scale(1.0); }
           .product-info { bottom: 75px; padding: 0 50px; }
           .swiper-pagination { bottom: 35px !important; }
         }
 
         @media (max-width: 768px) {
-          .product-image { transform: scale(1.6); }
+          .product-image { transform: scale(0.95); }
           .product-info { bottom: 70px; padding: 0 20px; }
           .product-name { font-size: 1.6rem; }
           .product-price { font-size: 1rem; margin: 2px 0 10px; }
@@ -499,10 +538,16 @@ const PreConfigure = () => {
           >
             {products
               .filter(p => activeCategory === 'All' || p.category === activeCategory)
-              .map((product) => (
-                <SwiperSlide key={product.id}>
-                  <div
-                    className={`slide-bg section-${product.theme}`}
+              .map((product) => {
+                if (productOverrides) {
+                  product.bgColor = productOverrides.preConfigureBg || product.bgColor;
+                  product.textColor = productOverrides.preConfigureTextColor || product.textColor;
+                  product.accentColor = productOverrides.preConfigureAccentColor || product.accentColor;
+                }
+                return (
+                  <SwiperSlide key={product.id}>
+                    <div
+                      className={`slide-bg section-${product.theme}`}
                     style={{
                       backgroundColor: product.bgColor || undefined,
                       '--theme-text': product.textColor,
@@ -550,19 +595,84 @@ const PreConfigure = () => {
                           </button>
                         )}
                       </div>
-                      <span className="product-price">{product.price}</span>
-                      <div className="flex gap-3 items-center mt-4 btn-container">
+                      <div className="product-price-row flex items-center gap-3 mb-4">
+                        <span className="product-price !m-0">{product.price}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            openInfoModal(product);
+                          }}
+                          className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-serif italic font-bold cursor-pointer bg-transparent text-inherit opacity-85 hover:opacity-100 transition-all"
+                          title="View Details"
+                        >
+                          i
+                        </button>
+                      </div>
+                      <div className="flex gap-4 items-center mt-6 btn-container flex-wrap">
                         <Link href={`/configure?watch=${product.id}`} className="btn-configure">
                           Configure
+                        </Link>
+                        <Link 
+                          href={`/discover?watch=${product.id}`} 
+                          className="btn-explore"
+                        >
+                          Explore Details &rarr;
                         </Link>
                       </div>
                     </div>
                   </div>
                 </SwiperSlide>
-              ))}
+                );
+              })}
           </Swiper>
         </div>
       </main>
+
+      {/* ═══ ELEGANT INFO MODAL OVERLAY ═══ */}
+      {activeModalData && (
+        <div 
+          onClick={closeInfoModal}
+          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-5"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white text-gray-900 w-full max-w-lg rounded-2xl p-8 shadow-2xl relative"
+          >
+            <div className="flex justify-between items-center mb-5 pb-4 border-b border-gray-100">
+              <h3 className="text-xl font-bold font-serif m-0">{activeModalData.title}</h3>
+              <button onClick={closeInfoModal} className="bg-transparent border-0 text-xl cursor-pointer text-gray-500 hover:text-black">✕</button>
+            </div>
+            
+            <div className="flex gap-5 items-center mb-5">
+              {activeModalData.heroImage && (
+                <img src={activeModalData.heroImage} alt={activeModalData.title} className="w-28 h-28 object-contain" />
+              )}
+              <div>
+                <p className="text-xl font-bold mb-2 text-gray-900">{activeModalData.price}</p>
+                <p className="text-xs text-gray-600 m-0 leading-relaxed">{activeModalData.shortDescription}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
+              <Link
+                href={`/discover?watch=${activeModalData.id}`}
+                onClick={closeInfoModal}
+                className="px-5 py-2.5 rounded-full border border-gray-900 text-gray-900 no-underline text-xs font-bold uppercase tracking-wider hover:bg-gray-100 transition-all"
+              >
+                Discover Specs &rarr;
+              </Link>
+              <Link
+                href={`/configure?watch=${activeModalData.id}`}
+                onClick={closeInfoModal}
+                className="px-5 py-2.5 rounded-full bg-gray-900 text-white no-underline text-xs font-bold uppercase tracking-wider hover:bg-black transition-all"
+              >
+                Start Configuring
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

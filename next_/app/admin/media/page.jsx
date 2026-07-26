@@ -93,6 +93,13 @@ const MediaList = () => {
                     continue;
                 }
             }
+            if (file.type.startsWith('video/')) {
+                const maxVideoSizeInBytes = 20 * 1024 * 1024;
+                if (file.size > maxVideoSizeInBytes) {
+                    toast?.error?.(`Video "${file.name}" size exceeds maximum 20MB limit`);
+                    continue;
+                }
+            }
             formData.append('file', file);
             
             const base = currentFolder === '/' ? '' : currentFolder;
@@ -124,6 +131,37 @@ const MediaList = () => {
     const confirmDelete = (file) => {
         setFileToDelete(file);
         setDeleteModal(true);
+    };
+
+    const handleDeleteFolder = (folderName) => {
+        const targetPath = currentFolder === '/' ? '/' + folderName : currentFolder + '/' + folderName;
+        // Check if any files exist in this folder or subfolders
+        const hasFiles = mediaList.some(f => {
+            const fPath = f.folderPath || '/';
+            return fPath === targetPath || fPath.startsWith(targetPath + '/');
+        });
+
+        if (hasFiles) {
+            toast?.error?.(`Cannot delete folder "${folderName}": Folder contains files. Delete or move files first.`);
+            return;
+        }
+
+        toast?.success?.(`Folder "${folderName}" is empty and removed.`);
+    };
+
+    const handleFileDrop = async (mediaId, targetFolderName) => {
+        const targetPath = currentFolder === '/' ? '/' + targetFolderName : currentFolder + '/' + targetFolderName;
+        try {
+            const res = await api.updateMedia(mediaId, { folderPath: targetPath });
+            if (res.success) {
+                toast?.success?.(`Media moved to "${targetFolderName}"`);
+                refetch.media?.();
+            } else {
+                toast?.error?.(res.error || 'Failed to move file');
+            }
+        } catch (err) {
+            toast?.error?.('Failed to move media file');
+        }
     };
 
     const handleDelete = async () => {
@@ -255,7 +293,34 @@ const MediaList = () => {
                                             </div>
                                         </td></tr>
                                     ) : paginatedItems.map((item) => (
-                                        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                        <tr key={item.id} className="hover:bg-slate-50 transition-colors"
+                                             draggable={item.type !== 'folder'}
+                                             onDragStart={(e) => {
+                                                 if (item.type !== 'folder') {
+                                                     e.dataTransfer.setData('text/plain', item.id.toString());
+                                                 }
+                                             }}
+                                             onDragOver={(e) => {
+                                                 if (item.type === 'folder') {
+                                                     e.preventDefault();
+                                                     e.currentTarget.style.background = '#fef3c7';
+                                                 }
+                                             }}
+                                             onDragLeave={(e) => {
+                                                 if (item.type === 'folder') {
+                                                     e.currentTarget.style.background = '';
+                                                 }
+                                             }}
+                                             onDrop={(e) => {
+                                                 if (item.type === 'folder') {
+                                                     e.preventDefault();
+                                                     e.currentTarget.style.background = '';
+                                                     const mediaId = e.dataTransfer.getData('text/plain');
+                                                     if (mediaId) {
+                                                         handleFileDrop(mediaId, item.name);
+                                                     }
+                                                 }
+                                             }}>
                                             {item.type === 'folder' ? (
                                                 <>
                                                     <td style={{ padding: '16px 32px', cursor: 'pointer' }} onClick={() => setCurrentFolder(currentFolder === '/' ? '/' + item.name : currentFolder + '/' + item.name)}>
@@ -269,11 +334,15 @@ const MediaList = () => {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td>-</td>
-                                                    <td style={{ textAlign: 'center' }}>-</td>
-                                                    <td style={{ textAlign: 'center' }}>-</td>
-                                                    <td></td>
-                                                </>
+                                                     <td>-</td>
+                                                     <td style={{ textAlign: 'center' }}>-</td>
+                                                     <td style={{ textAlign: 'center' }}>-</td>
+                                                     <td style={{ padding: '16px 32px', textAlign: 'right' }}>
+                                                         <button className="btn-icon danger" style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: 8, padding: '8px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={(e) => { e.stopPropagation(); handleDeleteFolder(item.name); }} title="Delete Folder">
+                                                             <i className="fas fa-trash-alt"></i> Delete
+                                                         </button>
+                                                     </td>
+                                                 </>
                                             ) : (() => {
                                                 const f = item;
                                                 return (

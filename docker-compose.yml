@@ -1,0 +1,58 @@
+services:
+  # PostgreSQL Database Container
+  db:
+    image: postgres:16-alpine
+    container_name: fylex-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: fylex_user
+      POSTGRES_PASSWORD: fylex_password
+      POSTGRES_DB: fylex_db
+    ports:
+      - "5444:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fylex_user -d fylex_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Backend API Container
+  backend:
+    build:
+      context: ./nest_
+      dockerfile: Dockerfile
+    container_name: fylex-backend
+    restart: always
+    ports:
+      - "5000:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://fylex_user:fylex_password@db:5432/fylex_db?schema=public
+      JWT_SECRET: fylex_secret_key_123
+      NODE_ENV: production
+      RAZORPAY_KEY_ID: rzp_live_SdNFT2pwIkyLzZ
+      RAZORPAY_KEY_SECRET: LTp6hWBdQJgZv3wWVs4lFrHN
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./nest_/uploads:/app/uploads
+
+  # Next.js Frontend Container
+  frontend:
+    build:
+      context: ./next_
+      dockerfile: Dockerfile
+    container_name: fylex-frontend
+    restart: always
+    ports:
+      - "3002:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

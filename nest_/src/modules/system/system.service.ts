@@ -220,7 +220,11 @@ export class SystemService {
   }
 
   async updateSettings(data: any) {
-    const updates = Object.entries(data).map(async ([key, value]) => {
+    const groupName = data._group || 'shop_page';
+    const settingsData = { ...data };
+    delete settingsData._group;
+
+    const updates = Object.entries(settingsData).map(async ([key, value]) => {
       const existing = await this.prisma.setting.findFirst({ where: { key } });
       if (existing) {
         return this.prisma.setting.update({
@@ -233,7 +237,7 @@ export class SystemService {
             key,
             value: String(value),
             label: key,
-            group: 'shop_page',
+            group: groupName,
           }
         });
       }

@@ -13,7 +13,8 @@ import 'swiper/css/free-mode';
 import { fetchProducts } from '../../../lib/api';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
-import { getFileUrl, resolveProductImage, getDisplayData } from '@/lib/utils';
+import { useDesignSystem } from '@/context/DesignSystemContext';
+import { getFileUrl, resolveProductImage, getDisplayData, getPageTheme } from '@/lib/utils';
 import localProductsData from '../../../data/productsData';
 
 function DiscoverContent() {
@@ -21,6 +22,7 @@ function DiscoverContent() {
   const router = useRouter();
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { productOverrides } = useDesignSystem();
   const watchId = searchParams.get('watch');
   const mode = searchParams.get('mode');
   const isGeneralMode = mode === 'all';
@@ -54,6 +56,7 @@ function DiscoverContent() {
 
           const mapped = actualData.map(p => {
             const display = getDisplayData(p);
+            const pageTheme = getPageTheme(p, 'discover');
             return {
               ...p,
               ...display,
@@ -61,16 +64,19 @@ function DiscoverContent() {
               id: p.id.toString(),
               variantId: display.variantId,
               heroImage: display.image, // Resolve heroImage using display logic
-              title: display.name,
+              title: p.name || display.name || 'Atlas Legacy',
+              name: p.name || display.name || 'Atlas Legacy',
               subtitle: display.subtitle || 'Luxury Collection',
               description: p.shortDescription || p.description || '',
               longDesc: p.description || p.shortDescription || 'Experience the pinnacle of watchmaking with our masterfully crafted timepiece.',
               theme: p.theme || 'champagne',
-              accentColor: p.accentColor || '#c4a35a',
-              accentRgb: hexToRgb(p.accentColor || '#c4a35a'),
+              accentColor: pageTheme.accentColor,
+              accentRgb: hexToRgb(pageTheme.accentColor),
               mistColor: p.mistColor || '',
-              mistRgb: hexToRgb(p.mistColor || p.accentColor || '#c4a35a'),
-              textColor: p.textColor || '#1a1a1a',
+              mistRgb: hexToRgb(p.mistColor || pageTheme.accentColor),
+              textColor: pageTheme.textColor,
+              bgColor: pageTheme.bg,
+              gradient: pageTheme.gradient,
               videoUrl: p.videoUrl || null,
               heritageText: p.heritageText || 'Founded on the principles of precision and timeless elegance, Fylex has been at the forefront of horological innovation for generations.',
               sold: (p.soldCount !== undefined && p.soldCount !== null) ? p.soldCount : Math.min((p.id % 100) + 120, p.qty || p.stockCount || 500),
@@ -109,20 +115,26 @@ function DiscoverContent() {
                 });
                 return acc;
               }, {}),
-              productBelts: p.productBelts?.map(pb => ({
-                id: pb.belt.id,
-                name: pb.belt.name,
-                price: pb.belt.price,
-                stock: pb.belt.stock,
-                image: pb.belt.image?.url || pb.belt.image
-              })) || [],
-              productBoxes: p.productBoxes?.map(pb => ({
-                id: pb.box.id,
-                name: pb.box.name,
-                price: pb.box.price,
-                stock: pb.box.stock,
-                image: pb.box.image?.url || pb.box.image
-              })) || [],
+              productBelts: p.productBelts?.map(pb => {
+                const bImg = pb.belt?.image?.url || pb.belt?.image?.filePath || pb.belt?.image?.path || pb.belt?.image?.fileName || (typeof pb.belt?.image === 'string' ? pb.belt?.image : null);
+                return {
+                  id: pb.belt.id,
+                  name: pb.belt.name,
+                  price: pb.belt.price,
+                  stock: pb.belt.stock,
+                  image: bImg ? getFileUrl(bImg) : null
+                };
+              }) || [],
+              productBoxes: p.productBoxes?.map(pb => {
+                const bxImg = pb.box?.image?.url || pb.box?.image?.filePath || pb.box?.image?.path || pb.box?.image?.fileName || (typeof pb.box?.image === 'string' ? pb.box?.image : null);
+                return {
+                  id: pb.box.id,
+                  name: pb.box.name,
+                  price: pb.box.price,
+                  stock: pb.box.stock,
+                  image: bxImg ? getFileUrl(bxImg) : null
+                };
+              }) || [],
               totalSoldConfigurations: (p.variants || []).reduce((sum, v) => sum + (v.fakeSoldCount || 0), 0)
             };
           });
@@ -272,6 +284,15 @@ function DiscoverContent() {
       </div>
     );
   }
+
+  // ── LIVE PREVIEW INTERCEPT ──
+  if (productOverrides) {
+    product.bgColor = productOverrides.discoverBg || product.bgColor;
+    product.textColor = productOverrides.discoverTextColor || product.textColor;
+    product.accentColor = productOverrides.discoverAccentColor || product.accentColor;
+    product.gradient = productOverrides.discoverGradient || product.gradient;
+  }
+  
   // ── DYNAMIC VARIANT MATCHING ──
   const selections = {};
   const variantIdParam = searchParams.get('variant');
@@ -323,6 +344,8 @@ function DiscoverContent() {
 
     if (vGallery.length > 0) {
       product.galleryImages = vGallery;
+    } else {
+      product.galleryImages = [vDisplay.image];
     }
   }
 
@@ -378,7 +401,7 @@ function DiscoverContent() {
       });
     });
 
-    const vImg = match?.variantImages?.find(vi => vi.type === 'MAIN')?.media || match?.variantImages?.[0]?.media;
+    const vImg = match?.variantImages?.find(vi => vi.type === 'GALLERY')?.media || match?.variantImages?.find(vi => vi.type === 'MAIN')?.media || match?.variantImages?.[0]?.media;
     if (!vImg) return null;
     let vPath = vImg.url || vImg.path || (vImg.fileName ? `/uploads/${vImg.fileName}` : '');
     if (vPath && !vPath.startsWith('http') && !vPath.startsWith('/') && !vPath.startsWith('data:')) {
@@ -398,28 +421,44 @@ function DiscoverContent() {
           overflow-x: hidden;
         }
         .cfg-page.is-configured {
-          background: #000000;
-          color: #ffffff;
+          background: ${product.bgColor || '#000000'};
+          color: ${product.textColor || '#ffffff'};
         }
         .cfg-page.is-configured .cfg-details-title,
         .cfg-page.is-configured .cfg-details-price,
         .cfg-page.is-configured .cfg-desc-heading,
         .cfg-page.is-configured .cfg-desc-text,
-        .cfg-page.is-configured .cfg-specs-title,
-        .cfg-page.is-configured .cfg-spec-label,
-        .cfg-page.is-configured .cfg-spec-value,
         .cfg-page.is-configured .cfg-heritage-heading,
-        .cfg-page.is-configured .cfg-heritage-text,
-        .cfg-page.is-configured .cfg-spec-trigger {
-          color: #ffffff !important;
+        .cfg-page.is-configured .cfg-heritage-text {
+          color: ${product.textColor || '#ffffff'} !important;
         }
         .cfg-page.is-configured .cfg-details-specs,
-        .cfg-page.is-configured .cfg-heritage-eyebrow,
-        .cfg-page.is-configured .cfg-spec-group-name {
-          color: #aaaaaa !important;
+        .cfg-page.is-configured .cfg-heritage-eyebrow {
+          color: ${product.textColor || '#ffffff'} !important;
+          opacity: 0.7;
+        }
+
+        /* ── Specs section always has a white background ── */
+        /* So ALWAYS use dark text here, regardless of product theme */
+        .cfg-specs-section,
+        .cfg-page.is-configured .cfg-specs-section {
+          background: #ffffff !important;
+          color: #1a1a1a !important;
+        }
+        .cfg-specs-section .cfg-specs-title,
+        .cfg-specs-section .cfg-spec-label,
+        .cfg-specs-section .cfg-spec-value,
+        .cfg-specs-section .cfg-spec-group-name,
+        .cfg-specs-section .cfg-spec-trigger,
+        .cfg-page.is-configured .cfg-specs-section .cfg-specs-title,
+        .cfg-page.is-configured .cfg-specs-section .cfg-spec-label,
+        .cfg-page.is-configured .cfg-specs-section .cfg-spec-value,
+        .cfg-page.is-configured .cfg-specs-section .cfg-spec-group-name,
+        .cfg-page.is-configured .cfg-specs-section .cfg-spec-trigger {
+          color: #1a1a1a !important;
         }
         .cfg-page.is-configured .cfg-spec-row {
-          border-bottom-color: #333333;
+          border-bottom-color: #e5e5e5;
         }
 
         /* ── YOUR CHOICES SECTION ── */
@@ -522,20 +561,23 @@ function DiscoverContent() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 12px;
-          min-width: 140px;
-          padding: 8px 16px;
+          gap: 6px;
+          min-width: 90px !important;
+          padding: 4px 12px !important;
+          height: 28px !important;
           background: #1a1a1a;
           color: #fff;
           border: 1px solid #1a1a1a;
           border-radius: 999px;
-          font-size: 10px;
+          font-size: 8px !important;
           font-weight: 700;
-          letter-spacing: 0.15em;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
           cursor: pointer;
           transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          white-space: nowrap;
+          box-sizing: border-box;
         }
         .cfg-book-btn:hover, .cfg-book-btn:active {
           background: rgba(255, 255, 255, 0.1) !important;
@@ -642,7 +684,8 @@ function DiscoverContent() {
         .cfg-hero-product-img {
           width: 100%;
           height: auto;
-          max-height: 70vh;
+          max-height: 80vh;
+          transform: scale(1.08);
           object-fit: contain;
           z-index: 12;
           filter: drop-shadow(0 30px 60px rgba(0,0,0,0.12));
@@ -650,7 +693,7 @@ function DiscoverContent() {
         }
 
         .cfg-hero-product-img:hover {
-          transform: scale(1.02);
+          transform: scale(1.1);
         }
 
         .cfg-hero-image-hidden {
@@ -681,38 +724,31 @@ function DiscoverContent() {
           font-family: 'Inter', sans-serif;
           font-size: clamp(1.8rem, 3.5vw, 2.4rem);
           font-weight: 700;
-          color: ${product.textColor};
-          // margin-bottom: 12px;
+          color: inherit;
           letter-spacing: -0.02em;
-        }
-        .cfg-hero-subtitle {
-          font-size: 1.1rem;
-          color: ${product.textColor};
-          max-width: 400px;
-          line-height: 1.6;
         }
         .cfg-details-specs {
           font-size: 1rem;
-          color: #666;
+          color: inherit;
           margin-bottom: 2px;
           font-weight: 300;
           text-align: justify;
+          opacity: 0.75;
         }
         .cfg-details-ref {
           font-size: 1rem;
-          color: #666;
-          // margin-bottom: 15px;
+          color: inherit;
           font-weight: 300;
         }
         .cfg-hero-price {
           font-size: 1.5rem;
           font-weight: 600;
-          color: ${product.textColor};
+          color: inherit;
         }
         .cfg-details-price {
           font-size: 1.25rem;
           font-weight: 600;
-          color: #1a1a1a;
+          color: inherit;
           display: flex;
           align-items: center;
           gap: 10px;
@@ -864,21 +900,41 @@ function DiscoverContent() {
             height: 60px;
           }
           .cfg-hero {
-            padding: 120px 0 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 100vh;
+            padding: calc(var(--header-h, 70px) + 15px) 0 25px;
+            box-sizing: border-box;
           }
           .cfg-hero-main-visual {
-            transform: translateY(-40px);
+            position: relative;
+            transform: none;
+            margin: 10px 0 15px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
           }
           .cfg-hero-product-img {
             max-height: 38vh;
+            width: auto;
+            object-fit: contain;
+            transform: scale(1);
           }
           .cfg-details-box {
-            bottom: 30px;
-            left: 20px;
-            right: 20px;
+            position: relative;
+            bottom: auto;
+            left: auto;
+            right: auto;
+            width: 100%;
+            padding: 0 20px;
             flex-direction: column;
             align-items: flex-start;
-            gap: 15px;
+            gap: 12px;
+            z-index: 20;
           }
           .cfg-details-title {
             font-size: 1.8rem;
@@ -1051,15 +1107,16 @@ function DiscoverContent() {
           background: #1a1a1a;
           color: #fff;
           border: none;
-          padding: 8px 16px;
+          padding: 6px 14px !important;
           border-radius: 999px;
-          font-size: 10px;
+          font-size: 9px !important;
           font-weight: 700;
-          letter-spacing: 0.15em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           cursor: pointer;
           transition: all 0.4s;
-          min-width: 140px;
+          min-width: 105px !important;
+          height: 32px !important;
           width: auto;
           white-space: nowrap;
           text-align: center;
@@ -1680,9 +1737,9 @@ function DiscoverContent() {
 
         /* Technical Details Section Styles */
         .cfg-specs-section {
-          padding: 20px 0;
-          background: #fff;
-          color: #1a1a1a;
+          padding: 40px 0;
+          background: #ffffff !important;
+          color: #1a1a1a !important;
           position: relative;
         }
         .cfg-specs-container {
@@ -1701,16 +1758,16 @@ function DiscoverContent() {
           line-height: 1.1;
           font-weight: 600;
           margin-bottom: 20px;
-          color: #1a1a1a;
+          color: #1a1a1a !important;
           letter-spacing: -0.02em;
         }
         .cfg-specs-title span {
-          color: #006039;
+          color: #006039 !important;
           display: block;
         }
         .cfg-specs-ref {
           font-size: 1.1rem;
-          color: #1a1a1a;
+          color: #1a1a1a !important;
           font-weight: 500;
           opacity: 0.8;
           margin-top: 20px;
@@ -1759,7 +1816,7 @@ function DiscoverContent() {
           font-family: 'Outfit', sans-serif;
           font-size: 1.2rem;
           font-weight: 600;
-          color: #1a1a1a;
+          color: #1a1a1a !important;
         }
         .cfg-spec-icon {
           width: 14px;
@@ -1771,7 +1828,7 @@ function DiscoverContent() {
         .cfg-spec-icon::after {
           content: '';
           position: absolute;
-          background: #1a1a1a;
+          background: #1a1a1a !important;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
@@ -1810,13 +1867,13 @@ function DiscoverContent() {
           border-bottom: none;
         }
         .cfg-spec-label {
-          color: #1a1a1a;
+          color: #1a1a1a !important;
           font-weight: 600;
           width: 45%;
           word-wrap: break-word;
         }
         .cfg-spec-value {
-          color: #444;
+          color: #444444 !important;
           text-align: left;
           width: 50%;
           line-height: 1.5;
@@ -1926,22 +1983,25 @@ function DiscoverContent() {
           {/* Bottom Left Details */}
           <div className="cfg-details-box" style={{ zIndex: 10 }}>
             <div className="cfg-details-left">
-              <h1 className="cfg-details-title" style={product.heroBgImage ? { color: '#ffffff' } : {}}>{product.title}</h1>
-              <p className="cfg-details-specs" style={product.heroBgImage ? { color: 'rgba(255,255,255,0.8)' } : {}}>{product.subtitle}</p>
+              <h1 className="cfg-details-title" style={product.heroBgImage ? { color: '#ffffff' } : { color: product.textColor || '#111111' }}>{product.title}</h1>
+              <p className="cfg-details-specs" style={product.heroBgImage ? { color: 'rgba(255,255,255,0.8)' } : { color: product.textColor ? `${product.textColor}aa` : '#666666' }}>{product.subtitle}</p>
 
               {hasConfig && (
                 <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {Object.entries(selections).map(([key, val]) => (
-                    <span key={key} style={{ fontSize: '0.8rem', padding: '6px 12px', background: 'rgba(255,255,255,0.1)', borderRadius: '20px', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', textTransform: 'capitalize', fontWeight: '500' }}>
-                      <span style={{opacity: 0.7, marginRight: '4px'}}>{key}:</span> {val}
-                    </span>
-                  ))}
+                  {Object.entries(selections).map(([key, val]) => {
+                    const tc = product.textColor || '#111111';
+                    const isLight = !product.heroBgImage;
+                    return (
+                      <span key={key} style={{ fontSize: '0.8rem', padding: '6px 12px', background: isLight ? `${tc}12` : 'rgba(255,255,255,0.1)', borderRadius: '20px', color: isLight ? tc : '#ffffff', border: isLight ? `1px solid ${tc}22` : '1px solid rgba(255,255,255,0.2)', textTransform: 'capitalize', fontWeight: '500' }}>
+                        <span style={{opacity: 0.6, marginRight: '4px'}}>{key}:</span> {val}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
               <div className="cfg-price-add-row">
-                <div className="cfg-details-price" style={product.heroBgImage || hasConfig ? { color: '#ffffff' } : {}}>
-                  ₹ {product.price?.toLocaleString() || '7,838,000'}
-                  {/* <div className="cfg-info-icon">i</div> */}
+                <div className="cfg-details-price" style={product.heroBgImage ? { color: '#ffffff' } : { color: product.textColor || '#111111' }}>
+                  {product.formattedPrice || (typeof product.price === 'number' ? `₹ ${product.price.toLocaleString()}` : product.price) || '₹ 25,000'}
                 </div>
 
                 <div className="cfg-actions-group">
@@ -1955,7 +2015,7 @@ function DiscoverContent() {
                     </button>
                   )}
                   {hasConfig && (
-                    <div className="cfg-details-right" style={{ color: product.heroBgImage || hasConfig ? '#ffffff' : '#1a1a1a' }}>
+                    <div className="cfg-details-right" style={{ color: product.heroBgImage ? '#ffffff' : (product.textColor || '#1a1a1a') }}>
                       <div
                         className={`cfg-fav-inline ${isInWishlist(product.currentVariantId || product.variantId) ? 'active' : ''}`}
                         onClick={() => toggleWishlist({ ...product, variantId: product.currentVariantId || product.variantId })}
@@ -2105,7 +2165,7 @@ function DiscoverContent() {
             <p className="cfg-heritage-text">{product.heritageText}</p>
             <div className="cfg-sold-stats" onClick={() => openInfoModal(product)} style={{ marginTop: '30px' }}>
               <span className="shimmer-sweep"></span>
-              <span className="stats-label" style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Configurations Sold</span>
+              <span className="stats-label" style={{ fontSize: '0.75rem', letterSpacing: '0.15em', marginBottom: '6px' }}>Configurations Sold</span>
               <div className="cfg-see-variants">
                 <span>see variants</span>
                 <div className="cfg-info-icon">i</div>
@@ -2131,7 +2191,7 @@ function DiscoverContent() {
             <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 40px' }}>
               {/* Header */}
               <div style={{ marginBottom: '56px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888', marginBottom: '12px' }}>Compatible Straps</p>
+                <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#333', marginBottom: '12px' }}>Compatible Straps</p>
                 <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                   Add to the look
                 </h2>
@@ -2172,15 +2232,15 @@ function DiscoverContent() {
                         <div style={{
                           position: 'absolute', inset: 0,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#aaa', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em'
+                          color: '#666', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em'
                         }}>No Image</div>
                       )}
                     </div>
 
                     {/* Info */}
                     <div style={{ paddingBottom: '4px' }}>
-                      <h3 style={{ fontSize: '20px', fontWeight: 400, fontFamily: 'Georgia, serif', color: '#111', lineHeight: 1.25, marginBottom: '8px' }}>{belt.name}</h3>
-                      <p style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '0.05em', color: '#888', marginBottom: '20px' }}>₹{(belt.price || 0).toLocaleString()}</p>
+                      <h3 style={{ fontSize: '20px', fontWeight: 500, fontFamily: 'Georgia, serif', color: '#111', lineHeight: 1.25, marginBottom: '8px' }}>{belt.name}</h3>
+                      <p style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '0.05em', color: '#111', marginBottom: '16px' }}>₹{(belt.price || 0).toLocaleString()}</p>
 
                       <button
                         onClick={(e) => {
@@ -2192,17 +2252,17 @@ function DiscoverContent() {
                         }}
                         style={{
                           display: 'inline-block',
-                          padding: '14px 32px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          letterSpacing: '0.15em',
+                          padding: '8px 18px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          letterSpacing: '0.12em',
                           textTransform: 'uppercase',
                           border: addedBelts[belt.id] ? '1px solid #111' : '1px solid #111',
                           background: addedBelts[belt.id] ? '#111' : 'transparent',
                           color: addedBelts[belt.id] ? '#fff' : '#111',
                           cursor: addedBelts[belt.id] ? 'default' : 'pointer',
                           transition: 'all 0.25s',
-                          borderRadius: '2px',
+                          borderRadius: '999px',
                         }}
                         onMouseEnter={(e) => { if (!addedBelts[belt.id]) { e.currentTarget.style.background = '#111'; e.currentTarget.style.color = '#fff'; } }}
                         onMouseLeave={(e) => { if (!addedBelts[belt.id]) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#111'; } }}
@@ -2223,7 +2283,7 @@ function DiscoverContent() {
             <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 40px' }}>
               {/* Header */}
               <div style={{ marginBottom: '56px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#888', marginBottom: '12px' }}>Included Packaging</p>
+                <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#333', marginBottom: '12px' }}>Included Packaging</p>
                 <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
                   Premium Boxes
                 </h2>
@@ -2264,15 +2324,15 @@ function DiscoverContent() {
                         <div style={{
                           position: 'absolute', inset: 0,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#aaa', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em'
+                          color: '#666', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em'
                         }}>No Image</div>
                       )}
                     </div>
 
                     {/* Info */}
                     <div style={{ paddingBottom: '4px' }}>
-                      <h3 style={{ fontSize: '20px', fontWeight: 400, fontFamily: 'Georgia, serif', color: '#111', lineHeight: 1.25, marginBottom: '8px' }}>{box.name}</h3>
-                      <p style={{ fontSize: '14px', fontWeight: 500, letterSpacing: '0.05em', color: '#888' }}>Included with order</p>
+                      <h3 style={{ fontSize: '20px', fontWeight: 500, fontFamily: 'Georgia, serif', color: '#111', lineHeight: 1.25, marginBottom: '8px' }}>{box.name}</h3>
+                      <p style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '0.05em', color: '#333' }}>Included with order</p>
                     </div>
                   </div>
                 ))}

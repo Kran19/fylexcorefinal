@@ -570,12 +570,12 @@ export default function Shop() {
           <div className="dimg-col rl">
             <div className="dimgf">
               <img src={getFileUrl(videoSettings.shop_dial_image) || "https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?w=900&q=85"} alt="Fylex Dial" loading="lazy" />
-              <div className="dcap"><span>The Atlas Legacy</span></div>
+              <div className="dcap"><span>{videoSettings.shop_dial_caption || "The Atlas Legacy"}</span></div>
             </div>
           </div>
           <div className="dtxt">
-            <h2 className="hd r0" dangerouslySetInnerHTML={{ __html: 'We didn\'t invent the watch.<br /><em>We perfected the way you buy it.</em>' }}></h2>
-            <p className="shop-bt r0">For years, luxury meant accepting a pre-designed vision. FYLEX exists to bridge the gap between masterful assembly and personal style.</p>
+            <h2 className="hd r0" dangerouslySetInnerHTML={{ __html: videoSettings.shop_dial_title || 'We didn\'t invent the watch.<br /><em>We perfected the way you buy it.</em>' }}></h2>
+            <p className="shop-bt r0">{videoSettings.shop_dial_desc || "For years, luxury meant accepting a pre-designed vision. FYLEX exists to bridge the gap between masterful assembly and personal style."}</p>
           </div>
         </div>
       </section>
@@ -656,7 +656,7 @@ export default function Shop() {
                 
                 {founderVariant && (
                   <Link 
-                    href={`/configure?watch=${founderVariant.productId}${founderVariant.combinationHash ? `&variant=${founderVariant.combinationHash}` : ''}`}
+                    href={`/discover?watch=${founderVariant.productId || founderVariant.product?.id || ''}`}
                     style={{
                       display: 'inline-block',
                       background: 'rgba(255,255,255,0.05)',
@@ -690,7 +690,7 @@ export default function Shop() {
                       The Founder's Pick
                     </h3>
                     <img 
-                      src={getFileUrl(founderVariant.image || founderVariant.product?.image)} 
+                      src={resolveProductImage(founderVariant.product, founderVariant) || getFileUrl(founderVariant.heroImage || founderVariant.image || founderVariant.product?.heroImage)} 
                       alt={founderVariant.product?.name || founderVariant.sku}
                       style={{
                         width: '250px',
@@ -699,6 +699,7 @@ export default function Shop() {
                         margin: '0 auto 20px',
                         filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))'
                       }}
+                      onError={(e) => { e.target.src = '/assets/Watch_1.png'; }}
                     />
                     <h4 style={{
                       fontFamily: 'Avenir, sans-serif',
@@ -719,7 +720,7 @@ export default function Shop() {
                         letterSpacing: '0.2em'
                       }}
                     >
-                      View This Configuration
+                      DISCOVER TIMEPIECE
                     </div>
                   </Link>
                 )}

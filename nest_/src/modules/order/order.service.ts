@@ -80,7 +80,7 @@ export class OrderService {
     // 6. Create Order via Transaction
     return this.prisma.$transaction(async (tx) => {
       const subtotal = Number(cart.subtotal);
-      const discountAmount = appliedOffer ? this.marketingService.calculateDiscount(appliedOffer, subtotal) : 0;
+      const discountAmount = appliedOffer ? this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0;
       const totalDiscount = discountAmount + pointDiscount;
       const grandTotal = Math.max(0, subtotal - totalDiscount);
       const pointsEarned = Math.floor(grandTotal);
@@ -602,7 +602,7 @@ export class OrderService {
     }
 
     if (appliedOffer) {
-      discount = this.marketingService.calculateDiscount(appliedOffer, subtotal);
+      discount = this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items);
     }
 
     return {
@@ -612,7 +612,8 @@ export class OrderService {
       discount,
       total: Math.max(0, subtotal + shippingTotal - discount),
       message,
-      couponError
+      couponError,
+      offerDescription: appliedOffer?.description || appliedOffer?.name || ''
     };
   }
 

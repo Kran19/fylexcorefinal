@@ -151,6 +151,7 @@ export class MarketingService {
     const prismaData: any = {
       name: data.name,
       code: data.code,
+      description: data.description,
       status: status,
       offerType: data.offerType || data.type || 'percentage',
       couponType: data.couponType || 'public',
@@ -200,6 +201,7 @@ export class MarketingService {
     const payload: any = {};
     if (data.name !== undefined) payload.name = data.name;
     if (data.code !== undefined) payload.code = data.code;
+    if (data.description !== undefined) payload.description = data.description;
     if (status !== undefined) payload.status = status;
     if (data.offerType !== undefined || data.type !== undefined) payload.offerType = data.offerType || data.type;
     if (data.couponType !== undefined) payload.couponType = data.couponType;
@@ -252,17 +254,28 @@ export class MarketingService {
   }
 
   // Calculate discount for an offer
-  calculateDiscount(offer: any, cartAmount: number): number {
+  calculateDiscount(offer: any, cartAmount: number, items: any[] = []): number {
     let discount = 0;
     const amount = Number(cartAmount);
+    const discountVal = Number(offer.discountValue || 0);
 
-    if (offer.offerType === 'percentage') {
-      discount = (amount * Number(offer.discountValue)) / 100;
+    // 100% Watch / Single Item Free Rule:
+    // If offer discount is 100% (or single item free offer), discount equals 100% of the HIGHEST priced item in the cart
+    if (discountVal === 100 || offer.offerType === 'single_item_100' || offer.couponType === '100_percent') {
+      if (Array.isArray(items) && items.length > 0) {
+        const itemPrices = items.map(item => Number(item.price || item.unitPrice || item.sellingPrice || item.productVariant?.price || 0));
+        const highestPrice = Math.max(...itemPrices, 0);
+        discount = highestPrice > 0 ? highestPrice : amount;
+      } else {
+        discount = amount;
+      }
+    } else if (offer.offerType === 'percentage') {
+      discount = (amount * discountVal) / 100;
       if (offer.maxDiscount) {
         discount = Math.min(discount, Number(offer.maxDiscount));
       }
     } else if (offer.offerType === 'fixed') {
-      discount = Number(offer.discountValue);
+      discount = discountVal;
     }
 
     return Math.min(discount, amount);

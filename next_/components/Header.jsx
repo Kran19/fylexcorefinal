@@ -102,7 +102,7 @@ const Header = () => {
           display: flex; align-items: center; justify-content: center;
           text-decoration: none;
         }
-        .logo-v1 img { height: clamp(22px, 3.5vw, 30px); width: auto; filter: brightness(0) invert(1); }
+        .logo-v1 img { height: clamp(26px, 4vw, 36px); width: auto; filter: brightness(0) invert(1); }
         
         .nav-trigger {
           display: flex; align-items: center; gap: 10px; cursor: pointer;
@@ -114,7 +114,7 @@ const Header = () => {
           flex-direction: column;
           justify-content: space-between;
           width: 22px;
-          height: 14px;
+          height: 10px;
           cursor: pointer;
         }
 
@@ -128,15 +128,11 @@ const Header = () => {
         }
 
         .hamburger-v1.open span:nth-child(1) {
-          transform: translateY(6.25px) rotate(45deg);
+          transform: translateY(4.25px) rotate(45deg);
         }
 
         .hamburger-v1.open span:nth-child(2) {
-          opacity: 0;
-        }
-
-        .hamburger-v1.open span:nth-child(3) {
-          transform: translateY(-6.25px) rotate(-45deg);
+          transform: translateY(-4.25px) rotate(-45deg);
         }
 
 
@@ -317,7 +313,7 @@ const Header = () => {
                 FYLEX Watches
               </Link>
               <Link href="/my-purchases" className="primary" onClick={closeAll}>Your Collection</Link>
-              <Link href="/shop" className="primary" onClick={closeAll}>About Us</Link>
+              <Link href="/about" className="primary" onClick={closeAll}>About Us</Link>
               <Link href="/#gallery" className="primary" onClick={(e) => handleLinkClick(e, 'gallery')}>Community</Link>
             </div>
             <div className="nav-link-group" style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px', width: '100%', paddingBottom: '20px' }}>
@@ -350,14 +346,13 @@ const Header = () => {
             <div className={`hamburger-v1 ${isMenuOpen ? 'open' : ''}`}>
               <span></span>
               <span></span>
-              <span></span>
             </div>
           </button>
         </div>
 
         <div className="header-middle">
           <Link className="logo-v1" href="/" onClick={closeAll}>
-            <img src="/logo.png" alt="Fylex" />
+            <img src="/fylex_logo.png" alt="FYLEX" />
           </Link>
         </div>
 

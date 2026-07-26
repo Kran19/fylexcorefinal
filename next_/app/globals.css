@@ -147,22 +147,22 @@ h4, h5, h6, .sub-heading {
   font-weight: 700;
   letter-spacing: .15em;
   text-transform: uppercase;
-  color: var(--fyl-white);
-  background: #1a1a1a;
+  color: var(--ds-btn-primary-text, var(--fyl-white));
+  background: var(--ds-btn-primary-bg, #1a1a1a);
   padding: 8px 16px;
   text-decoration: none;
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   cursor: pointer;
-  border: 1px solid #1a1a1a;
+  border: 1px solid var(--ds-btn-primary-bg, #1a1a1a);
   display: inline-block;
-  border-radius: 999px;
+  border-radius: var(--ds-btn-radius, 999px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .cta-v1:hover, .cta-v1:active {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border-color: #ffffff;
+  background: var(--ds-btn-primary-text, #ffffff) !important;
+  color: var(--ds-btn-primary-bg, #000000) !important;
+  border-color: var(--ds-btn-primary-text, #ffffff);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
@@ -170,16 +170,16 @@ h4, h5, h6, .sub-heading {
 /* Glassmorphism Button Utility */
 .btn-glass {
   padding: 8px 16px;
-  background: #1a1a1a;
-  color: #fff;
+  background: var(--ds-btn-primary-bg, #1a1a1a);
+  color: var(--ds-btn-primary-text, #ffffff);
   text-decoration: none;
-  border-radius: 999px;
+  border-radius: var(--ds-btn-radius, 999px);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-  border: 1px solid #1a1a1a;
+  border: 1px solid var(--ds-btn-primary-bg, #1a1a1a);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   display: inline-flex;
   align-items: center;
@@ -188,9 +188,9 @@ h4, h5, h6, .sub-heading {
 }
 
 .btn-glass:hover, .btn-glass:active {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border-color: #ffffff;
+  background: var(--ds-btn-primary-text, #ffffff) !important;
+  color: var(--ds-btn-primary-bg, #000000) !important;
+  border-color: var(--ds-btn-primary-text, #ffffff);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 }
