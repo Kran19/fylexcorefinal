@@ -8,6 +8,7 @@ import { useToast } from '@/context/ToastContext';
 import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import { getFileUrl } from '@/lib/utils';
+import { useMediaLibrary } from '@/hooks/useMediaLibrary';
 
 const MediaList = () => {
     const toast = useToast();
@@ -15,57 +16,26 @@ const MediaList = () => {
     const files = data.media || [];
     
     const [uploading, setUploading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [deleteModal, setDeleteModal] = useState(false);
     const [fileToDelete, setFileToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [inputSizeMB, setInputSizeMB] = useState(3);
     const [activeMaxImageSizeMB, setActiveMaxImageSizeMB] = useState(3);
-    
-    const [currentFolder, setCurrentFolder] = useState('/');
-    
+
     const itemsPerPage = 10;
     const fileInputRef = useRef(null);
     const folderInputRef = useRef(null);
-
-    // Filtering: Exclude videos as per user request
-    const filteredFiles = files.filter(f => {
-        const isVideo = f.mimeType?.includes('video') || f.fileType === 'video' || f.extension === 'mp4' || f.extension === 'webm';
-        if (isVideo) return false;
-
-        const matchesSearch = (f.originalFilename || f.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (f.fileName || '').toLowerCase().includes(searchTerm.toLowerCase());
-        
-        return matchesSearch;
-    });
-
-    // Filter by current folder and get subfolders
-    const currentPathFiles = [];
-    const currentPathFolders = new Set();
-
-    filteredFiles.forEach(f => {
-        const folder = f.folderPath || '/';
-        
-        if (folder === currentFolder || folder === currentFolder.replace(/\/$/, '')) {
-            currentPathFiles.push(f);
-        } else if (folder.startsWith(currentFolder === '/' ? '/' : currentFolder + '/')) {
-            let relativePath = folder.substring(currentFolder === '/' ? 1 : currentFolder.length + 1);
-            if (relativePath.startsWith('/')) relativePath = relativePath.substring(1);
-            
-            const immediateSubFolder = relativePath.split('/')[0];
-            if (immediateSubFolder) {
-                currentPathFolders.add(immediateSubFolder);
-            }
-        }
-    });
-
-    const foldersArray = Array.from(currentPathFolders).sort();
-
-    const allItems = [
-        ...foldersArray.map(name => ({ type: 'folder', name, id: `folder-${name}` })),
-        ...currentPathFiles.map(f => ({ type: 'file', ...f }))
-    ];
+    
+    const {
+        currentFolder,
+        searchTerm,
+        setSearchTerm,
+        navigateToPath,
+        navigateUp,
+        allItems,
+        isSearching
+    } = useMediaLibrary(files, { excludeVideos: true });
 
     // Pagination logic
     const totalPages = Math.ceil(allItems.length / itemsPerPage);
@@ -129,24 +99,43 @@ const MediaList = () => {
     };
 
     const confirmDelete = (file) => {
+        const count = Object.values(file._count || {}).reduce((a, b) => a + b, 0);
+        if (count > 0) {
+            if (!confirm(`WARNING: This file is currently linked in ${count} places (products, categories, etc). Deleting it will break those images.\n\nAre you sure you want to forcefully delete it?`)) {
+                return;
+            }
+        }
         setFileToDelete(file);
         setDeleteModal(true);
     };
 
-    const handleDeleteFolder = (folderName) => {
-        const targetPath = currentFolder === '/' ? '/' + folderName : currentFolder + '/' + folderName;
-        // Check if any files exist in this folder or subfolders
-        const hasFiles = mediaList.some(f => {
-            const fPath = f.folderPath || '/';
-            return fPath === targetPath || fPath.startsWith(targetPath + '/');
-        });
-
-        if (hasFiles) {
-            toast?.error?.(`Cannot delete folder "${folderName}": Folder contains files. Delete or move files first.`);
-            return;
+    const handleRenameFolder = async (oldName, oldPath) => {
+        const newName = prompt(`Rename folder "${oldName}" to:`, oldName);
+        if (!newName || newName.trim() === '' || newName === oldName) return;
+        
+        const base = oldPath.split('/');
+        base.pop();
+        const newPath = (base.join('/') || '/') + (base.length > 0 && base[0] !== '' ? '/' : '') + newName.trim();
+        
+        const res = await api.renameFolder({ oldPath, newPath });
+        if (res.success) {
+            toast?.success?.(`Folder renamed successfully`);
+            refetch.media();
+        } else {
+            toast?.error?.(res.error || 'Failed to rename folder');
         }
+    };
 
-        toast?.success?.(`Folder "${folderName}" is empty and removed.`);
+    const handleDeleteFolder = async (folderName, folderPath) => {
+        if (confirm(`Are you sure you want to delete the folder "${folderName}" and all its contents permanently?`)) {
+            const res = await api.deleteFolder({ folderPath });
+            if (res.success) {
+                toast?.success?.(`Folder deleted successfully`);
+                refetch.media();
+            } else {
+                toast?.error?.(res.error || 'Failed to delete folder');
+            }
+        }
     };
 
     const handleFileDrop = async (mediaId, targetFolderName) => {
@@ -241,12 +230,8 @@ const MediaList = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 16 }}>
-                {currentFolder !== '/' && (
-                    <button className="btn-secondary" style={{ padding: '6px 12px' }} onClick={() => {
-                        const parts = currentFolder.split('/');
-                        parts.pop();
-                        setCurrentFolder(parts.join('/') || '/');
-                    }}>
+                {currentFolder !== '/' && !isSearching && (
+                    <button className="btn-secondary" style={{ padding: '6px 12px' }} onClick={navigateUp}>
                         <i className="fas fa-level-up-alt mr-2"></i> Up
                     </button>
                 )}
@@ -279,6 +264,7 @@ const MediaList = () => {
                                     <tr>
                                         <th style={{ padding: '16px 32px' }}>File Asset</th>
                                         <th>Format</th>
+                                        <th style={{ textAlign: 'center' }}>Usage</th>
                                         <th style={{ textAlign: 'center' }}>File Size</th>
                                         <th style={{ textAlign: 'center' }}>Date Added</th>
                                         <th style={{ textAlign: 'right', paddingRight: 32 }}>Actions</th>
@@ -323,7 +309,7 @@ const MediaList = () => {
                                              }}>
                                             {item.type === 'folder' ? (
                                                 <>
-                                                    <td style={{ padding: '16px 32px', cursor: 'pointer' }} onClick={() => setCurrentFolder(currentFolder === '/' ? '/' + item.name : currentFolder + '/' + item.name)}>
+                                                    <td style={{ padding: '16px 32px', cursor: 'pointer' }} onClick={() => navigateToPath(item.path)}>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                                             <div style={{ width: 48, height: 48, borderRadius: 10, background: '#fef3c7', border: '1px solid #fde68a', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                                 <i className="fas fa-folder" style={{ color: '#d97706', fontSize: 24 }}></i>
@@ -338,9 +324,14 @@ const MediaList = () => {
                                                      <td style={{ textAlign: 'center' }}>-</td>
                                                      <td style={{ textAlign: 'center' }}>-</td>
                                                      <td style={{ padding: '16px 32px', textAlign: 'right' }}>
-                                                         <button className="btn-icon danger" style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: 8, padding: '8px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={(e) => { e.stopPropagation(); handleDeleteFolder(item.name); }} title="Delete Folder">
-                                                             <i className="fas fa-trash-alt"></i> Delete
-                                                         </button>
+                                                         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                                             <button className="btn-icon" style={{ background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={(e) => { e.stopPropagation(); handleRenameFolder(item.name, item.path); }} title="Rename Folder">
+                                                                 <i className="fas fa-edit"></i>
+                                                             </button>
+                                                             <button className="btn-icon danger" style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: 8, padding: '8px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={(e) => { e.stopPropagation(); handleDeleteFolder(item.name, item.path); }} title="Delete Folder">
+                                                                 <i className="fas fa-trash-alt"></i> Delete
+                                                             </button>
+                                                         </div>
                                                      </td>
                                                  </>
                                             ) : (() => {
@@ -376,6 +367,19 @@ const MediaList = () => {
                                                         }}>
                                                             {f.extension?.toUpperCase() || f.fileType?.toUpperCase()}
                                                         </span>
+                                                    </td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        {(() => {
+                                                            const count = Object.values(f._count || {}).reduce((a, b) => a + b, 0);
+                                                            if (count > 0) {
+                                                                return (
+                                                                    <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: '#d1fae5', padding: '4px 8px', borderRadius: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                                        <i className="fas fa-link"></i> In Use ({count})
+                                                                    </span>
+                                                                );
+                                                            }
+                                                            return <span style={{ fontSize: 11, color: '#94a3b8' }}>Unused</span>;
+                                                        })()}
                                                     </td>
                                                     <td style={{ textAlign: 'center', fontWeight: 500, fontSize: 13, color: '#475569' }}>{formatSize(f.fileSize)}</td>
                                                     <td style={{ textAlign: 'center', fontSize: 13, color: '#94a3b8' }}>{f.createdAt ? new Date(f.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</td>

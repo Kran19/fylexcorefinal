@@ -38,7 +38,21 @@ export class MediaService {
 
   async getAllMedia() {
     const media = await this.prisma.media.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: {
+            attributeValues: true,
+            brandLogos: true,
+            categoryImages: true,
+            productMedia: true,
+            reviewImages: true,
+            variantImages: true,
+            beltImages: true,
+            boxImages: true
+          }
+        }
+      }
     });
     return { success: true, data: media };
   }
@@ -106,13 +120,97 @@ export class MediaService {
           const parts = paths[index].split('/');
           if (parts.length > 1) {
             parts.pop(); // Remove the filename
-            folderPath = '/' + parts.join('/');
+            const joined = parts.join('/');
+            folderPath = joined.startsWith('/') ? joined : '/' + joined;
           }
+        }
+        // Ensure we don't accidentally create '//' at the root
+        if (folderPath.length > 1 && folderPath.startsWith('//')) {
+            folderPath = folderPath.replace(/^\/+/, '/');
         }
         return this.saveUploadedFile(file, folderPath);
       })
     );
     return { success: true, data: results.map(r => r.data) };
+  }
+
+  async renameFolder(oldPath: string, newPath: string) {
+    if (!oldPath || !newPath) {
+      throw new Error("oldPath and newPath are required");
+    }
+    
+    oldPath = oldPath.replace(/^\/+/, '/');
+    newPath = newPath.replace(/^\/+/, '/');
+
+    const mediaItems = await this.prisma.media.findMany({
+      where: {
+        OR: [
+          { folderPath: oldPath },
+          { folderPath: { startsWith: `${oldPath}/` } }
+        ]
+      }
+    });
+
+    if (mediaItems.length === 0) {
+      return { success: true, message: 'Folder not found or empty', count: 0 };
+    }
+
+    let updatedCount = 0;
+    for (const item of mediaItems) {
+      let updatedPath = item.folderPath;
+      if (item.folderPath === oldPath) {
+        updatedPath = newPath;
+      } else if (item.folderPath?.startsWith(`${oldPath}/`)) {
+        updatedPath = newPath + item.folderPath.substring(oldPath.length);
+      }
+
+      if (updatedPath !== item.folderPath) {
+        await this.prisma.media.update({
+          where: { id: item.id },
+          data: { folderPath: updatedPath }
+        });
+        updatedCount++;
+      }
+    }
+
+    return { success: true, count: updatedCount };
+  }
+
+  async deleteFolder(folderPath: string) {
+    if (!folderPath || folderPath === '/') {
+      throw new Error("Invalid folder path");
+    }
+    
+    folderPath = folderPath.replace(/^\/+/, '/');
+
+    const mediaItems = await this.prisma.media.findMany({
+      where: {
+        OR: [
+          { folderPath: folderPath },
+          { folderPath: { startsWith: `${folderPath}/` } }
+        ]
+      }
+    });
+
+    let deletedCount = 0;
+    const fs = require('fs');
+    const path = require('path');
+
+    for (const item of mediaItems) {
+      await this.prisma.media.delete({
+        where: { id: item.id }
+      });
+      
+      if (item.disk === 'local' && item.filePath) {
+        const fullPath = path.join(process.cwd(), item.filePath);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      }
+      deletedCount++;
+    }
+
+    return { success: true, count: deletedCount };
   }
 }
 

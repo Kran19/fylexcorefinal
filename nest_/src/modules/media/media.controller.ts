@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, UploadedFiles, UseInterceptors, Delete, Body } from '@nestjs/common';
+import { Controller, Get, Post, Param, UploadedFiles, UseInterceptors, Delete, Body, Put } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -38,6 +38,27 @@ export class MediaController {
       }
     }
     return this.mediaService.uploadMultiple(files, category, paths);
+  }
+
+  @Delete('folder')
+  async deleteFolder(@Body('folderPath') folderPath: string) {
+    return this.mediaService.deleteFolder(folderPath);
+  }
+
+  @Post('folder/rename')
+  async renameFolder(
+    @Body('oldPath') oldPath: string,
+    @Body('newPath') newPath: string
+  ) {
+    return this.mediaService.renameFolder(oldPath, newPath);
+  }
+
+  @Put(':id')
+  async updateMedia(
+    @Param('id') id: string,
+    @Body() dto: any
+  ) {
+    return this.mediaService.updateMedia(id, dto);
   }
 
   @Delete(':id')

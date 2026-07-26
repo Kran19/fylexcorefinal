@@ -230,28 +230,38 @@ function DiscoverContent() {
   };
 
   const handleBookNow = () => {
-    const hasConfig = searchParams.get('dial') || searchParams.get('material');
     let targetVariant = null;
     const variants = product?.variants || [];
 
-    if (hasConfig) {
+    const selectionsLocal = {};
+    const variantIdParam = searchParams.get('variant');
+    searchParams.forEach((value, key) => {
+      if (key !== 'watch' && key !== 'mode' && key !== 'variant') {
+        selectionsLocal[key.toLowerCase()] = value;
+      }
+    });
+
+    if (variants.length > 0) {
       targetVariant = variants.find(v => {
-        return (v.variantAttributes || []).every(va => {
-          const attrName = va.attributeValue?.attribute?.name?.toLowerCase();
-          const selectedVal = searchParams.get(attrName);
-          return !selectedVal || selectedVal === va.attributeValue?.label;
+        if (variantIdParam && v.id.toString() === variantIdParam) return true;
+        const vAttrs = v.variantAttributes || [];
+        if (vAttrs.length === 0) return false;
+        return Object.keys(selectionsLocal).every(key => {
+          const va = vAttrs.find(a => a.attributeValue?.attribute?.name?.toLowerCase() === key);
+          return va && va.attributeValue?.label === selectionsLocal[key];
         });
       });
     }
 
-    // Removed automatic fallback to first variant to prevent inconsistent UI state
-    // targetVariant = variants[0];
+    if (!targetVariant && variants.length > 0) {
+      targetVariant = variants[0];
+    }
 
     if (targetVariant) {
       addToCart(targetVariant.id.toString(), 1, { title: product.name });
       setIsAdded(true);
     } else {
-      throw new Error("ENFORCEMENT: Cannot add to cart without matching variant");
+      alert("This timepiece is currently unavailable for purchase.");
     }
   };
 
@@ -421,8 +431,12 @@ function DiscoverContent() {
           overflow-x: hidden;
         }
         .cfg-page.is-configured {
-          background: ${product.bgColor || '#000000'};
+          background: ${product.gradient || product.bgColor || '#000000'};
           color: ${product.textColor || '#ffffff'};
+        }
+        .cfg-page.is-configured .cfg-heritage-section,
+        .cfg-page.is-configured .cfg-desc-section {
+          background: ${product.gradient || product.bgColor || '#000000'} !important;
         }
         .cfg-page.is-configured .cfg-details-title,
         .cfg-page.is-configured .cfg-details-price,

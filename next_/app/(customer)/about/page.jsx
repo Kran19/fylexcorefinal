@@ -21,7 +21,7 @@ export default function About() {
   const [loading, setLoading] = useState(true);
   const [activeWatchIndex, setActiveWatchIndex] = useState(0);
   const [videoSettings, setVideoSettings] = useState({});
-  const [founderVariant, setFounderVariant] = useState(null);
+  const [founderVariants, setFounderVariants] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -57,11 +57,15 @@ export default function About() {
           });
           setVideoSettings(videoMap);
           
-          if (videoMap.founder_watch_id) {
-            const variantRes = await fetchVariant(videoMap.founder_watch_id);
-            if (variantRes.success && variantRes.data) {
-                setFounderVariant(variantRes.data);
-            }
+          const watchIdsStr = videoMap.founder_watch_ids || videoMap.founder_watch_id;
+          if (watchIdsStr) {
+            const ids = watchIdsStr.split(',').map(id => id.trim()).filter(Boolean);
+            const fetchPromises = ids.map(id => fetchVariant(id));
+            const results = await Promise.all(fetchPromises);
+            const activeVariants = results
+              .filter(res => res && res.success && res.data)
+              .map(res => res.data);
+            setFounderVariants(activeVariants);
           }
         }
       } catch (err) {
@@ -133,10 +137,130 @@ export default function About() {
       repeat: -1,
       yoyo: true
     });
+
+    // Watch Sequence Animation (Canvas)
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const context = canvas.getContext("2d");
+      canvas.width = 1920;
+      canvas.height = 1080;
+
+      const frameCount = 210;
+      const currentFrame = index => `/watch/ezgif-frame-${(index + 1).toString().padStart(3, '0')}.jpg`;
+
+      const images = [];
+      const airpods = { frame: 0 };
+
+      for (let i = 0; i < frameCount; i++) {
+        const img = new Image();
+        img.src = currentFrame(i);
+        images.push(img);
+      }
+
+      const render = () => {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        const img = images[airpods.frame];
+        if (img) context.drawImage(img, 0, 0, canvas.width, canvas.height);
+      };
+
+      images[0].onload = render;
+
+      gsap.to(airpods, {
+        frame: frameCount - 1,
+        snap: "frame",
+        ease: "none",
+        scrollTrigger: {
+          trigger: "#watch-sequence",
+          pin: ".watch-sticky",
+          start: "top top",
+          end: "bottom bottom",
+          scrub: 0.5
+        },
+        onUpdate: render
+      });
+    }
   }, { scope: container });
 
   return (
     <div ref={container} className="shop-page-wrapper">
+      <style>{`
+        #watch-sequence { position: relative; height: 300vh; background: #000000; }
+        .watch-sticky { width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #000000; }
+        #watch-canvas { width: 100%; height: 100%; object-fit: cover; }
+        .shop-page-wrapper {
+          background: #000000;
+          color: #ffffff;
+          font-family: 'Inter', sans-serif;
+        }
+        .yt-bg-wrap { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+        .hvideo {
+          position: absolute; top: 50%; left: 50%; width: 100vw; height: 56.25vw;
+          min-height: 100vh; min-width: 177.77vh; transform: translate(-50%, -50%);
+          opacity: 1; border: none; pointer-events: none;
+          object-fit: cover;
+        }
+        .hov { position: absolute; inset: 0; background: linear-gradient(100deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,.35) 40%, transparent 100%); }
+        .video-overlay {
+          position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center;
+          text-align: center; z-index: 10; color: #ffffff; padding: 0 24px;
+        }
+        .video-overlay h1, .video-overlay h2 {
+          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif; font-size: clamp(36px, 6vw, 80px); font-weight: 500; line-height: 1.1; margin-bottom: 24px; letter-spacing: -0.01em; text-shadow: 0 4px 16px rgba(0,0,0,0.6);
+        }
+        .video-overlay p {
+          max-width: 600px; font-size: clamp(15px, 1.3vw, 18px); font-weight: 400; line-height: 1.8; letter-spacing: 0.02em; opacity: 0.95; text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+          color: #cccccc;
+        }
+        #dial { background: #000000; padding: 100px 8vw; overflow: hidden; color: #ffffff; }
+        .dwrap { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+        .dimg-col { position: relative; }
+        .dimgf { position: relative; filter: drop-shadow(0 30px 60px rgba(0,0,0,.3)); }
+        .dimgf::after { content: ''; position: absolute; inset: 20px; border: 1px solid rgba(255,255,255,.2); pointer-events: none; }
+        .dimgf img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; border-radius: 4px; }
+        .dcap { position: absolute; bottom: 0; left: 0; right: 0; padding: 28px 28px 32px; background: linear-gradient(to top, rgba(0,0,0,.8), transparent); border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
+        .dcap span { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: rgba(255,255,255,.9); font-weight: 500;}
+        .dtxt .hd { color: #ffffff; font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif; font-size: clamp(32px, 4.5vw, 56px); line-height: 1.1; letter-spacing: -0.01em; margin-bottom: 24px; font-weight: 500; }
+        .dtxt .hd em { color: var(--fyl-gold); font-weight: 400; font-style: italic; }
+        .dtxt .lbl { color: var(--fyl-gold); font-size: 12px; letter-spacing: 0.35em; text-transform: uppercase; margin-bottom: 12px; font-weight: 600; display: block; }
+        .dtxt .rule { background: var(--fyl-gold); width: 40px; height: 2px; margin-bottom: 24px; }
+        .bf { 
+          display: inline-block; 
+          padding: 12px 24px; 
+          text-align: center; 
+          font-size: 10px; 
+          letter-spacing: .15em; 
+          text-transform: uppercase; 
+          font-family: 'Inter', sans-serif; 
+          font-weight: 700; 
+          background: #1a1a1a; 
+          border: 1px solid #1a1a1a; 
+          color: #fff; 
+          cursor: pointer; 
+          transition: all .4s cubic-bezier(0.23, 1, 0.32, 1); 
+          border-radius: 999px; 
+          text-decoration: none; 
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .bf:hover, .bf:active { 
+          background: var(--fyl-gold) !important;
+          color: #000000 !important;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border-color: var(--fyl-gold) !important;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(196, 163, 90, 0.4);
+        }
+        .shop-bt { color: #cccccc; line-height: 1.85; letter-spacing: 0.02em; font-size: 16px; font-weight: 400; }
+        @media (max-width: 1024px) {
+          #dial { padding: 80px 5vw; }
+          .dwrap { gap: 40px; }
+          #mv { padding: 80px 5vw; }
+        }
+        @media (max-width: 768px) {
+          #dial { padding: 60px 5vw; }
+          .dwrap { grid-template-columns: 1fr; gap: 40px; }
+        }
+      `}</style>
       {/* Hero Video Section */}
       <section id="hero-video" style={{ height: '100vh', position: 'relative', overflow: 'hidden', background: '#000' }}>
         <div className="yt-bg-wrap">
@@ -169,6 +293,13 @@ export default function About() {
         </div>
       </section>
 
+      {/* ═══ CANVAS SEQUENCE ═══ */}
+      <section id="watch-sequence">
+        <div className="watch-sticky">
+          <canvas id="watch-canvas" ref={canvasRef} />
+        </div>
+      </section>
+
       {/* Dynamic Interstitial Section */}
       <section id="dial">
         <div className="dwrap">
@@ -185,30 +316,7 @@ export default function About() {
         </div>
       </section>
 
-      {/* Assembly Section */}
-      <section id="mv" style={{ padding: '100px 5vw', background: '#000', color: '#fff' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '80px' }}>
-          <div style={{ flex: '1 1 400px' }}>
-            <div className="lbl" style={{ color: 'var(--fyl-gold)', fontSize: '12px', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 600 }}>
-              An Atelier Dedicated To You
-            </div>
-            <div className="rule" style={{ background: 'var(--fyl-gold)', width: '40px', height: '2px', marginBottom: '40px' }}></div>
-            
-            <div className="lbl" style={{ color: 'var(--fyl-gold)', fontSize: '12px', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 600 }}>
-              Assembly & Precision
-            </div>
-            <h2 className="hd" style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontFamily: 'Avenir, sans-serif', fontWeight: 500, marginBottom: '24px', lineHeight: 1.1 }}>
-              Crafted To Your<br /><em>Demand</em>
-            </h2>
-            <p className="shop-bt" style={{ color: '#ccc', lineHeight: 1.8, fontSize: '16px', maxWidth: '500px' }}>
-              Every component is meticulously sourced, but the final creation doesn't exist until you command it. From the casing to the dial, our watchmakers wait for your instructions.
-            </p>
-          </div>
-          <div style={{ flex: '1 1 500px', position: 'relative' }}>
-            <img src="/assets/fylex-watch-v2/hero.png" alt="The Assembly Room" style={{ width: '100%', borderRadius: '4px', filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.5))' }} />
-          </div>
-        </div>
-      </section>
+
 
       {/* Founder Section */}
       <section 
@@ -239,80 +347,95 @@ export default function About() {
             fontWeight: '300',
             fontStyle: 'italic',
             whiteSpace: 'pre-wrap',
-            marginBottom: founderVariant ? '50px' : '0'
+            marginBottom: founderVariants.length > 0 ? '50px' : '0'
           }}>
             {videoSettings.founder_message || 'Welcome to our premium watch collection. Crafted with precision and passion.'}
           </div>
           
-          {founderVariant && (
-            <Link 
-              href={`/discover?watch=${founderVariant.productId || founderVariant.product?.id || ''}`}
-              style={{
-                display: 'inline-block',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '12px',
-                padding: '40px',
-                textDecoration: 'none',
-                color: '#fff',
-                transition: 'transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-5px)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              <h3 style={{
-                fontSize: '14px',
-                letterSpacing: '0.2em',
-                textTransform: 'uppercase',
-                color: 'var(--fyl-gold)',
-                marginBottom: '20px',
-                fontWeight: '600'
-              }}>
-                The Founder's Pick
-              </h3>
-              <img 
-                src={resolveProductImage(founderVariant.product, founderVariant) || getFileUrl(founderVariant.heroImage || founderVariant.image || founderVariant.product?.heroImage)} 
-                alt={founderVariant.product?.name || founderVariant.sku}
-                style={{
-                  width: '250px',
-                  height: '250px',
-                  objectFit: 'contain',
-                  margin: '0 auto 20px',
-                  filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))'
-                }}
-                onError={(e) => { e.target.src = '/assets/Watch_1.png'; }}
-              />
-              <h4 style={{
-                fontFamily: 'Avenir, sans-serif',
-                fontSize: '24px',
-                fontWeight: '500',
-                marginBottom: '10px'
-              }}>
-                {founderVariant.product?.name || 'Watch'} - {founderVariant.sku}
-              </h4>
-              <div 
-                className="bf"
-                style={{
-                  marginTop: '15px',
-                  padding: '12px 24px',
-                  background: 'transparent',
-                  border: '1px solid var(--fyl-gold)',
-                  color: 'var(--fyl-gold)',
-                  letterSpacing: '0.2em'
-                }}
-              >
-                DISCOVER TIMEPIECE
-              </div>
-            </Link>
+          {founderVariants.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center', marginTop: '40px' }}>
+              {founderVariants.map(variant => (
+                <Link 
+                  key={variant.id}
+                  href={`/discover?watch=${variant.productId || variant.product?.id || ''}`}
+                  style={{
+                    display: 'inline-block',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    padding: '40px 30px',
+                    textDecoration: 'none',
+                    color: '#fff',
+                    transition: 'transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
+                    cursor: 'pointer',
+                    width: '320px',
+                    textAlign: 'center'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-5px)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                    e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <h3 style={{
+                    fontSize: '14px',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: 'var(--fyl-gold)',
+                    marginBottom: '20px',
+                    fontWeight: '600'
+                  }}>
+                    The Founder's Pick
+                  </h3>
+                  <img 
+                    src={resolveProductImage(variant.product, variant) || getFileUrl(variant.heroImage || variant.image || variant.product?.heroImage)} 
+                    alt={variant.product?.name || variant.sku}
+                    style={{
+                      width: '200px',
+                      height: '200px',
+                      objectFit: 'contain',
+                      margin: '0 auto 20px',
+                      filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))'
+                    }}
+                    onError={(e) => { e.target.src = '/assets/Watch_1.png'; }}
+                  />
+                  <h4 style={{
+                    fontFamily: 'Avenir, sans-serif',
+                    fontSize: '18px',
+                    fontWeight: '500',
+                    marginBottom: '10px',
+                    height: '54px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: '1.3'
+                  }}>
+                    {variant.product?.name || 'Watch'}
+                    <span style={{ fontSize: '12px', color: '#888', marginTop: '4px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', width: '100%' }}>{variant.sku}</span>
+                  </h4>
+                  <div 
+                    className="bf"
+                    style={{
+                      marginTop: '15px',
+                      padding: '12px 24px',
+                      background: 'transparent',
+                      border: '1px solid var(--fyl-gold)',
+                      color: 'var(--fyl-gold)',
+                      letterSpacing: '0.2em'
+                    }}
+                  >
+                    DISCOVER TIMEPIECE
+                  </div>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       </section>

@@ -4,6 +4,7 @@ import AdminModal from './AdminModal';
 import { useAdminData } from '@/context/AdminDataContext';
 import Loader from './ui/Loader';
 import { getFileUrl } from '@/lib/utils';
+import { useMediaLibrary } from '@/hooks/useMediaLibrary';
 
 const MediaItem = memo(({ m, isSelected, onToggle }) => {
     const showUrl = getFileUrl(m.fileName);
@@ -49,16 +50,24 @@ const MediaPickerModal = ({ isOpen, onClose, onSelect, multiple = false }) => {
     const { data, loading } = useAdminData();
     const media = data.media || [];
     const [selected, setSelected] = useState([]);
-    const [search, setSearch] = useState('');
-    const [currentFolder, setCurrentFolder] = useState('/');
+    
+    const {
+        currentFolder,
+        searchTerm: search,
+        setSearchTerm: setSearch,
+        navigateToPath,
+        navigateUp,
+        allItems,
+        isSearching
+    } = useMediaLibrary(media, { onlyImages: true });
 
     React.useEffect(() => {
         if (isOpen) {
             setSelected([]);
             setSearch('');
-            setCurrentFolder('/');
+            navigateToPath('/');
         }
-    }, [isOpen]);
+    }, [isOpen, navigateToPath, setSearch]);
 
     const toggleSelect = useCallback((m) => {
         const item = { id: m.id.toString(), url: `/uploads/${m.fileName}` };
@@ -78,37 +87,6 @@ const MediaPickerModal = ({ isOpen, onClose, onSelect, multiple = false }) => {
         }
     };
 
-    const filteredMedia = media.filter(m =>
-        m.mimeType?.includes('image') &&
-        (m.originalFilename?.toLowerCase().includes(search.toLowerCase()) ||
-            m.fileName?.toLowerCase().includes(search.toLowerCase()))
-    );
-
-    const currentPathFiles = [];
-    const currentPathFolders = new Set();
-
-    filteredMedia.forEach(f => {
-        const folder = f.folderPath || '/';
-        
-        if (folder === currentFolder || folder === currentFolder.replace(/\/$/, '')) {
-            currentPathFiles.push(f);
-        } else if (folder.startsWith(currentFolder === '/' ? '/' : currentFolder + '/')) {
-            let relativePath = folder.substring(currentFolder === '/' ? 1 : currentFolder.length + 1);
-            if (relativePath.startsWith('/')) relativePath = relativePath.substring(1);
-            
-            const immediateSubFolder = relativePath.split('/')[0];
-            if (immediateSubFolder) {
-                currentPathFolders.add(immediateSubFolder);
-            }
-        }
-    });
-
-    const foldersArray = Array.from(currentPathFolders).sort();
-
-    const allItems = [
-        ...foldersArray.map(name => ({ type: 'folder', name, id: `folder-${name}` })),
-        ...currentPathFiles.map(f => ({ type: 'file', ...f }))
-    ];
 
     const footer = (
         <>
@@ -143,12 +121,8 @@ const MediaPickerModal = ({ isOpen, onClose, onSelect, multiple = false }) => {
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                        {currentFolder !== '/' && (
-                            <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={() => {
-                                const parts = currentFolder.split('/');
-                                parts.pop();
-                                setCurrentFolder(parts.join('/') || '/');
-                            }}>
+                        {currentFolder !== '/' && !isSearching && (
+                            <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: 12 }} onClick={navigateUp}>
                                 <i className="fas fa-level-up-alt mr-1"></i> Up
                             </button>
                         )}
@@ -167,7 +141,7 @@ const MediaPickerModal = ({ isOpen, onClose, onSelect, multiple = false }) => {
                             </div>
                         ) : allItems.map((item) => (
                             item.type === 'folder' ? (
-                                <div key={item.id} onClick={() => setCurrentFolder(currentFolder === '/' ? '/' + item.name : currentFolder + '/' + item.name)} className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 border-2 border-gray-100 hover:border-indigo-200 hover:shadow-md bg-amber-50 flex flex-col items-center justify-center text-amber-500">
+                                <div key={item.id} onClick={() => navigateToPath(item.path)} className="relative aspect-square rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 border-2 border-gray-100 hover:border-indigo-200 hover:shadow-md bg-amber-50 flex flex-col items-center justify-center text-amber-500">
                                     <i className="fas fa-folder text-4xl mb-2"></i>
                                     <p className="text-xs font-bold text-gray-700 truncate w-full text-center px-2">{item.name}</p>
                                 </div>

@@ -60,6 +60,13 @@ export class UpdateMediaDto {
   @IsOptional()
   @IsString()
   description?: string;
-}
 
+  @IsOptional()
+  @IsString()
+  folderPath?: string;
+
+  @IsOptional()
+  @IsString()
+  originalFilename?: string;
+}
 

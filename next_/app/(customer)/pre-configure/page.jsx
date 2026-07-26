@@ -49,6 +49,24 @@ const PreConfigure = () => {
           const display = getDisplayData(p);
           const pageTheme = getPageTheme(p, 'preConfigure');
 
+          // Flatten orderItems into individual "sold cards"
+          const soldCards = [];
+          let globalIdx = 1;
+          (p.orderItems || []).forEach(item => {
+            const variant = item.productVariant;
+            for (let i = 0; i < item.quantity; i++) {
+              const vDisplay = getDisplayData(p, variant);
+              soldCards.push({
+                id: globalIdx++,
+                orderId: item.orderId?.toString(),
+                name: vDisplay.subtitle || vDisplay.name,
+                img: vDisplay.image,
+                soldAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
+                sku: item.sku
+              });
+            }
+          });
+
           return {
             id: p.id.toString(),
             title: p.name,
@@ -59,7 +77,8 @@ const PreConfigure = () => {
             accentColor: pageTheme.accentColor,
             bgColor: pageTheme.bg,
             shortDescription: p.shortDescription || p.description || '',
-            category: p.mainCategory?.name || 'Uncategorized'
+            category: p.mainCategory?.name || 'Uncategorized',
+            combinations: soldCards
           };
         });
         setProducts(mapped);
@@ -255,13 +274,13 @@ const PreConfigure = () => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 12px 24px;
+          padding: 8px 18px;
           background: #1a1a1a;
           color: #fff;
           text-decoration: none;
-          font-size: 0.75rem;
+          font-size: 0.68rem;
           font-weight: 700;
-          letter-spacing: 0.15em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
           border-radius: 999px;
@@ -278,13 +297,13 @@ const PreConfigure = () => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 12px 24px;
+          padding: 8px 18px;
           background: transparent;
           color: var(--theme-accent, #c4a35a);
           text-decoration: none;
-          font-size: 0.75rem;
+          font-size: 0.68rem;
           font-weight: 700;
-          letter-spacing: 0.15em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
           border-radius: 999px;
@@ -420,9 +439,9 @@ const PreConfigure = () => {
           }
           .btn-configure {
             width: fit-content;
-            padding: 12px 32px;
-            font-size: 0.8rem;
-            letter-spacing: 0.15em;
+            padding: 8px 24px;
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
             background: var(--theme-text, #1a1a1a);
             color: var(--theme-bg, #fff);
@@ -431,7 +450,7 @@ const PreConfigure = () => {
           }
           .btn-configure:hover {
             opacity: 0.9;
-            transform: translateY(-3px) scale(1.05);
+            transform: translateY(-2px) scale(1.02);
           }
           
           /* Pagination adjustment */
@@ -461,6 +480,32 @@ const PreConfigure = () => {
           .product-price { font-size: 1rem; margin: 2px 0 10px; }
           .btn-configure { padding: 10px 24px; font-size: 0.75rem; }
           .swiper-pagination { bottom: 30px !important; }
+        }
+
+        @media (max-width: 480px) {
+          .product-info {
+            bottom: 50px !important;
+            padding: 0 20px !important;
+          }
+          .btn-container {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            gap: 8px !important;
+            margin-top: 15px !important;
+          }
+          .btn-configure, .btn-explore {
+            width: 100% !important;
+            text-align: center !important;
+            justify-content: center !important;
+            padding: 10px 16px !important;
+            font-size: 0.72rem !important;
+            box-sizing: border-box !important;
+          }
+          .swiper-pagination {
+            bottom: 15px !important;
+          }
         }
 
         /* Category Filter Styles */
@@ -506,6 +551,31 @@ const PreConfigure = () => {
           .category-nav { top: 90px; gap: 20px; }
           .category-item { font-size: 0.8rem; }
         }
+
+        /* ═══════════ SOLD CONFIGS MODAL ═══════════ */
+        .info-modal-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 9999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); padding: 24px;
+        }
+        .info-modal-overlay.show { opacity: 1; pointer-events: auto; }
+        .info-modal-box {
+          background: #111; border: 1px solid rgba(255,255,255,0.08); width: 100%; max-width: 520px; border-radius: 16px; padding: 32px; position: relative; transform: scale(0.95); transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+        .info-modal-overlay.show .info-modal-box { transform: scale(1); }
+        .info-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; }
+        .info-modal-title { font-size: 1.25rem; font-weight: 500; letter-spacing: 0.05em; color: #fff; margin: 0; font-family: 'Avenir', sans-serif; }
+        .info-modal-close { background: none; border: none; color: #888; font-size: 1.2rem; cursor: pointer; transition: color 0.3s; }
+        .info-modal-close:hover { color: #fff; }
+        .info-modal-content { overflow-y: auto; flex: 1; padding-right: 8px; text-align: left; }
+        .info-modal-content::-webkit-scrollbar { width: 4px; }
+        .info-modal-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+        
+        .info-combo-item { display: flex; align-items: center; gap: 16px; padding: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; border-radius: 8px; }
+        .info-combo-item:hover { background: rgba(255,255,255,0.02); }
+        .info-combo-img-wrap { width: 56px; height: 56px; background: rgba(255,255,255,0.02); border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 6px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.05); }
+        .info-combo-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .info-combo-details { display: flex; flex-direction: column; gap: 4px; }
+        .info-combo-name { font-size: 0.9rem; font-weight: 500; color: #fff; }
+        .info-combo-status { font-size: 0.75rem; color: #888; }
       `}</style>
 
       <div className={`header-wrapper ${expandedIds.size > 0 ? 'header-blurred' : ''}`}>
@@ -629,46 +699,40 @@ const PreConfigure = () => {
         </div>
       </main>
 
-      {/* ═══ ELEGANT INFO MODAL OVERLAY ═══ */}
+      {/* ═══ SOLD CONFIGS INFO MODAL ═══ */}
       {activeModalData && (
         <div 
           onClick={closeInfoModal}
-          className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-md flex items-center justify-center p-5"
+          className="info-modal-overlay show"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="bg-white text-gray-900 w-full max-w-lg rounded-2xl p-8 shadow-2xl relative"
+            className="info-modal-box"
           >
-            <div className="flex justify-between items-center mb-5 pb-4 border-b border-gray-100">
-              <h3 className="text-xl font-bold font-serif m-0">{activeModalData.title}</h3>
-              <button onClick={closeInfoModal} className="bg-transparent border-0 text-xl cursor-pointer text-gray-500 hover:text-black">✕</button>
+            <div className="info-modal-header">
+              <h3 className="info-modal-title">Sold Configurations</h3>
+              <button className="info-modal-close" onClick={closeInfoModal}>✕</button>
             </div>
             
-            <div className="flex gap-5 items-center mb-5">
-              {activeModalData.heroImage && (
-                <img src={activeModalData.heroImage} alt={activeModalData.title} className="w-28 h-28 object-contain" />
+            <div className="info-modal-content">
+              {activeModalData.combinations && activeModalData.combinations.length > 0 ? (
+                activeModalData.combinations.map((combo) => (
+                  <div key={combo.id} className="info-combo-item">
+                    <span className="info-combo-num" style={{ fontSize: '1.2rem', color: activeModalData.accentColor || '#c4a35a' }}>•</span>
+                    <div className="info-combo-img-wrap">
+                      <img src={combo.img} alt={`Combo ${combo.id}`} />
+                    </div>
+                    <div className="info-combo-details">
+                      <span className="info-combo-name">{combo.name}</span>
+                      <span className="info-combo-status">Sold on {combo.soldAt}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#888', fontSize: '0.9rem' }}>
+                  No configurations have been registered yet.
+                </div>
               )}
-              <div>
-                <p className="text-xl font-bold mb-2 text-gray-900">{activeModalData.price}</p>
-                <p className="text-xs text-gray-600 m-0 leading-relaxed">{activeModalData.shortDescription}</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end pt-4 border-t border-gray-100">
-              <Link
-                href={`/discover?watch=${activeModalData.id}`}
-                onClick={closeInfoModal}
-                className="px-5 py-2.5 rounded-full border border-gray-900 text-gray-900 no-underline text-xs font-bold uppercase tracking-wider hover:bg-gray-100 transition-all"
-              >
-                Discover Specs &rarr;
-              </Link>
-              <Link
-                href={`/configure?watch=${activeModalData.id}`}
-                onClick={closeInfoModal}
-                className="px-5 py-2.5 rounded-full bg-gray-900 text-white no-underline text-xs font-bold uppercase tracking-wider hover:bg-black transition-all"
-              >
-                Start Configuring
-              </Link>
             </div>
           </div>
         </div>

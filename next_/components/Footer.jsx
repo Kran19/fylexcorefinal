@@ -98,7 +98,7 @@ const Footer = () => {
               <li><Link href="/policies/privacy" className="footer-link-v1">Privacy Policy</Link></li>
               <li><Link href="/policies/terms" className="footer-link-v1">Terms Of Service</Link></li>
               <li><Link href="/policies/refund" className="footer-link-v1">Refund And Exchange Policy</Link></li>
-              <li><a href="https://wa.me/placeholder" target="_blank" rel="noreferrer" className="footer-link-v1">Get In Touch</a></li>
+              <li><a href="https://wa.me/919664653623" target="_blank" rel="noreferrer" className="footer-link-v1">Get In Touch</a></li>
               <li><a href="https://instagram.com/placeholder" target="_blank" rel="noreferrer" className="footer-link-v1">Instagram</a></li>
             </ul>
           </div>

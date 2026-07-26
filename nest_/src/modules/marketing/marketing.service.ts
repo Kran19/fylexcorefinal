@@ -11,13 +11,19 @@ export class MarketingService {
     const now = new Date();
     const cId = Number(customerId);
 
+    // Add 14-hour buffer to now for startsAt check to handle timezone offsets (e.g. local timezone is ahead of UTC)
+    const startsAtLimit = new Date(now.getTime() + 14 * 60 * 60 * 1000);
+
     // 1. Fetch active coupon (Offer)
     const offer = await this.prisma.offer.findFirst({
       where: {
         code: code,
         status: 1, // Active
-        startsAt: { lte: now },
-        endsAt: { gte: now },
+        startsAt: { lte: startsAtLimit },
+        OR: [
+          { endsAt: null },
+          { endsAt: { gte: now } }
+        ]
       },
     });
 

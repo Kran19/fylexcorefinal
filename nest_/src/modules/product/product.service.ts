@@ -1198,6 +1198,35 @@ export class ProductService {
 
     return { success: true, data: updated };
   }
+
+  async getVariantById(id: string | number) {
+    const variant = await this.prisma.productVariant.findUnique({
+      where: { id: Number(id) },
+      include: {
+        product: {
+          include: {
+            productMedia: {
+              include: { media: true }
+            }
+          }
+        },
+        variantImages: {
+          include: { media: true }
+        },
+        variantAttributes: {
+          include: {
+            attributeValue: {
+              include: { attribute: true }
+            }
+          }
+        }
+      }
+    });
+    if (!variant) {
+      throw new NotFoundException(`Variant with ID ${id} not found`);
+    }
+    return { success: true, data: variant };
+  }
 }
 
 

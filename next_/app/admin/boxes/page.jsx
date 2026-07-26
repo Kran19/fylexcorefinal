@@ -6,6 +6,20 @@ import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaImage } from 'react-icons/
 import MediaPickerModal from '@/components/admin/MediaPickerModal';
 import { getFileUrl } from '@/lib/utils';
 
+const getApiUrl = () => {
+  let urlStr = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+  if (typeof window !== 'undefined') {
+    try {
+      const url = new URL(urlStr);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        url.hostname = window.location.hostname;
+        urlStr = url.toString().replace(/\/$/, '');
+      }
+    } catch (e) {}
+  }
+  return urlStr;
+};
+
 export default function BoxesPage() {
   const [boxes, setBoxes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +37,7 @@ export default function BoxesPage() {
   const fetchBoxes = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/boxes`);
+      const { data } = await axios.get(`${getApiUrl()}/boxes`);
       if (Array.isArray(data)) {
         setBoxes(data);
       } else if (data && Array.isArray(data.data)) {
@@ -74,10 +88,10 @@ export default function BoxesPage() {
     e.preventDefault();
     try {
       if (editingBox) {
-        await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/boxes/${editingBox.id}`, formData);
+        await axios.put(`${getApiUrl()}/boxes/${editingBox.id}`, formData);
         Swal.fire('Success', 'Box updated successfully', 'success');
       } else {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/boxes`, formData);
+        await axios.post(`${getApiUrl()}/boxes`, formData);
         Swal.fire('Success', 'Box created successfully', 'success');
       }
       closeModal();
@@ -101,7 +115,7 @@ export default function BoxesPage() {
 
     if (result.isConfirmed) {
       try {
-        await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/boxes/${id}`);
+        await axios.delete(`${getApiUrl()}/boxes/${id}`);
         Swal.fire('Deleted!', 'Box has been deleted.', 'success');
         fetchBoxes();
       } catch (err) {

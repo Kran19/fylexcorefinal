@@ -142,6 +142,11 @@ export class VariantController {
     return this.productService.getAllVariants(Number(page), Number(limit));
   }
 
+  @Get(':id')
+  async getVariantById(@Param('id') id: string) {
+    return this.productService.getVariantById(id);
+  }
+
   @Patch(':id')
   async updateVariant(@Param('id') id: string, @Body() body: any) {
     return this.productService.updateVariant(id, body);

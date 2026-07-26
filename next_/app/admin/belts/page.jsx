@@ -6,6 +6,20 @@ import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaImage } from 'react-icons/
 import MediaPickerModal from '@/components/admin/MediaPickerModal';
 import { getFileUrl } from '@/lib/utils';
 
+const getApiUrl = () => {
+  let urlStr = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+  if (typeof window !== 'undefined') {
+    try {
+      const url = new URL(urlStr);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        url.hostname = window.location.hostname;
+        urlStr = url.toString().replace(/\/$/, '');
+      }
+    } catch (e) {}
+  }
+  return urlStr;
+};
+
 export default function BeltsPage() {
   const [belts, setBelts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +39,7 @@ export default function BeltsPage() {
   const fetchBelts = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/belts`);
+      const { data } = await axios.get(`${getApiUrl()}/belts`);
       if (Array.isArray(data)) {
         setBelts(data);
       } else if (data && Array.isArray(data.data)) {
@@ -80,10 +94,10 @@ export default function BeltsPage() {
     e.preventDefault();
     try {
       if (editingBelt) {
-        await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/belts/${editingBelt.id}`, formData);
+        await axios.put(`${getApiUrl()}/belts/${editingBelt.id}`, formData);
         Swal.fire('Success', 'Belt updated successfully', 'success');
       } else {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/belts`, formData);
+        await axios.post(`${getApiUrl()}/belts`, formData);
         Swal.fire('Success', 'Belt created successfully', 'success');
       }
       closeModal();
@@ -107,7 +121,7 @@ export default function BeltsPage() {
 
     if (result.isConfirmed) {
       try {
-        await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/belts/${id}`);
+        await axios.delete(`${getApiUrl()}/belts/${id}`);
         Swal.fire('Deleted!', 'Belt has been deleted.', 'success');
         fetchBelts();
       } catch (err) {

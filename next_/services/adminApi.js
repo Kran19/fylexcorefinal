@@ -3,7 +3,19 @@
  * All API calls go through here. Never call fetch/axios directly in pages.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+let BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+if (typeof window !== 'undefined') {
+  try {
+    const url = new URL(BASE_URL);
+    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+      url.hostname = window.location.hostname;
+      BASE_URL = url.toString().replace(/\/$/, '');
+    }
+  } catch (e) {
+    console.warn('Failed to parse BASE_URL', e);
+  }
+}
 
 /**
  * Core request handler with unified error handling.
@@ -212,6 +224,8 @@ export const getMedia = () => get('/media');
 export const uploadMedia = (formData) => post('/media/upload', formData);
 export const updateMedia = (id, data) => put(`/media/${id}`, data);
 export const deleteMedia = (id) => del(`/media/${id}`);
+export const renameFolder = (data) => post('/media/folder/rename', data);
+export const deleteFolder = (data) => request('DELETE', '/media/folder', data);
 
 // ─── CMS (Pages, Banners, Sliders, Testimonials) ─────────────
 export const getPages = () => get('/cms/pages');
