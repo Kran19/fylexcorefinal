@@ -27,13 +27,13 @@ services:
     restart: always
     ports:
       - "5000:3001"
+    env_file:
+      - ./nest_/.env
     environment:
       PORT: 3001
       DATABASE_URL: postgresql://fylex_user:fylex_password@db:5432/fylex_db?schema=public
       JWT_SECRET: fylex_secret_key_123
       NODE_ENV: production
-      RAZORPAY_KEY_ID: rzp_live_SdNFT2pwIkyLzZ
-      RAZORPAY_KEY_SECRET: LTp6hWBdQJgZv3wWVs4lFrHN
     depends_on:
       db:
         condition: service_healthy
