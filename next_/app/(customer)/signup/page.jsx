@@ -195,20 +195,34 @@ export default function Signup() {
                     placeholder="you@example.com"
                   />
                   <div className="auth-field-group">
-                    <label className="auth-label" htmlFor="sp-gender">Gender</label>
-                    <div className="auth-input-row">
-                      <select
-                        id="sp-gender"
-                        value={data.gender}
-                        onChange={e => setData(p => ({ ...p, gender: e.target.value }))}
-                        className="auth-input"
-                        style={{ padding: '4px 0', WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', background: 'transparent' }}
-                      >
-                        <option value="" disabled style={{ color: '#000' }}>Select Gender</option>
-                        <option value="Male" style={{ color: '#000' }}>Male</option>
-                        <option value="Female" style={{ color: '#000' }}>Female</option>
-                        <option value="Other" style={{ color: '#000' }}>Other</option>
-                      </select>
+                    <label className="auth-label">Gender</label>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+                      {['Male', 'Female', 'Other'].map(genderOpt => (
+                        <button
+                          key={genderOpt}
+                          type="button"
+                          onClick={() => setData(p => ({ ...p, gender: genderOpt }))}
+                          style={{
+                            flex: 1,
+                            padding: '12px 14px',
+                            borderRadius: '12px',
+                            border: data.gender === genderOpt ? '1px solid #5ec49e' : '1px solid rgba(255, 255, 255, 0.12)',
+                            background: data.gender === genderOpt ? 'rgba(94, 196, 158, 0.14)' : 'rgba(255, 255, 255, 0.03)',
+                            color: data.gender === genderOpt ? '#5ec49e' : 'rgba(255, 255, 255, 0.7)',
+                            fontWeight: data.gender === genderOpt ? 600 : 400,
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.25s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          {data.gender === genderOpt && <span style={{ fontSize: '11px', color: '#5ec49e' }}>✓</span>}
+                          {genderOpt}
+                        </button>
+                      ))}
                     </div>
                   </div>
                   <InputField
