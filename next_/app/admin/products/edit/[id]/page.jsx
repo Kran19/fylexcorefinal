@@ -945,7 +945,6 @@ const EditProductPage = () => {
                                                  </div>
                                              </div>
                                             </div>
-                                         </div>
 
                                     {/* Specifications */}
                                     {categoryDetails && (
