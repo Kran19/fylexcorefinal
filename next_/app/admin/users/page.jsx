@@ -57,7 +57,7 @@ const UsersPage = () => {
     tabulatorRef.current = new Tabulator(tableRef.current, {
       data: users,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 10,
       placeholder: 'No customers found',

@@ -60,7 +60,7 @@ const FaqPage = () => {
     tabulatorRef.current = new Tabulator(tableRef.current, {
       data: faqs,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 10,
       placeholder: 'No FAQs found',

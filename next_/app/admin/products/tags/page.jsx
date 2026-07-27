@@ -59,7 +59,7 @@ const TagsPage = () => {
     tabulatorRef.current = new Tabulator(tableRef.current, {
       data: tags,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 15,
       placeholder: 'No tags found',

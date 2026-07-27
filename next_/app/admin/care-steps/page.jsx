@@ -63,7 +63,7 @@ const CareStepsPage = () => {
     tabulatorRef.current = new Tabulator(tableRef.current, {
       data: steps,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 10,
       groupBy: "productId",

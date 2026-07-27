@@ -60,7 +60,7 @@ const AdminProducts = () => {
     tabulatorRef.current = new Tabulator(tableRef.current, {
       data: products,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 15,
       rowHeight: 60,

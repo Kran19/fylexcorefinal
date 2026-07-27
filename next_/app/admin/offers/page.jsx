@@ -78,7 +78,7 @@ const OffersPage = () => {
     tabulatorRef.current = new Tabulator(tableRef.current, {
       data: offers,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 10,
       placeholder: 'No offers found',
@@ -449,7 +449,7 @@ const OffersPage = () => {
             <div>
               <h4 className="font-bold text-gray-800 mb-3 text-sm border-b pb-2">Usage History</h4>
               {viewingAnalytics.usages && viewingAnalytics.usages.length > 0 ? (
-                <div className="overflow-hidden rounded-lg border border-gray-200">
+                <div className="overflow-x-auto rounded-lg border border-gray-200">
                   <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead className="bg-gray-50 border-b border-gray-200">
                       <tr>

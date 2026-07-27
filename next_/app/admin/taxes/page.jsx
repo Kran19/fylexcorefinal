@@ -95,7 +95,7 @@ const TaxPage = () => {
     ratesTabulatorRef.current = new Tabulator(ratesTableRef.current, {
       data: taxes,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 10,
       placeholder: 'No tax rates found',
@@ -169,7 +169,7 @@ const TaxPage = () => {
     classesTabulatorRef.current = new Tabulator(classesTableRef.current, {
       data: taxClasses,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 10,
       placeholder: 'No tax classes found',

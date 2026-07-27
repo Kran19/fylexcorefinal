@@ -43,7 +43,7 @@ const CategoriesPage = () => {
     tabulatorRef.current = new Tabulator(tableRef.current, {
       data: categories,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 15,
       placeholder: 'No categories found',

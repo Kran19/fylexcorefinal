@@ -49,7 +49,7 @@ const ReviewsPage = () => {
         tabulatorRef.current = new Tabulator(tableRef.current, {
             data: reviews,
             layout: 'fitColumns',
-            responsiveLayout: 'collapse',
+            responsiveLayout: false,
             pagination: 'local',
             paginationSize: 10,
             placeholder: 'No reviews found',

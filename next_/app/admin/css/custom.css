@@ -1923,10 +1923,13 @@ select.form-control {
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12) !important;
 }
 
-/* ─── Admin Table & Tabulator Cell Spacing ─── */
+/* ─── Admin Table & Tabulator Cell Spacing & Global Horizontal Scroll ─── */
 .admin-card {
     padding: 24px !important;
     margin-bottom: 30px !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
 }
 
 .admin-table th {
@@ -1939,6 +1942,17 @@ select.form-control {
 .admin-table td {
     padding: 16px 20px !important;
     font-size: 14px !important;
+}
+
+.tabulator {
+    min-width: 950px !important;
+    width: 100% !important;
+}
+
+.tabulator-tableholder {
+    overflow-x: auto !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
 }
 
 .tabulator-header .tabulator-col {

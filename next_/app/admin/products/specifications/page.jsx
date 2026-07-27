@@ -269,7 +269,7 @@ const SpecificationManagement = () => {
     }
 
     tabulatorRef.current = new Tabulator(tableRef.current, {
-      data: currentData, layout: 'fitColumns', responsiveLayout: 'collapse',
+      data: currentData, layout: 'fitColumns', responsiveLayout: false,
       pagination: 'local', paginationSize: 15, placeholder: `No ${activeTab} data found`,
       columns: columns, headerVisible: true,
       paginationSizeSelector: [15, 30, 50, 100],

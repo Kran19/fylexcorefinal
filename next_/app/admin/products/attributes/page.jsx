@@ -69,7 +69,7 @@ const AttributeList = () => {
     tabulatorRef.current = new Tabulator(tableRef.current, {
       data: attributes,
       layout: 'fitColumns',
-      responsiveLayout: 'collapse',
+      responsiveLayout: false,
       pagination: 'local',
       paginationSize: 10,
       placeholder: 'No attributes found',
