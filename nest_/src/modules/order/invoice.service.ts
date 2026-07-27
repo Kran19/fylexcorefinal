@@ -42,27 +42,41 @@ export class InvoiceService {
 
   private generateHeader(doc: PDFKit.PDFDocument) {
     // Premium Black Header Bar
-    doc.rect(0, 0, 600, 100).fill('#000000');
+    doc.rect(0, 0, 600, 105).fill('#000000');
     
     try {
-      const logoPath = path.join(process.cwd(), '..', 'next_', 'public', 'assets', 'fylex-logo-light.png');
-      if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 50, 35, { width: 120 });
-      } else {
-        doc.fillColor('#ffffff').fontSize(28).font('Helvetica-Bold').text('FYLEX', 50, 40);
+      const possibleLogos = [
+        path.join(process.cwd(), 'public', 'fylex_logo_name.png'),
+        path.join(process.cwd(), 'public', 'fylex_logo.png'),
+        path.join(process.cwd(), '..', 'next_', 'public', 'fylex_logo_name.png'),
+        path.join(process.cwd(), '..', 'next_', 'public', 'fylex_logo.png'),
+      ];
+      let loaded = false;
+      for (const logoPath of possibleLogos) {
+        if (fs.existsSync(logoPath)) {
+          doc.image(logoPath, 50, 30, { width: 130 });
+          loaded = true;
+          break;
+        }
+      }
+      if (!loaded) {
+        doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold').text('FYLEX WATCHES', 50, 40);
       }
     } catch (e) {
-      doc.fillColor('#ffffff').fontSize(28).font('Helvetica-Bold').text('FYLEX', 50, 40);
+      doc.fillColor('#ffffff').fontSize(22).font('Helvetica-Bold').text('FYLEX WATCHES', 50, 40);
     }
 
     doc
       .fillColor('#ffffff')
-      .fontSize(10)
+      .fontSize(11)
+      .font('Helvetica-Bold')
+      .text('Fylex Watches', 200, 20, { align: 'right' })
       .font('Helvetica')
-      .text('Fylex Premium Timepieces', 200, 35, { align: 'right' })
-      .text('123 Luxury Avenue, Mumbai, MH 400001', 200, 50, { align: 'right' })
-      .text('GSTIN: 27AAAAA0000A1Z5', 200, 65, { align: 'right' })
-      .text('support@fylex.com  |  +91 9876543210', 200, 80, { align: 'right' });
+      .fontSize(8.5)
+      .text('6/11 Patel Nagar, 80 Feet Road,', 200, 35, { align: 'right' })
+      .text('Rajkot - 360002', 200, 48, { align: 'right' })
+      .text('GSTIN: 24ABBPL7345R1Z6', 200, 61, { align: 'right' })
+      .text('support@fylexwatches.com', 200, 74, { align: 'right' });
       
     doc.moveDown();
   }
@@ -227,13 +241,13 @@ export class InvoiceService {
       .fillColor('#888888')
       .font('Helvetica')
       .text(
-        'Thank you for your business.',
+        'Thank you for shopping with Fylex Watches.',
         50,
         720,
         { align: 'center', width: 500 }
       )
       .text(
-        'For any queries regarding this invoice, please contact support@fylex.com.',
+        'For any queries regarding this invoice, please contact support@fylexwatches.com.',
         50,
         735,
         { align: 'center', width: 500 }
