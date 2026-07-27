@@ -1413,12 +1413,13 @@ const EditProductPage = () => {
                                                              )}
                                                          </div>
                                                          );
-                                                     })()}
+                                                             })()}
 
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
+                                        <div className="flex flex-col items-center justify-center py-20 text-center">
                                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
                                                 <i className="fas fa-cubes text-2xl"></i>
                                             </div>
