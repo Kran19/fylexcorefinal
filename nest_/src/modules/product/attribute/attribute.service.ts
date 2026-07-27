@@ -69,8 +69,20 @@ export class AttributeService {
     }
   }
 
+  private async syncIdSequences() {
+    try {
+      await this.prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('attributes', 'id'), COALESCE((SELECT MAX(id) FROM attributes), 1));`);
+      await this.prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('attribute_values', 'id'), COALESCE((SELECT MAX(id) FROM attribute_values), 1));`);
+    } catch (e) {
+      // Non-fatal sequence sync fallback
+    }
+  }
+
   async create(createAttributeDto: CreateAttributeDto) {
     try {
+      // Sync sequence before creating to prevent ID sequence collision after seeding
+      await this.syncIdSequences();
+
       const { values, isActive, ...rest } = createAttributeDto;
       
       let code = rest.code || (rest.name ? rest.name.toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') : `attr_${Date.now()}`);
@@ -173,6 +185,7 @@ export class AttributeService {
 
   async createValue(attributeId: number | string, dto: CreateAttributeValueDto) {
     try {
+      await this.syncIdSequences();
       const attrId = Number(attributeId);
       const imgId = dto.imageId && !isNaN(Number(dto.imageId)) && Number(dto.imageId) > 0 ? Number(dto.imageId) : null;
       
