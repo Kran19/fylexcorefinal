@@ -31,7 +31,28 @@ const AdminProducts = () => {
 
   const router = useRouter();
 
-
+  const getDisplayData = (product) => {
+    if (!product) return { name: 'Unknown', price: 0, formattedPrice: '$0.00', image: '', isConfigurable: false };
+    const isConfigurable = product.productType === 'configurable';
+    let img = product.images?.[0]?.url || product.primaryImage || product.image || product.thumbnailUrl || '';
+    let price = product.price || product.basePrice || 0;
+    if (isConfigurable && product.variants?.length > 0) {
+      const activeVariants = product.variants.filter(v => v.status === 'active' || v.isActive !== false);
+      if (activeVariants.length > 0) {
+        const prices = activeVariants.map(v => Number(v.price || 0)).filter(p => p > 0);
+        if (prices.length > 0) price = Math.min(...prices);
+        if (!img && activeVariants[0]?.image) img = activeVariants[0].image;
+      }
+    }
+    const formattedPrice = typeof price === 'number' ? `$${price.toFixed(2)}` : (price ? `$${price}` : '$0.00');
+    return {
+      name: product.name || 'Untitled Product',
+      price,
+      formattedPrice,
+      image: img,
+      isConfigurable
+    };
+  };
 
   const columns = [
     {

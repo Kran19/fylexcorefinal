@@ -95,28 +95,36 @@ export default function DataTable({
   // Update Data dynamically without destroying table
   useEffect(() => {
     if (tabulatorRef.current && isBuiltRef.current && !loading) {
-      tabulatorRef.current.replaceData(filteredData).catch(() => {});
+      try {
+        tabulatorRef.current.replaceData(filteredData);
+      } catch (err) {}
     }
   }, [filteredData, loading]);
 
   // Update Columns dynamically if needed without destroying table
   useEffect(() => {
     if (tabulatorRef.current && isBuiltRef.current && !loading) {
-      tabulatorRef.current.setColumns(columns).catch(() => {});
+      try {
+        tabulatorRef.current.setColumns(columns);
+      } catch (err) {}
     }
   }, [columns, loading]);
 
   // Sync Page Size
   useEffect(() => {
     if (tabulatorRef.current && isBuiltRef.current) {
-      tabulatorRef.current.setPageSize(pageSize).catch(() => {});
+      try {
+        tabulatorRef.current.setPageSize(pageSize);
+      } catch (err) {}
     }
   }, [pageSize]);
 
   // Sync Current Page Navigation
   useEffect(() => {
     if (tabulatorRef.current && isBuiltRef.current) {
-      tabulatorRef.current.setPage(currentPage).catch(() => {});
+      try {
+        tabulatorRef.current.setPage(currentPage);
+      } catch (err) {}
     }
   }, [currentPage]);
 
