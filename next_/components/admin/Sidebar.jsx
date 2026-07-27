@@ -101,12 +101,7 @@ const navItems = [
     icon: 'fas fa-camera-retro',
     path: '/admin/community',
   },
-  {
-    key: 'founder',
-    title: 'Founder',
-    icon: 'fas fa-user-tie',
-    path: '/admin/founder',
-  },
+
   {
     key: 'care',
     title: 'Care & Support',
