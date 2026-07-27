@@ -66,7 +66,7 @@ const EditProductPage = () => {
     const [selectedAttributeValues, setSelectedAttributeValues] = useState({}); // attrId: [valIds]
     const [variants, setVariants] = useState([]);
     const [variantPage, setVariantPage] = useState(1);
-    const variantsPerPage = 10;
+    const [variantsPerPage, setVariantsPerPage] = useState(10);
     const [pickerTarget, setPickerTarget] = useState(null); // 'primary' | 'gallery' | {variantIndex, type}
     const [variantImageModal, setVariantImageModal] = useState(null); // { index, name }
     const [pageThemeTab, setPageThemeTab] = useState('discover');
@@ -1254,32 +1254,67 @@ const EditProductPage = () => {
                                                         </tbody>
                                                     </table>
 
-                                                    {/* Pagination Controls */}
-                                                    {variants.length > variantsPerPage && (
-                                                        <div className="flex items-center justify-between !px-4 !py-3 bg-white border-t border-gray-100">
-                                                            <div className="text-xs text-gray-500 font-medium">
-                                                                Showing <span className="font-bold text-gray-900">{(variantPage - 1) * variantsPerPage + 1}</span> to <span className="font-bold text-gray-900">{Math.min(variantPage * variantsPerPage, variants.length)}</span> of <span className="font-bold text-gray-900">{variants.length}</span> variants
-                                                            </div>
-                                                            <div className="flex gap-1">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setVariantPage(p => Math.max(1, p - 1))}
-                                                                    disabled={variantPage === 1}
-                                                                    className="!px-3 !py-1.5 text-xs font-bold border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                                                >
-                                                                    Prev
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setVariantPage(p => Math.min(Math.ceil(variants.length / variantsPerPage), p + 1))}
-                                                                    disabled={variantPage === Math.ceil(variants.length / variantsPerPage)}
-                                                                    className="!px-3 !py-1.5 text-xs font-bold border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                                                >
-                                                                    Next
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                     {variants.length > 0 && (
+                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#fff', borderTop: '1px solid #f1f5f9', borderRadius: '0 0 16px 16px', flexWrap: 'wrap', gap: 12 }}>
+                                                             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                                                                 <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                                                                     Showing <strong style={{ color: '#0f172a' }}>{variants.length === 0 ? 0 : (variantPage - 1) * variantsPerPage + 1}</strong> to <strong style={{ color: '#0f172a' }}>{Math.min(variantPage * variantsPerPage, variants.length)}</strong> of <strong style={{ color: '#0f172a' }}>{variants.length}</strong> variants
+                                                                 </span>
+                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                     <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Per page:</span>
+                                                                     <select
+                                                                         value={variantsPerPage}
+                                                                         onChange={(e) => {
+                                                                             setVariantsPerPage(Number(e.target.value));
+                                                                             setVariantPage(1);
+                                                                         }}
+                                                                         style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 700, background: '#fff', color: '#1e293b', outline: 'none' }}
+                                                                     >
+                                                                         <option value={5}>5</option>
+                                                                         <option value={10}>10</option>
+                                                                         <option value={25}>25</option>
+                                                                         <option value={50}>50</option>
+                                                                         <option value={100}>100</option>
+                                                                     </select>
+                                                                 </div>
+                                                             </div>
+
+                                                             {Math.ceil(variants.length / variantsPerPage) > 1 && (
+                                                                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                                                     <button
+                                                                         type="button"
+                                                                         onClick={() => setVariantPage(p => Math.max(1, p - 1))}
+                                                                         disabled={variantPage === 1}
+                                                                         style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 700, cursor: variantPage === 1 ? 'not-allowed' : 'pointer', opacity: variantPage === 1 ? 0.4 : 1, color: '#334155' }}
+                                                                     >
+                                                                         Prev
+                                                                     </button>
+                                                                     {Array.from({ length: Math.ceil(variants.length / variantsPerPage) }).map((_, pageIdx) => {
+                                                                         const pageNum = pageIdx + 1;
+                                                                         const isActive = variantPage === pageNum;
+                                                                         return (
+                                                                             <button
+                                                                                 key={pageNum}
+                                                                                 type="button"
+                                                                                 onClick={() => setVariantPage(pageNum)}
+                                                                                 style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 8, border: isActive ? 'none' : '1px solid #e2e8f0', background: isActive ? 'var(--admin-primary, #4f46e5)' : '#fff', color: isActive ? '#fff' : '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                             >
+                                                                                 {pageNum}
+                                                                             </button>
+                                                                         );
+                                                                     })}
+                                                                     <button
+                                                                         type="button"
+                                                                         onClick={() => setVariantPage(p => Math.min(Math.ceil(variants.length / variantsPerPage), p + 1))}
+                                                                         disabled={variantPage === Math.ceil(variants.length / variantsPerPage)}
+                                                                         style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 700, cursor: variantPage === Math.ceil(variants.length / variantsPerPage) ? 'not-allowed' : 'pointer', opacity: variantPage === Math.ceil(variants.length / variantsPerPage) ? 0.4 : 1, color: '#334155' }}
+                                                                     >
+                                                                         Next
+                                                                     </button>
+                                                                 </div>
+                                                             )}
+                                                         </div>
+                                                     )}
                                                 </div>
                                             )}
                                         </div>
