@@ -67,6 +67,7 @@ const EditProductPage = () => {
     const [variants, setVariants] = useState([]);
     const [variantPage, setVariantPage] = useState(1);
     const [variantsPerPage, setVariantsPerPage] = useState(10);
+    const [variantSearch, setVariantSearch] = useState('');
     const [pickerTarget, setPickerTarget] = useState(null); // 'primary' | 'gallery' | {variantIndex, type}
     const [variantImageModal, setVariantImageModal] = useState(null); // { index, name }
     const [pageThemeTab, setPageThemeTab] = useState('discover');
@@ -1183,82 +1184,179 @@ const EditProductPage = () => {
                                                 <i className="fas fa-magic"></i> Update Configurations
                                             </button>
 
-                                            {variants.length > 0 && (
-                                                <div className="mt-8 overflow-x-auto rounded-xl border border-gray-100">
-                                                    <table className="w-full border-collapse">
-                                                        <thead>
-                                                            <tr className="bg-gray-50 border-b border-gray-100">
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Order</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Variant</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">SKU</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Actual Price</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Selling Price</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Stock</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Media</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sold Config</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sold Count</th>
-                                                                <th className="!px-4 !py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest"></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-gray-50">
-                                                            {variants.slice((variantPage - 1) * variantsPerPage, variantPage * variantsPerPage).map((variant, localIdx) => {
-                                                                const vIdx = (variantPage - 1) * variantsPerPage + localIdx;
-                                                                return (
-                                                                <tr key={vIdx} className="hover:bg-gray-50 transition-colors">
-                                                                    <td className="!px-4 !py-4">
-                                                                        <div className="flex items-center gap-1">
-                                                                            <button type="button" onClick={() => setPrimaryVariant(vIdx)} title={variant.isPrimary ? 'Primary Variant' : 'Make Primary'} className={`!p-1 rounded transition-all ${variant.isPrimary ? 'text-amber-500 bg-amber-50' : 'text-gray-300 hover:text-amber-500'}`}><i className="fas fa-star text-xs"></i></button>
-                                                                            <button type="button" onClick={() => moveVariantOrder(vIdx, -1)} disabled={vIdx === 0} className="!p-1 text-gray-400 hover:text-gray-800 disabled:opacity-30"><i className="fas fa-chevron-up text-xs"></i></button>
-                                                                            <button type="button" onClick={() => moveVariantOrder(vIdx, 1)} disabled={vIdx === variants.length - 1} className="!p-1 text-gray-400 hover:text-gray-800 disabled:opacity-30"><i className="fas fa-chevron-down text-xs"></i></button>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="!px-4 !py-4 text-sm font-bold text-gray-900">{variant.name}</td>
-                                                                    <td className="!px-4 !py-4">
-                                                                        <input type="text" value={variant.sku} onChange={(e) => updateVariantField(vIdx, 'sku', e.target.value)} className="min-w-[140px] w-full font-mono font-bold uppercase tracking-wider bg-slate-50 border border-slate-200 rounded-lg !px-3 !py-1.5 text-xs text-slate-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all" />
-                                                                    </td>
-                                                                    <td className="!px-4 !py-4">
-                                                                        <input type="number" value={variant.comparePrice} onChange={(e) => updateVariantField(vIdx, 'comparePrice', e.target.value)} className="w-20 bg-white border border-gray-200 rounded !px-2 !py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                                                    </td>
-                                                                    <td className="!px-4 !py-4">
-                                                                        <input type="number" value={variant.price} onChange={(e) => updateVariantField(vIdx, 'price', e.target.value)} className="w-20 bg-white border border-gray-200 rounded !px-2 !py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                                                    </td>
-                                                                    <td className="!px-4 !py-4">
-                                                                        <input type="number" value={variant.stock} onChange={(e) => updateVariantField(vIdx, 'stock', e.target.value)} className="w-16 bg-white border border-gray-200 rounded !px-2 !py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                                                    </td>
-                                                                    <td className="!px-4 !py-4">
-                                                                        <div className="flex items-center gap-3">
-                                                                            {variant.heroImage ? (
-                                                                                <div className="w-8 h-8 rounded border border-gray-200 overflow-hidden shrink-0">
-                                                                                    <img src={getFileUrl(variant.heroImage?.url || variant.heroImage)} className="w-full h-full object-cover" />
-                                                                                </div>
-                                                                            ) : (
-                                                                                <div className="w-8 h-8 rounded border border-gray-200 bg-gray-50 flex items-center justify-center text-gray-300 shrink-0">
-                                                                                    <i className="fas fa-image text-xs"></i>
-                                                                                </div>
-                                                                            )}
-                                                                            <button type="button" onClick={() => setVariantImageModal({ index: vIdx, name: variant.name })} className="!px-3 !py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all whitespace-nowrap">Manage</button>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="!px-4 !py-4">
-                                                                        <input type="checkbox" checked={variant.isSoldConfiguration || false} onChange={(e) => updateVariantField(vIdx, 'isSoldConfiguration', e.target.checked)} className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
-                                                                    </td>
-                                                                    <td className="!px-4 !py-4">
-                                                                        <input type="number" value={variant.fakeSoldCount || 0} onChange={(e) => updateVariantField(vIdx, 'fakeSoldCount', e.target.value)} className="w-16 bg-white border border-gray-200 rounded !px-2 !py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                                                    </td>
-                                                                    <td className="!px-4 !py-4 text-right">
-                                                                        <button type="button" onClick={() => removeVariant(vIdx)} className="text-gray-300 hover:text-red-500 transition-colors"><i className="fas fa-trash-alt"></i></button>
-                                                                    </td>
-                                                                </tr>
-                                                                );
-                                                            })}
-                                                        </tbody>
-                                                    </table>
+                                             {variants.length > 0 && (
+                                                 <div style={{ marginTop: '24px', borderRadius: '16px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', overflow: 'hidden' }}>
+                                                     
+                                                     {/* TABULATOR TOOLBAR: SEARCH & BULK ACTIONS */}
+                                                     <div style={{ padding: '16px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                                                             <div style={{ position: 'relative', width: '260px' }}>
+                                                                 <i className="fas fa-search" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '13px' }}></i>
+                                                                 <input
+                                                                     type="text"
+                                                                     placeholder="Search SKU or Variant..."
+                                                                     value={variantSearch}
+                                                                     onChange={(e) => { setVariantSearch(e.target.value); setVariantPage(1); }}
+                                                                     style={{ width: '100%', padding: '8px 12px 8px 34px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '12px', fontWeight: 600, background: '#ffffff', outline: 'none' }}
+                                                                 />
+                                                             </div>
+                                                             <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', background: '#e2e8f0', padding: '6px 12px', borderRadius: '20px' }}>
+                                                                 {variants.filter(v => (v.name || '').toLowerCase().includes(variantSearch.toLowerCase()) || (v.sku || '').toLowerCase().includes(variantSearch.toLowerCase())).length} Variants
+                                                             </span>
+                                                         </div>
 
-                                                     {variants.length > 0 && (
-                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#fff', borderTop: '1px solid #f1f5f9', borderRadius: '0 0 16px 16px', flexWrap: 'wrap', gap: 12 }}>
+                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                                             <button
+                                                                 type="button"
+                                                                 onClick={() => {
+                                                                     const val = prompt('Enter Selling Price to apply to ALL variants:');
+                                                                     if (val !== null && val !== '' && !isNaN(val)) {
+                                                                         setVariants(prev => prev.map(v => ({ ...v, price: Number(val) })));
+                                                                         toast?.success?.(`Updated selling price to ₹${val} for all variants`);
+                                                                     }
+                                                                 }}
+                                                                 style={{ padding: '7px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#334155', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                             >
+                                                                 <i className="fas fa-tags" style={{ color: '#4f46e5' }}></i> Batch Price
+                                                             </button>
+                                                             <button
+                                                                 type="button"
+                                                                 onClick={() => {
+                                                                     const val = prompt('Enter Stock count to apply to ALL variants:');
+                                                                     if (val !== null && val !== '' && !isNaN(val)) {
+                                                                         setVariants(prev => prev.map(v => ({ ...v, stock: Number(val) })));
+                                                                         toast?.success?.(`Updated stock count to ${val} for all variants`);
+                                                                     }
+                                                                 }}
+                                                                 style={{ padding: '7px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#334155', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                             >
+                                                                 <i className="fas fa-boxes" style={{ color: '#10b981' }}></i> Batch Stock
+                                                             </button>
+                                                         </div>
+                                                     </div>
+
+                                                     {/* FLEXIBLE HORIZONTAL SCROLL CONTAINER */}
+                                                     <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+                                                         <table style={{ width: '100%', minWidth: '1350px', borderCollapse: 'collapse' }}>
+                                                             <thead>
+                                                                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '90px' }}>Order</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '220px' }}>Variant Combination</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '280px' }}>SKU Code</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '120px' }}>Actual Price</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '120px' }}>Selling Price</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '100px' }}>Stock</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '140px' }}>Media</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'center', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '110px' }}>Sold Config</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '110px' }}>Sold Count</th>
+                                                                     <th style={{ padding: '14px 16px', textAlign: 'right', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '60px' }}></th>
+                                                                 </tr>
+                                                             </thead>
+                                                             <tbody style={{ divideY: '1px solid #f1f5f9' }}>
+                                                                 {(() => {
+                                                                     const activeList = variants.filter(v => 
+                                                                         (v.name || '').toLowerCase().includes(variantSearch.toLowerCase()) || 
+                                                                         (v.sku || '').toLowerCase().includes(variantSearch.toLowerCase())
+                                                                     );
+                                                                     if (activeList.length === 0) {
+                                                                         return (
+                                                                             <tr>
+                                                                                 <td colSpan="10" style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8', fontWeight: 600 }}>
+                                                                                     No variants match your search filter "{variantSearch}".
+                                                                                 </td>
+                                                                             </tr>
+                                                                         );
+                                                                     }
+                                                                     return activeList.slice((variantPage - 1) * variantsPerPage, variantPage * variantsPerPage).map((variant, localIdx) => {
+                                                                         const vIdx = variants.findIndex(v => v.sku === variant.sku || v === variant);
+                                                                         return (
+                                                                         <tr key={variant.sku || localIdx} style={{ transition: 'background 0.2s', borderBottom: '1px solid #f1f5f9' }} className="hover:bg-slate-50/80">
+                                                                             <td style={{ padding: '12px 16px' }}>
+                                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                                                     <button type="button" onClick={() => setPrimaryVariant(vIdx)} title={variant.isPrimary ? 'Primary Variant' : 'Make Primary'} style={{ border: 'none', background: variant.isPrimary ? '#fef3c7' : 'transparent', color: variant.isPrimary ? '#d97706' : '#cbd5e1', padding: '4px', borderRadius: '6px', cursor: 'pointer' }}><i className="fas fa-star" style={{ fontSize: '12px' }}></i></button>
+                                                                                     <button type="button" onClick={() => moveVariantOrder(vIdx, -1)} disabled={vIdx === 0} style={{ border: 'none', background: 'transparent', color: '#94a3b8', padding: '2px', cursor: vIdx === 0 ? 'not-allowed' : 'pointer', opacity: vIdx === 0 ? 0.3 : 1 }}><i className="fas fa-chevron-up" style={{ fontSize: '11px' }}></i></button>
+                                                                                     <button type="button" onClick={() => moveVariantOrder(vIdx, 1)} disabled={vIdx === variants.length - 1} style={{ border: 'none', background: 'transparent', color: '#94a3b8', padding: '2px', cursor: vIdx === variants.length - 1 ? 'not-allowed' : 'pointer', opacity: vIdx === variants.length - 1 ? 0.3 : 1 }}><i className="fas fa-chevron-down" style={{ fontSize: '11px' }}></i></button>
+                                                                                 </div>
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                                                                                 {variant.name}
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px' }}>
+                                                                                 <input 
+                                                                                     type="text" 
+                                                                                     value={variant.sku} 
+                                                                                     onChange={(e) => updateVariantField(vIdx, 'sku', e.target.value)} 
+                                                                                     style={{ width: '100%', minWidth: '220px', fontFamily: 'monospace', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#334155', outline: 'none' }}
+                                                                                 />
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px' }}>
+                                                                                 <input 
+                                                                                     type="number" 
+                                                                                     value={variant.comparePrice || ''} 
+                                                                                     onChange={(e) => updateVariantField(vIdx, 'comparePrice', e.target.value)} 
+                                                                                     style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', fontWeight: 600, outline: 'none' }} 
+                                                                                     placeholder="₹ Actual"
+                                                                                 />
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px' }}>
+                                                                                 <input 
+                                                                                     type="number" 
+                                                                                     value={variant.price || ''} 
+                                                                                     onChange={(e) => updateVariantField(vIdx, 'price', e.target.value)} 
+                                                                                     style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', fontWeight: 700, color: '#4f46e5', outline: 'none' }} 
+                                                                                     placeholder="₹ Selling"
+                                                                                 />
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px' }}>
+                                                                                 <input 
+                                                                                     type="number" 
+                                                                                     value={variant.stock !== undefined ? variant.stock : ''} 
+                                                                                     onChange={(e) => updateVariantField(vIdx, 'stock', e.target.value)} 
+                                                                                     style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', fontWeight: 700, outline: 'none' }} 
+                                                                                 />
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px' }}>
+                                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                                     {variant.heroImage ? (
+                                                                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden', flexShrink: 0 }}>
+                                                                                             <img src={getFileUrl(variant.heroImage?.url || variant.heroImage)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                                         </div>
+                                                                                     ) : (
+                                                                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', flexShrink: 0 }}>
+                                                                                             <i className="fas fa-image" style={{ fontSize: '12px' }}></i>
+                                                                                         </div>
+                                                                                     )}
+                                                                                     <button type="button" onClick={() => setVariantImageModal({ index: vIdx, name: variant.name })} style={{ padding: '5px 10px', background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '8px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>Manage</button>
+                                                                                 </div>
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                                                 <input type="checkbox" checked={variant.isSoldConfiguration || false} onChange={(e) => updateVariantField(vIdx, 'isSoldConfiguration', e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#4f46e5' }} />
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px' }}>
+                                                                                 <input type="number" value={variant.fakeSoldCount || 0} onChange={(e) => updateVariantField(vIdx, 'fakeSoldCount', e.target.value)} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', outline: 'none' }} />
+                                                                             </td>
+                                                                             <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                                                                                 <button type="button" onClick={() => removeVariant(vIdx)} style={{ border: 'none', background: 'transparent', color: '#cbd5e1', cursor: 'pointer', fontSize: '14px', transition: 'color 0.2s' }} className="hover:text-red-500"><i className="fas fa-trash-alt"></i></button>
+                                                                             </td>
+                                                                         </tr>
+                                                                         );
+                                                                     });
+                                                                 })()}
+                                                             </tbody>
+                                                         </table>
+                                                     </div>
+
+                                                     {/* TABULATOR FOOTER & PAGINATION */}
+                                                     {(() => {
+                                                         const activeList = variants.filter(v => 
+                                                             (v.name || '').toLowerCase().includes(variantSearch.toLowerCase()) || 
+                                                             (v.sku || '').toLowerCase().includes(variantSearch.toLowerCase())
+                                                         );
+                                                         return (
+                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: 12 }}>
                                                              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                                                  <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-                                                                     Showing <strong style={{ color: '#0f172a' }}>{variants.length === 0 ? 0 : (variantPage - 1) * variantsPerPage + 1}</strong> to <strong style={{ color: '#0f172a' }}>{Math.min(variantPage * variantsPerPage, variants.length)}</strong> of <strong style={{ color: '#0f172a' }}>{variants.length}</strong> variants
+                                                                     Showing <strong style={{ color: '#0f172a' }}>{activeList.length === 0 ? 0 : (variantPage - 1) * variantsPerPage + 1}</strong> to <strong style={{ color: '#0f172a' }}>{Math.min(variantPage * variantsPerPage, activeList.length)}</strong> of <strong style={{ color: '#0f172a' }}>{activeList.length}</strong> variants
                                                                  </span>
                                                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                                      <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Per page:</span>
@@ -1268,7 +1366,7 @@ const EditProductPage = () => {
                                                                              setVariantsPerPage(Number(e.target.value));
                                                                              setVariantPage(1);
                                                                          }}
-                                                                         style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, fontWeight: 700, background: '#fff', color: '#1e293b', outline: 'none' }}
+                                                                         style={{ padding: '4px 8px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, fontWeight: 700, background: '#fff', color: '#1e293b', outline: 'none' }}
                                                                      >
                                                                          <option value={5}>5</option>
                                                                          <option value={10}>10</option>
@@ -1279,17 +1377,17 @@ const EditProductPage = () => {
                                                                  </div>
                                                              </div>
 
-                                                             {Math.ceil(variants.length / variantsPerPage) > 1 && (
+                                                             {Math.ceil(activeList.length / variantsPerPage) > 1 && (
                                                                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                                                                      <button
                                                                          type="button"
                                                                          onClick={() => setVariantPage(p => Math.max(1, p - 1))}
                                                                          disabled={variantPage === 1}
-                                                                         style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 700, cursor: variantPage === 1 ? 'not-allowed' : 'pointer', opacity: variantPage === 1 ? 0.4 : 1, color: '#334155' }}
+                                                                         style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', fontSize: 12, fontWeight: 700, cursor: variantPage === 1 ? 'not-allowed' : 'pointer', opacity: variantPage === 1 ? 0.4 : 1, color: '#334155' }}
                                                                      >
                                                                          Prev
                                                                      </button>
-                                                                     {Array.from({ length: Math.ceil(variants.length / variantsPerPage) }).map((_, pageIdx) => {
+                                                                     {Array.from({ length: Math.ceil(activeList.length / variantsPerPage) }).map((_, pageIdx) => {
                                                                          const pageNum = pageIdx + 1;
                                                                          const isActive = variantPage === pageNum;
                                                                          return (
@@ -1297,7 +1395,7 @@ const EditProductPage = () => {
                                                                                  key={pageNum}
                                                                                  type="button"
                                                                                  onClick={() => setVariantPage(pageNum)}
-                                                                                 style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 8, border: isActive ? 'none' : '1px solid #e2e8f0', background: isActive ? 'var(--admin-primary, #4f46e5)' : '#fff', color: isActive ? '#fff' : '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                                 style={{ minWidth: 32, height: 32, padding: '0 8px', borderRadius: 8, border: isActive ? 'none' : '1px solid #cbd5e1', background: isActive ? '#4f46e5' : '#fff', color: isActive ? '#fff' : '#334155', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                                                                              >
                                                                                  {pageNum}
                                                                              </button>
@@ -1305,21 +1403,23 @@ const EditProductPage = () => {
                                                                      })}
                                                                      <button
                                                                          type="button"
-                                                                         onClick={() => setVariantPage(p => Math.min(Math.ceil(variants.length / variantsPerPage), p + 1))}
-                                                                         disabled={variantPage === Math.ceil(variants.length / variantsPerPage)}
-                                                                         style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 12, fontWeight: 700, cursor: variantPage === Math.ceil(variants.length / variantsPerPage) ? 'not-allowed' : 'pointer', opacity: variantPage === Math.ceil(variants.length / variantsPerPage) ? 0.4 : 1, color: '#334155' }}
+                                                                         onClick={() => setVariantPage(p => Math.min(Math.ceil(activeList.length / variantsPerPage), p + 1))}
+                                                                         disabled={variantPage === Math.ceil(activeList.length / variantsPerPage)}
+                                                                         style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', fontSize: 12, fontWeight: 700, cursor: variantPage === Math.ceil(activeList.length / variantsPerPage) ? 'not-allowed' : 'pointer', opacity: variantPage === Math.ceil(activeList.length / variantsPerPage) ? 0.4 : 1, color: '#334155' }}
                                                                      >
                                                                          Next
                                                                      </button>
                                                                  </div>
                                                              )}
                                                          </div>
-                                                     )}
+                                                         );
+                                                     })()}
+                                                 </div>
+                                             )}
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="flex flex-col items-center justify-center py-20 text-center">
                                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
                                                 <i className="fas fa-cubes text-2xl"></i>
                                             </div>
