@@ -2409,7 +2409,6 @@ function DiscoverContent() {
           );
         })()}
       </div>
-      </div>
 
       {/* ═══ ELEGANT LIGHT INFO MODAL ═══ */}
       <div className={`cfg-modal-overlay ${activeModalData ? 'show' : ''}`} onClick={closeInfoModal}>
