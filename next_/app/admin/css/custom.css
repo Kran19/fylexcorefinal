@@ -1873,3 +1873,18 @@ select.form-control {
 .gap-y-6, .\!gap-y-6 { row-gap: 1.5rem !important; }
 .gap-y-8, .\!gap-y-8 { row-gap: 2rem !important; }
 .gap-y-10, .\!gap-y-10 { row-gap: 2.5rem !important; }
+
+/* ─── Global SweetAlert2 & Toast Position Override (Bottom Right) ─── */
+.swal2-container.swal2-top-end,
+.swal2-container.swal2-bottom-end {
+    padding-bottom: 24px !important;
+    padding-right: 24px !important;
+    align-items: flex-end !important;
+    justify-content: flex-end !important;
+}
+
+.swal2-popup.swal2-toast {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 14px !important;
+}
+

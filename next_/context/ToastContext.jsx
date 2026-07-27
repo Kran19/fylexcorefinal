@@ -25,13 +25,13 @@ export const ToastProvider = ({ children }) => {
     return (
         <ToastContext.Provider value={value}>
             {children}
-            <div style={{ position: 'fixed', top: 90, right: 20, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ position: 'fixed', bottom: 30, right: 30, zIndex: 9999, display: 'flex', flexDirection: 'column-reverse', gap: 10 }}>
                 {toasts.map(t => (
                     <div key={t.id} style={{
                         background: t.type === 'success' ? '#10b981' : t.type === 'error' ? '#ef4444' : '#3b82f6',
-                        color: '#fff', padding: '12px 20px', borderRadius: 8, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                        color: '#fff', padding: '14px 22px', borderRadius: 12, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
                         fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 10,
-                        animation: 'slideIn 0.3s ease-out'
+                        animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, height: 20 }}>
                             {t.type === 'success' && (
@@ -49,9 +49,9 @@ export const ToastProvider = ({ children }) => {
                 ))}
             </div>
             <style>{`
-                @keyframes slideIn {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
+                @keyframes slideUp {
+                    from { transform: translateY(100%); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
                 }
             `}</style>
         </ToastContext.Provider>
