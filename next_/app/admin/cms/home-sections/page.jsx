@@ -60,6 +60,7 @@ const HomeSections = () => {
     const [savingContent, setSavingContent] = useState(false);
     const fileInputRefs = useRef({});
     const [activeTab, setActiveTab] = useState('structure');
+    const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
         loadContentData();
@@ -200,6 +201,7 @@ const HomeSections = () => {
             }
 
             toast?.success?.("Homepage content saved successfully!");
+            setRefreshKey(prev => prev + 1); // Refresh iframe
             loadContentData(); // Refresh IDs
         } catch (err) {
             console.error("Failed to save content", err);
@@ -210,8 +212,11 @@ const HomeSections = () => {
     };
 
     return (
-        <div className="space-y-6 animate-fade-in" style={{ paddingBottom: 60 }}>
-            <PageHeader 
+        <div style={{ display: 'grid', gridTemplateColumns: '60% 40%', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+            {/* LEFT: EDITOR */}
+            <div style={{ padding: '32px 40px', overflowY: 'auto', background: '#fff', borderRight: '1px solid var(--admin-border)' }}>
+                <div className="space-y-6 animate-fade-in" style={{ paddingBottom: 60 }}>
+                    <PageHeader 
                 title="Home Page Layout Manager" 
                 subtitle="Manage the structural blocks that appear on the storefront homepage, and easily edit their textual/visual content."
                 action={{ label: 'Add Section', icon: 'fas fa-plus', onClick: () => {
@@ -489,6 +494,29 @@ const HomeSections = () => {
 
             <ConfirmModal isOpen={!!confirmTarget} onClose={() => setConfirmTarget(null)} onConfirm={handleToggleStatus} title={confirmTarget?.status ? "Hide Section" : "Show Section"} message={`Are you sure you want to ${confirmTarget?.status ? 'hide' : 'show'} the "${confirmTarget?.name}" section on the home page?`} confirmLabel={confirmTarget?.status ? "Hide" : "Show"} loading={submitting} danger={confirmTarget?.status} />
             <ConfirmModal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="Delete Section" message={`Are you sure you want to permanently delete the "${deleteTarget?.name}" section? This might break the frontend layout.`} confirmLabel="Delete" loading={deleting} danger />
+                </div>
+            </div>
+
+            {/* RIGHT: LIVE PREVIEW IFRAME */}
+            <div style={{ background: '#f8fafc', padding: '24px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <div>
+                        <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--admin-text)', margin: 0 }}>Live Storefront Preview</h3>
+                        <p style={{ fontSize: 13, color: 'var(--admin-text-muted)', margin: 0 }}>Save content to update preview</p>
+                    </div>
+                    <button onClick={() => setRefreshKey(k => k + 1)} style={{ padding: '8px 16px', background: '#fff', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--admin-text)' }}>
+                        <i className="fas fa-sync-alt"></i> Reload
+                    </button>
+                </div>
+                <div style={{ flex: 1, border: '1px solid var(--admin-border)', borderRadius: 16, overflow: 'hidden', background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <iframe 
+                        key={refreshKey}
+                        src="/"
+                        style={{ width: '100%', height: '100%', border: 'none' }}
+                        title="Storefront Preview"
+                    />
+                </div>
+            </div>
         </div>
     );
 };

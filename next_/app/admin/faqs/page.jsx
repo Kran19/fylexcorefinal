@@ -226,9 +226,9 @@ const FaqPage = () => {
                 <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Visible to Customers</span>
             </label>
 
-            <div className="flex gap-3 justify-end pt-6 border-t border-slate-100">
-                <button type="button" className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold transition-colors" onClick={closeModal}>Cancel</button>
-                <button type="submit" className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 transition-all flex items-center gap-2" disabled={submitting}>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', paddingTop: 24, borderTop: '1px solid #f1f5f9', marginTop: 8 }}>
+                <button type="button" onClick={closeModal} style={{ padding: '10px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" disabled={submitting} style={{ padding: '10px 28px', background: 'var(--admin-primary, #4f46e5)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 14px rgba(79,70,229,0.3)' }}>
                     {submitting ? <i className="fas fa-circle-notch fa-spin"></i> : <i className="fas fa-save"></i>}
                     {editingItem ? 'Update FAQ' : 'Save FAQ'}
                 </button>
