@@ -184,14 +184,14 @@ const SpecificationManagement = () => {
         { title: "Order", field: "sortOrder", width: 80, hozAlign: "center" },
         {
           title: "Actions", width: 110, headerSort: false, hozAlign: "right",
-          formatter: () => `<div class="table-actions">
-            <button class="btn-edit" title="Edit"><i class="fas fa-pen"></i></button>
-            <button class="btn-delete" title="Delete"><i class="fas fa-trash"></i></button>
+          formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+            <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Specification"><i class="fas fa-edit"></i></button>
+            <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Specification"><i class="fas fa-trash-alt"></i></button>
           </div>`,
           cellClick: (e, cell) => {
             const d = cell.getRow().getData();
-            if (e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.name);
+            if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
+            if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.name);
           }
         },
       ];
@@ -216,17 +216,17 @@ const SpecificationManagement = () => {
         },
         { title: "Order", field: "sortOrder", width: 100, hozAlign: "center" },
         {
-          title: "Actions", width: 130, headerSort: false, hozAlign: "right",
-          formatter: () => `<div class="table-actions">
-            <button class="btn-view" title="View Details"><i class="fas fa-eye"></i></button>
-            <button class="btn-edit" title="Edit"><i class="fas fa-pen"></i></button>
-            <button class="btn-delete" title="Delete"><i class="fas fa-trash"></i></button>
+          title: "Actions", width: 140, headerSort: false, hozAlign: "right",
+          formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+            <button class="btn-icon btn-icon-view" style="background:#e0f2fe;color:#0284c7;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="View Group Details"><i class="fas fa-eye"></i></button>
+            <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Group"><i class="fas fa-edit"></i></button>
+            <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Group"><i class="fas fa-trash-alt"></i></button>
           </div>`,
           cellClick: (e, cell) => {
             const d = cell.getRow().getData();
-            if (e.target.closest('.btn-view')) actionsRef.current.onViewGroup(d);
-            if (e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.name);
+            if (e.target.closest('.btn-icon-view') || e.target.closest('.btn-view')) actionsRef.current.onViewGroup(d);
+            if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
+            if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.name);
           }
         },
       ];
@@ -255,14 +255,14 @@ const SpecificationManagement = () => {
         },
         {
           title: "Actions", width: 110, headerSort: false, hozAlign: "right",
-          formatter: () => `<div class="table-actions">
-            <button class="btn-edit" title="Edit"><i class="fas fa-pen"></i></button>
-            <button class="btn-delete" title="Delete"><i class="fas fa-trash"></i></button>
+          formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+            <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Option Value"><i class="fas fa-edit"></i></button>
+            <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Option Value"><i class="fas fa-trash-alt"></i></button>
           </div>`,
           cellClick: (e, cell) => {
             const d = cell.getRow().getData();
-            if (e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.value);
+            if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
+            if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.value);
           }
         },
       ];
