@@ -23,8 +23,17 @@ const api: AxiosInstance = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Add auth token if available (future proofing)
+    // Add dynamic hostname fallback for client browser requests
     if (typeof window !== 'undefined') {
+      try {
+        const currentBase = config.baseURL || BASE_URL;
+        const url = new URL(currentBase);
+        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+          url.hostname = window.location.hostname;
+          config.baseURL = url.toString().replace(/\/$/, '');
+        }
+      } catch (e) {}
+
       const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;

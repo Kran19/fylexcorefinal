@@ -278,17 +278,20 @@ const Home = () => {
 
       try {
         const { data: hSections } = await cmsService.getHomeSections();
-        if (hSections && hSections.length > 0) {
+        if (hSections && Array.isArray(hSections) && hSections.length > 0) {
           const sectionMap: Record<string, boolean> = {};
           hSections.forEach((s: any) => {
             sectionMap[s.type] = s.isActive === true || s.isActive === 'true' || s.isActive === 1 || s.isActive === '1' || s.status === true || s.status === 'true' || s.status === 1 || s.status === '1';
           });
           setHomeSections(sectionMap);
-          // Refresh ScrollTrigger after a short delay to allow DOM to settle
-          setTimeout(() => ScrollTrigger.refresh(), 100);
+        } else {
+          // Default fallbacks if database homeSections is empty
+          setHomeSections({ s1: true, s2: true, s3: true, s4: true, featured: true, gallery: true });
         }
+        setTimeout(() => ScrollTrigger.refresh(), 100);
       } catch (err) {
         console.error("Failed to load home sections", err);
+        setHomeSections({ s1: true, s2: true, s3: true, s4: true, featured: true, gallery: true });
       } finally {
         setLoadingHomeSections(false);
       }
