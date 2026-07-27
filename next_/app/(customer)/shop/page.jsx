@@ -702,7 +702,7 @@ export default function Shop() {
                       fontSize: '14px',
                       letterSpacing: '0.2em',
                       textTransform: 'uppercase',
-                      color: 'var(--fyl-gold)',
+                      color: '#999B98',
                       marginBottom: '20px',
                       fontWeight: '600'
                     }}>
@@ -723,7 +723,8 @@ export default function Shop() {
                     <h4 style={{
                       fontFamily: 'Avenir, sans-serif',
                       fontSize: '24px',
-                      fontWeight: '500',
+                      fontWeight: '700',
+                      color: '#ffffff',
                       marginBottom: '10px'
                     }}>
                       {founderVariant.product?.name || 'Watch'}
@@ -736,10 +737,10 @@ export default function Shop() {
                         style={{
                           flex: 1,
                           padding: '12px 14px',
-                          background: 'var(--fyl-gold)',
-                          border: '1px solid var(--fyl-gold)',
-                          color: '#000',
-                          fontWeight: '700',
+                          background: '#ffffff',
+                          border: '1px solid #ffffff',
+                          color: '#000000',
+                          fontWeight: '800',
                           letterSpacing: '0.12em',
                           cursor: 'pointer',
                           borderRadius: '6px',
@@ -755,8 +756,9 @@ export default function Shop() {
                           flex: 1,
                           padding: '12px 14px',
                           background: 'transparent',
-                          border: '1px solid rgba(255,255,255,0.3)',
-                          color: '#fff',
+                          border: '1px solid #ffffff',
+                          color: '#ffffff',
+                          fontWeight: '700',
                           letterSpacing: '0.12em',
                           display: 'inline-flex',
                           alignItems: 'center',

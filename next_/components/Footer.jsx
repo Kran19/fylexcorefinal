@@ -7,7 +7,7 @@ const Footer = () => {
     <>
       <style>{`
         footer.footer-v1 {
-          background: #161413;
+          background: #000000;
           padding: 60px clamp(20px, 5vw, 56px) 30px;
           min-height: 400px;
           border-top: 1px solid rgba(255, 255, 255, 0.08);

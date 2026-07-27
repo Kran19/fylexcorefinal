@@ -32,7 +32,8 @@
     --admin-info-light: #FFF6ED;
 
     /* Sidebar */
-    --sidebar-bg-deeper: #080e1c;
+    --sidebar-bg: #000000;
+    --sidebar-bg-deeper: #000000;
     --sidebar-border: rgba(255, 255, 255, 0.06);
     --sidebar-hover: rgba(255, 255, 255, 0.07);
     --sidebar-active-bg: rgba(99, 102, 241, 0.18);

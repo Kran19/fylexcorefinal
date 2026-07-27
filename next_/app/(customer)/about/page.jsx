@@ -400,12 +400,11 @@ export default function About() {
                     e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
-                >
-                  <h3 style={{
+                      <h3 style={{
                     fontSize: '14px',
                     letterSpacing: '0.2em',
                     textTransform: 'uppercase',
-                    color: 'var(--fyl-gold)',
+                    color: '#999B98',
                     marginBottom: '20px',
                     fontWeight: '600'
                   }}>
@@ -426,7 +425,8 @@ export default function About() {
                   <h4 style={{
                     fontFamily: 'Avenir, sans-serif',
                     fontSize: '18px',
-                    fontWeight: '500',
+                    fontWeight: '700',
+                    color: '#ffffff',
                     marginBottom: '10px',
                     height: '54px',
                     overflow: 'hidden',
@@ -446,10 +446,10 @@ export default function About() {
                       style={{
                         flex: 1,
                         padding: '12px 14px',
-                        background: 'var(--fyl-gold)',
-                        border: '1px solid var(--fyl-gold)',
-                        color: '#000',
-                        fontWeight: '700',
+                        background: '#ffffff',
+                        border: '1px solid #ffffff',
+                        color: '#000000',
+                        fontWeight: '800',
                         letterSpacing: '0.12em',
                         cursor: 'pointer',
                         borderRadius: '6px',
@@ -465,9 +465,10 @@ export default function About() {
                         flex: 1,
                         padding: '12px 14px',
                         background: 'transparent',
-                        border: '1px solid rgba(255,255,255,0.3)',
-                        color: '#fff',
-                        letterSpacing: '0.12em',
+                        border: '1px solid #ffffff',
+                        color: '#ffffff',
+                        fontWeight: '700',
+                        letterSpacing: '0.12em',ing: '0.12em',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',

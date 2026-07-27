@@ -274,9 +274,34 @@ const PreConfigure = () => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          padding: 10px 24px;
+          background: #000000;
+          color: #ffffff;
+          text-decoration: none;
+          font-size: 0.72rem;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+          border-radius: 999px;
+          border: 1px solid #000000;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+          align-self: flex-start;
+          margin-left: 0;
+        }
+        .btn-configure:hover, .btn-configure:active {
+          background: #222222 !important;
+          border-color: #222222;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        }
+        .btn-explore {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           padding: 8px 18px;
-          background: #1a1a1a;
-          color: #fff;
+          background: transparent;
+          color: #1a1a1a;
           text-decoration: none;
           font-size: 0.68rem;
           font-weight: 700;
@@ -285,32 +310,9 @@ const PreConfigure = () => {
           transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
           border-radius: 999px;
           border: 1px solid #1a1a1a;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .btn-configure:hover, .btn-configure:active {
-          background: rgba(26, 26, 26, 0.8) !important;
-          border-color: rgba(26, 26, 26, 0.8);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        }
-        .btn-explore {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 8px 18px;
-          background: transparent;
-          color: var(--theme-accent, #c4a35a);
-          text-decoration: none;
-          font-size: 0.68rem;
-          font-weight: 700;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-          border-radius: 999px;
-          border: 1px solid var(--theme-accent, #c4a35a);
         }
         .btn-explore:hover, .btn-explore:active {
-          background: var(--theme-accent, #c4a35a);
+          background: #1a1a1a;
           color: #fff;
           transform: translateY(-2px);
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -336,7 +338,7 @@ const PreConfigure = () => {
         .swiper-pagination-bullet-active {
           opacity: 1;
           width: 60px !important;
-          background: var(--theme-accent, #c4a35a) !important;
+          background: #000000 !important;
         }
 
 
@@ -679,9 +681,9 @@ const PreConfigure = () => {
                           i
                         </button>
                       </div>
-                      <div className="flex items-center mt-3 btn-container">
+                      <div className="flex items-center justify-start mt-3 btn-container" style={{ width: '100%' }}>
                         <Link href={`/configure?watch=${product.id}`} className="btn-configure">
-                          Configure
+                          CONFIGURE
                         </Link>
                       </div>
                     </div>
