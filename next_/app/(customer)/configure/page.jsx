@@ -386,17 +386,21 @@ function ConfigureContent() {
         .f-info { text-align: left; width: 100%; display: flex; flex-direction: column; align-items: flex-start; }
         .f-title { font-size: 16px; font-weight: 700; color: #111; margin: 0; text-align: left; }
         .f-price { font-size: 16px; font-weight: 600; color: #111; text-align: left; }
-        .alert-overlay { position: fixed; inset: 0; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.4s; }
+        .alert-overlay { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); }
         .alert-overlay.show { opacity: 1; visibility: visible; }
-        .alert-box { background: white; padding: 15px; text-align: center; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow-y: auto; }
-        .alert-top-close { position: absolute; top: 30px; right: 30px; cursor: pointer; color: #006b4d; }
-        .alert-content-grid { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 100%; padding-top: 10px; }
-        .alert-watch-title { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 700; margin-bottom: 10px; }
-        .alert-image-center { width: 100%; display: flex; justify-content: center; align-items: center; margin: -10px 0; overflow: visible; }
-        .alert-watch-preview { width: 100%; max-width: min(85vw, 680px); max-height: 62vh; object-fit: contain; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.12)); transform: scale(1.22); }
-        .alert-footer-btn { margin-top: 30px; padding: 12px 36px; background: #1a1a1a; color: #fff; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; border: 1px solid #1a1a1a; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .alert-box { background: transparent; padding: 40px 20px; text-align: center; width: 100%; max-width: 900px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow-y: auto; box-sizing: border-box; }
+        .alert-top-close { position: absolute; top: 40px; right: 40px; cursor: pointer; color: #111111; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; z-index: 10; }
+        .alert-top-close:hover { background: rgba(0,0,0,0.12); transform: rotate(90deg); }
+        .alert-content-grid { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 100%; padding: 20px 0; }
+        .alert-watch-title { font-family: 'Avenir', 'Outfit', 'Inter', sans-serif; font-size: clamp(2.4rem, 5vw, 3.6rem); font-weight: 700; color: #111111; margin: 0 0 10px 0; letter-spacing: -0.02em; line-height: 1.1; }
+        .alert-selections-bar { display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap; color: #444444; font-size: 14px; font-weight: 500; margin-bottom: 35px; }
+        .alert-key-label { color: #888888; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; margin-right: 4px; }
+        .alert-val-label { color: #111111; font-weight: 600; text-transform: capitalize; }
+        .alert-image-center { width: 100%; display: flex; justify-content: center; align-items: center; margin: 25px 0 45px 0; overflow: visible; }
+        .alert-watch-preview { width: 100%; max-width: min(80vw, 540px); max-height: 46vh; object-fit: contain; filter: drop-shadow(0 30px 60px rgba(0,0,0,0.16)); transition: transform 0.6s ease; }
+        .alert-footer-btn { margin-top: 45px; padding: 18px 56px; background: #111111; color: #ffffff; border-radius: 999px; cursor: pointer; font-weight: 800; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; border: 1px solid #111111; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 12px 35px rgba(0,0,0,0.18); }
         @media (hover: hover) {
-          .alert-footer-btn:hover { background: rgba(26, 26, 26, 0.8) !important; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-color: rgba(255, 255, 255, 0.1); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); }
+          .alert-footer-btn:hover { background: #000000 !important; color: #ffffff !important; transform: translateY(-3px) scale(1.02); box-shadow: 0 18px 45px rgba(0, 0, 0, 0.3); }
         }
         .alert-footer-btn:active { transform: scale(0.96); opacity: 0.9; }
 
@@ -487,18 +491,33 @@ function ConfigureContent() {
 
       <div className={`alert-overlay ${showCustomAlert ? 'show' : ''}`}>
         <div className="alert-box">
-          <button className="alert-top-close" onClick={() => setShowCustomAlert(false)}><X size={24} /></button>
+          <button className="alert-top-close" onClick={() => setShowCustomAlert(false)}><X size={22} /></button>
           <div className="alert-content-grid">
             <h2 className="alert-watch-title">{product.title}</h2>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center', color: '#666', fontSize: '15px', fontWeight: 300, marginBottom: '25px', textTransform: 'capitalize' }}>
-              {Object.values(userSelections).map((val, idx, arr) => (
-                <React.Fragment key={idx}>
-                  <span>{val}</span>
-                  {idx < arr.length - 1 && <span style={{ opacity: 0.35 }}>•</span>}
-                </React.Fragment>
-              ))}
+            <div className="alert-selections-bar">
+              {Object.entries(userSelections).map(([key, val], idx, arr) => {
+                let formattedKey = key
+                  .replace(/_/g, ' ')
+                  .split(' ')
+                  .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+                  .join(' ');
+                if (formattedKey.toLowerCase() === 'belt color' || formattedKey.toLowerCase() === 'belt') {
+                  formattedKey = 'Strap';
+                }
+                return (
+                  <React.Fragment key={key}>
+                    <span>
+                      <span className="alert-key-label">{formattedKey}:</span>{' '}
+                      <span className="alert-val-label">{val}</span>
+                    </span>
+                    {idx < arr.length - 1 && <span style={{ opacity: 0.35, color: '#999' }}>•</span>}
+                  </React.Fragment>
+                );
+              })}
             </div>
-            <div className="alert-image-center"><img src={previewSrc} className="alert-watch-preview" /></div>
+            <div className="alert-image-center">
+              <img src={previewSrc} alt={product.title} className="alert-watch-preview" />
+            </div>
             <button className="alert-footer-btn" onClick={() => {
               const params = new URLSearchParams({ watch: watchId, ...userSelections });
               router.push(`/discover?${params.toString()}`);
