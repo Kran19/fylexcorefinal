@@ -400,7 +400,8 @@ export default function About() {
                     e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
-                      <h3 style={{
+                >
+                  <h3 style={{
                     fontSize: '14px',
                     letterSpacing: '0.2em',
                     textTransform: 'uppercase',
@@ -468,7 +469,7 @@ export default function About() {
                         border: '1px solid #ffffff',
                         color: '#ffffff',
                         fontWeight: '700',
-                        letterSpacing: '0.12em',ing: '0.12em',
+                        letterSpacing: '0.12em',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
