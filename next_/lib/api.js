@@ -10,10 +10,28 @@ if (typeof window !== 'undefined') {
       url.hostname = window.location.hostname;
       API_BASE_URL = url.toString().replace(/\/$/, '');
     }
+}
   } catch (e) {
     console.warn('Failed to parse API_BASE_URL', e);
   }
 }
+
+export const formatImageUrl = (url) => {
+  if (!url) return '';
+  let cleanUrl = String(url).trim();
+  if (cleanUrl.includes('localhost') || cleanUrl.includes('127.0.0.1')) {
+    try {
+      const parsed = new URL(cleanUrl);
+      cleanUrl = parsed.pathname;
+    } catch (e) {
+      cleanUrl = cleanUrl.replace(/^https?:\/\/[^\/]+/, '');
+    }
+  }
+  if (cleanUrl.startsWith('uploads/')) {
+    cleanUrl = '/' + cleanUrl;
+  }
+  return cleanUrl;
+};
 
 
 /**

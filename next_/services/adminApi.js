@@ -17,6 +17,23 @@ if (typeof window !== 'undefined') {
   }
 }
 
+export const formatImageUrl = (url) => {
+  if (!url) return '';
+  let cleanUrl = String(url).trim();
+  if (cleanUrl.includes('localhost') || cleanUrl.includes('127.0.0.1')) {
+    try {
+      const parsed = new URL(cleanUrl);
+      cleanUrl = parsed.pathname;
+    } catch (e) {
+      cleanUrl = cleanUrl.replace(/^https?:\/\/[^\/]+/, '');
+    }
+  }
+  if (cleanUrl.startsWith('uploads/')) {
+    cleanUrl = '/' + cleanUrl;
+  }
+  return cleanUrl;
+};
+
 /**
  * Core request handler with unified error handling.
  * Always returns { data, error } — never throws.

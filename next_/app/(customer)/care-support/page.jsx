@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { fetchActiveFaqs, fetchProductCareStepsGrouped, fetchProducts } from '@/lib/api';
+import { fetchActiveFaqs, fetchProductCareStepsGrouped, fetchProducts, formatImageUrl } from '@/lib/api';
 import { useOrder } from '@/context/OrderContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -334,14 +334,19 @@ export default function CareSupport() {
             </div>
 
             <div className="images-only-timeline">
-              {selectedGroup.steps.filter(s => s.imageUrl).map((step, sIdx) => (
-                <div key={sIdx} className="image-only-item">
-                  <div className="image-only-img-wrapper">
-                    <img src={step.imageUrl} alt={`Step ${step.stepNumber}`} />
+              {selectedGroup.steps.filter(s => s.imageUrl || s.image || s.image_url).map((step, sIdx) => {
+                const imgSrc = formatImageUrl(step.imageUrl || step.image || step.image_url);
+                return (
+                  <div key={sIdx} className="image-only-item">
+                    <div className="image-only-img-wrapper">
+                      <img src={imgSrc} alt={step.title || `Step ${step.stepNumber}`} />
+                    </div>
+                    {step.title && <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600, marginTop: '10px' }}>{step.title}</div>}
+                    {step.description && step.description !== '-' && <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', marginTop: '4px', maxWidth: '280px' }}>{step.description}</div>}
                   </div>
-                </div>
-              ))}
-              {selectedGroup.steps.filter(s => s.imageUrl).length === 0 && (
+                );
+              })}
+              {selectedGroup.steps.filter(s => s.imageUrl || s.image || s.image_url).length === 0 && (
                 <p className="text-center text-white opacity-50 w-full col-span-full bg-black z-10 py-4">Visuals coming soon</p>
               )}
             </div>

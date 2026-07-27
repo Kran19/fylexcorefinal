@@ -49,8 +49,9 @@ const CareStepsManagement = () => {
     { 
       title: 'IMAGE', field: 'imageUrl', width: 120, hozAlign: 'center', headerSort: false,
       formatter: (cell) => {
-        const url = cell.getValue();
-        return url ? `<img src="${url}" class="w-16 h-16 object-cover rounded shadow-sm border border-slate-200" />` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
+        const raw = cell.getValue() || cell.getRow().getData().image || cell.getRow().getData().image_url || '';
+        const url = api.formatImageUrl(raw);
+        return url ? `<img src="${url}" class="w-16 h-16 object-cover rounded shadow-sm border border-slate-200" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="w-16 h-16 bg-slate-100 rounded items-center justify-center text-slate-300 hidden"><i class="fas fa-image"></i></div>` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
       }
     },
     { title: 'TITLE', field: 'title', headerSort: false, formatter: (cell) => `<div class="font-bold text-slate-800">${cell.getValue()}</div>` },
