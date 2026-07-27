@@ -12,9 +12,10 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
+import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 
-const FaqPage = () => {
+const FaqsManagement = () => {
   const toast = useToast();
   const { data, loading, errors, refetch, addRecord, updateRecord, deleteRecord } = useAdminData();
   
@@ -154,28 +155,21 @@ const FaqPage = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      <PageHeader
+      <DataTable
         title="Manage FAQs"
         subtitle="Manage frequently asked questions displayed on the Care & Support page"
-        action={{ label: 'Add New FAQ', icon: 'fas fa-plus', onClick: () => setShowForm(true) }}
+        data={faqs}
+        columns={columns}
+        loading={loading.faqs}
+        minWidth={950}
+        action={{
+          label: 'Add New FAQ',
+          icon: 'fas fa-plus',
+          onClick: () => setShowForm(true)
+        }}
+        exportFileName="faqs_list"
+        emptyTitle="No FAQs found"
       />
-
-      <div className="admin-card overflow-hidden border border-slate-200 shadow-sm rounded-[24px]">
-        <div className="bg-white border-bottom border-slate-100 !px-6 !py-5 flex items-center justify-between">
-          <h3 className="font-extrabold text-slate-800 m-0">FAQ Entries</h3>
-          <div className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold uppercase tracking-widest">{faqs.length} entries</div>
-        </div>
-        
-        {loading.faqs ? (
-          <div className="py-24 text-center"><Loader message="Loading FAQs..." /></div>
-        ) : errors.faqs ? (
-          <div className="p-10"><ErrorBanner message={errors.faqs} onRetry={() => refetch.faqs()} /></div>
-        ) : (
-          <div className="px-3 pb-3 overflow-x-auto">
-            <div className="min-w-[900px]"><div ref={tableRef}></div></div>
-          </div>
-        )}
-      </div>
 
       <AdminModal 
         isOpen={showForm} 

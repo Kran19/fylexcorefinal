@@ -11,7 +11,7 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
-import { useToast } from '@/context/ToastContext';
+import DataTable from '@/components/admin/table/DataTable';
 
 const UsersPage = () => {
   const toast = useToast();
@@ -162,31 +162,16 @@ const UsersPage = () => {
     <div className="space-y-6 animate-fade-in">
       <PageHeader title="Customer Management" subtitle="View and manage user accounts" />
 
-      <div className="admin-card" style={{ padding: '16px 20px', borderRadius: 16 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 300, position: 'relative' }}>
-            <i className="fas fa-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#cbd5e1' }}></i>
-            <input
-              type="text"
-              placeholder="Search by name, email..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="admin-input"
-              style={{ paddingLeft: 42 }}
-            />
-          </div>
-          <button onClick={() => refetch.users()} className="btn-secondary">
-            <i className="fas fa-sync-alt"></i> Refresh
-          </button>
-        </div>
-      </div>
-
-      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
-        {loading.users ? <Loader message="Loading customers..." /> :
-          errors.users ? <ErrorBanner message={errors.users} onRetry={() => refetch.users()} /> :
-            <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 900 }}><div ref={tableRef}></div></div></div>
-        }
-      </div>
+      <DataTable
+        title="Customers"
+        subtitle="Manage customer profiles, search orders, and status"
+        data={users}
+        columns={columns}
+        loading={loading.users}
+        minWidth={950}
+        exportFileName="customers_list"
+        emptyTitle="No customers found"
+      />
 
       <AdminModal isOpen={showDetails && !!selectedUser} onClose={() => setShowDetails(false)} title="Customer Profile" maxWidth={800}>
         {fetchingProfile ? <Loader message="Fetching detailed profile..." /> : selectedUser && (

@@ -12,9 +12,10 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
+import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 
-const CareStepsPage = () => {
+const CareStepsManagement = () => {
   const toast = useToast();
   const { data, loading, errors, refetch, addRecord, updateRecord, deleteRecord } = useAdminData();
   
@@ -183,28 +184,21 @@ const CareStepsPage = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      <PageHeader
+      <DataTable
         title="Watch Care Steps"
         subtitle="Manage dynamic instructions and photos for specific watches"
-        action={{ label: 'Add Care Step', icon: 'fas fa-plus', onClick: () => setShowForm(true) }}
+        data={steps}
+        columns={columns}
+        loading={loading.productCareSteps}
+        minWidth={950}
+        action={{
+          label: 'Add Care Step',
+          icon: 'fas fa-plus',
+          onClick: () => setShowForm(true)
+        }}
+        exportFileName="watch_care_steps"
+        emptyTitle="No care steps found"
       />
-
-      <div className="admin-card overflow-hidden border border-slate-200 shadow-sm rounded-[24px]">
-        <div className="bg-white border-bottom border-slate-100 !px-6 !py-5 flex items-center justify-between">
-          <h3 className="font-extrabold text-slate-800 m-0">Care Instructions by Product</h3>
-          <div className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold uppercase tracking-widest">{steps.length} steps</div>
-        </div>
-        
-        {loading.productCareSteps ? (
-          <div className="py-24 text-center"><Loader message="Loading Care Steps..." /></div>
-        ) : errors.productCareSteps ? (
-          <div className="p-10"><ErrorBanner message={errors.productCareSteps} onRetry={() => refetch.productCareSteps()} /></div>
-        ) : (
-          <div className="px-3 pb-3 overflow-x-auto">
-            <div className="min-w-[900px]"><div ref={tableRef}></div></div>
-          </div>
-        )}
-      </div>
 
       <AdminModal 
         isOpen={showForm} 

@@ -12,6 +12,7 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
+import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 
 const TaxPage = () => {
@@ -342,37 +343,37 @@ const TaxPage = () => {
       </div>
 
       {activeTab === 'rates' ? (
-        <div className="admin-card overflow-hidden border border-slate-200 shadow-sm rounded-[24px]">
-          <div className="bg-white border-bottom border-slate-100 !px-6 !py-5 flex items-center justify-between">
-            <h3 className="font-extrabold text-slate-800 m-0">Global Tax Rates</h3>
-            <div className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold uppercase tracking-widest">{taxes.length} entries found</div>
-          </div>
-          {loading.taxes ? (
-            <div className="py-24 text-center"><Loader message="Loading tax rates..." /></div>
-          ) : errors.taxes ? (
-            <div className="p-10"><ErrorBanner message={errors.taxes} onRetry={() => refetch.taxes()} /></div>
-          ) : (
-            <div className="px-3 pb-3 overflow-x-auto">
-              <div className="min-w-[900px]"><div ref={ratesTableRef}></div></div>
-            </div>
-          )}
-        </div>
+        <DataTable
+          title="Tax Rates"
+          subtitle="Configure global tax rates, rules, and percentage values"
+          data={taxes}
+          columns={columns}
+          loading={loading.taxes}
+          minWidth={950}
+          action={{
+            label: 'Add New Tax Rate',
+            icon: 'fas fa-plus',
+            onClick: () => setShowRateForm(true)
+          }}
+          exportFileName="tax_rates"
+          emptyTitle="No tax rates found"
+        />
       ) : (
-        <div className="admin-card overflow-hidden border border-slate-200 shadow-sm rounded-[24px]">
-          <div className="bg-white border-bottom border-slate-100 px-6 py-5 flex items-center justify-between">
-            <h3 className="font-extrabold text-slate-800 m-0">Tax Classes</h3>
-            <div className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold uppercase tracking-widest">{taxClasses.length} entries found</div>
-          </div>
-          {loading.taxClasses ? (
-            <div className="py-24 text-center"><Loader message="Loading tax classes..." /></div>
-          ) : errors.taxClasses ? (
-            <div className="p-10"><ErrorBanner message={errors.taxClasses} onRetry={() => refetch.taxClasses()} /></div>
-          ) : (
-            <div className="px-3 pb-3 overflow-x-auto">
-              <div className="min-w-[900px]"><div ref={classesTableRef}></div></div>
-            </div>
-          )}
-        </div>
+        <DataTable
+          title="Tax Classes"
+          subtitle="Assign tax rates to specific product groups and regions"
+          data={taxClasses}
+          columns={classColumns}
+          loading={loading.taxClasses}
+          minWidth={950}
+          action={{
+            label: 'Create New Class',
+            icon: 'fas fa-plus',
+            onClick: () => setShowClassForm(true)
+          }}
+          exportFileName="tax_classes"
+          emptyTitle="No tax classes found"
+        />
       )}
 
       {/* Tax Rate Modal */}

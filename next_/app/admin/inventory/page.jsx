@@ -6,6 +6,7 @@ import '@/app/admin/css/datatable.css';
 import '@/app/admin/css/custom.css';
 import { useAdminData } from '@/context/AdminDataContext';
 import AdminModal from '@/components/admin/AdminModal';
+import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 import * as api from '@/services/adminApi';
 
@@ -132,59 +133,16 @@ const InventoryList = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="page-header" style={{ alignItems: 'flex-start', marginBottom: 32 }}>
-        <div>
-          <h2 style={{ fontSize: 26, fontWeight: 800, color: '#1e293b', letterSpacing: '-0.02em' }}>Inventory Management</h2>
-          <p style={{ color: '#64748b', fontSize: 14, marginTop: 4, fontWeight: 500 }}>Monitor stock levels and manage warehouse movements</p>
-        </div>
-        <button className="btn-indigo-gradient" onClick={() => refetch.inventory()}>
-          <i className="fas fa-sync mr-2" style={{ fontSize: 12 }}></i>Refresh Data
-        </button>
-      </div>
-
-      <div className="admin-card" style={{ padding: '20px 24px', borderRadius: 16 }}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className="admin-search" style={{ flex: 2, minWidth: 300 }}>
-            <i className="fas fa-search" style={{ color: '#94a3b8' }}></i>
-            <input 
-              type="text" 
-              placeholder="Search by product, SKU, warehouse..." 
-              style={{ background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', padding: '11px 16px 11px 42px' }} 
-              onChange={(e) => {
-                const val = e.target.value;
-                if (!val) table?.clearFilter();
-                else table?.setFilter([
-                  { field: "product_name", type: "like", value: val },
-                  { field: "sku", type: "like", value: val },
-                ]);
-              }}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <select 
-              style={{ width: '100%', padding: '11px 16px', border: '1px solid #e2e8f0', borderRadius: 10, background: '#fff', color: '#4b5a7a', fontSize: 13, fontWeight: 600, outline: 'none', cursor: 'pointer' }}
-              onChange={(e) => {
-                if (e.target.value === 'All') table?.clearFilter();
-                else table?.setFilter("warehouse", "=", e.target.value);
-              }}
-            >
-              <option value="All">All Warehouses</option>
-              <option value="Main Warehouse">Main Warehouse</option>
-            </select>
-          </div>
-          <button className="btn-filter-dark">
-            <i className="fas fa-filter mr-2"></i> Filter
-          </button>
-        </div>
-      </div>
-
-      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-        <div style={{ overflowX: 'auto', padding: '0 8px 8px' }}>
-          <div style={{ minWidth: 900 }}>
-            <div ref={tableRef}></div>
-          </div>
-        </div>
-      </div>
+      <DataTable
+        title="Inventory Management"
+        subtitle="Monitor stock levels and manage warehouse movements"
+        data={inventoryList}
+        columns={columns}
+        loading={loading.products}
+        minWidth={950}
+        exportFileName="inventory_stock_report"
+        emptyTitle="No inventory items found"
+      />
 
       {/* Adjust Stock Modal */}
       <AdminModal

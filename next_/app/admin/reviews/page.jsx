@@ -11,6 +11,7 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
+import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 
 const StarRating = ({ rating }) => (
@@ -133,14 +134,17 @@ const ReviewsPage = () => {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <PageHeader title="Reviews & Moderation" subtitle="Approve or manage customer product feedback" />
-
-            <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
-                {loading.reviews ? <Loader message="Loading reviews..." /> :
-                    errors.reviews ? <ErrorBanner message={errors.reviews} onRetry={() => refetch.reviews()} /> :
-                        <div ref={tableRef}></div>}
-            </div>
-
+            <DataTable
+                title="Reviews & Moderation"
+                subtitle="Approve or manage customer product feedback"
+                data={reviews}
+                columns={columns}
+                loading={loading.reviews}
+                minWidth={950}
+                exportFileName="product_reviews"
+                emptyTitle="No reviews found"
+            />
+            
             <AdminModal isOpen={showDetail && !!selectedReview} onClose={() => setShowDetail(false)} title="Review Content" maxWidth={500}>
                 {selectedReview && (
                     <div className="space-y-6">

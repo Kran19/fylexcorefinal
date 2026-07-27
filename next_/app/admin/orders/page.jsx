@@ -9,6 +9,7 @@ import { useAdminData } from '@/context/AdminDataContext';
 import PageHeader from '@/components/admin/ui/PageHeader';
 import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
+import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 import { deleteOrderApi } from '@/lib/api';
 import Swal from 'sweetalert2';
@@ -178,47 +179,16 @@ const OrdersPage = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader title="Orders" subtitle="Track and process customer orders" />
-
-      {/* Filter Bar */}
-      <div className="admin-card" style={{ padding: '16px 20px', borderRadius: 14 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 2, minWidth: 260, position: 'relative' }}>
-            <i className="fas fa-search" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}></i>
-            <input
-              type="text"
-              placeholder="Search by order #, customer..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px 10px 40px', background: '#f8fafc', borderRadius: 10, border: '1px solid var(--admin-border)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            style={{ padding: '10px 16px', border: '1px solid var(--admin-border)', borderRadius: 10, background: '#fff', color: 'var(--admin-text-secondary)', fontSize: 13, fontWeight: 600, outline: 'none', cursor: 'pointer', minWidth: 160 }}
-          >
-            <option value="">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="processing">Processing</option>
-            <option value="shipped">Shipped</option>
-            <option value="delivered">Delivered</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          <button onClick={() => { setSearch(''); setStatusFilter(''); }} className="btn-secondary">
-            <i className="fas fa-times" style={{ fontSize: 11 }}></i> Clear
-          </button>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
-        {loading.orders ? <Loader message="Loading orders..." /> :
-          errors.orders ? <ErrorBanner message={errors.orders} onRetry={() => refetch.orders()} /> :
-            <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 900 }}><div ref={tableRef}></div></div></div>
-        }
-      </div>
+      <DataTable
+        title="Orders"
+        subtitle="Track and process customer orders"
+        data={orders}
+        columns={columns}
+        loading={loading.orders}
+        minWidth={950}
+        exportFileName="orders_list"
+        emptyTitle="No orders found"
+      />
     </div>
   );
 };

@@ -6,6 +6,7 @@ import MediaPickerModal from '@/components/admin/MediaPickerModal';
 import AdminModal from '@/components/admin/AdminModal';
 import PageHeader from '@/components/admin/ui/PageHeader';
 import Loader from '@/components/admin/ui/Loader';
+import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
 import '@/app/admin/css/datatable.css';
@@ -128,98 +129,45 @@ export default function BeltsPage() {
     }
   };
 
+  const columns = [
+    {
+      title: "Image", field: "image", width: 90, hozAlign: "center", headerSort: false,
+      formatter: (cell) => {
+        const belt = cell.getRow().getData();
+        const url = getFileUrl(belt.image?.url || belt.image?.filePath || belt.image?.path || belt.image?.fileName || (typeof belt.image === 'string' ? belt.image : null));
+        if (url) return `<img src="${url}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0" />`;
+        return `<div style="width:40px;height:40px;border-radius:8px;background:#f1f5f9;display:inline-flex;align-items:center;justify-content:center;color:#94a3b8"><i class="fas fa-ring"></i></div>`;
+      }
+    },
+    { title: "Belt Name", field: "name", minWidth: 220, formatter: cell => `<strong class="text-slate-800 font-bold">${cell.getValue()}</strong>` },
+    { title: "Price", field: "price", width: 120, hozAlign: "right", formatter: cell => `<span class="font-bold text-slate-700">₹${Number(cell.getValue() || 0).toLocaleString('en-IN')}</span>` },
+    { title: "Stock", field: "stock", width: 100, hozAlign: "center", formatter: cell => `<span class="px-2.5 py-1 bg-slate-100 font-bold rounded-lg text-xs">${cell.getValue() ?? 0}</span>` },
+    {
+      title: "Status", field: "isActive", width: 130, hozAlign: "center",
+      formatter: (cell) => {
+        const active = cell.getValue() === true || cell.getValue() === 1;
+        return `<span class="px-3 py-1 rounded-full text-xs font-bold ${active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-500'}">${active ? 'Active' : 'Inactive'}</span>`;
+      }
+    },
+    {
+      title: "Actions", width: 120, headerSort: false, hozAlign: "right",
+      formatter: () => `<div style="display:flex;gap:6px;justify-content:flex-end">
+        <button class="btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer"><i class="fas fa-trash-alt"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon-edit')) openModal(d);
+        if (e.target.closest('.btn-icon-delete')) setDeleteConfirmId(d.id);
+      }
+    }
+  ];
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader 
-        title="Belts Management" 
+      <DataTable
+        title="Belts Management"
         subtitle="Manage configurable watch belt accessories and stock levels"
-        action={{ label: 'Add Belt', icon: 'fas fa-plus', onClick: () => openModal() }}
-      />
-
-      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
-        {loading ? (
-          <Loader message="Loading belts..." />
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="admin-table w-full">
-              <thead>
-                <tr>
-                  <th style={{ width: 100 }}>Image</th>
-                  <th>Belt Name</th>
-                  <th>Price</th>
-                  <th>Stock</th>
-                  <th style={{ width: 180 }}>Status</th>
-                  <th style={{ width: 140, textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {belts.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-8 text-gray-500" style={{ fontWeight: 600 }}>
-                      No belts found
-                    </td>
-                  </tr>
-                ) : (
-                  belts.map(belt => (
-                    <tr key={belt.id} className="hover:bg-slate-50/50">
-                      <td className="py-3">
-                        {belt.image ? (
-                          <img 
-                            src={getFileUrl(belt.image.url || belt.image.filePath || belt.image.path || belt.image.fileName || (typeof belt.image === 'string' ? belt.image : null))} 
-                            alt={belt.name} 
-                            style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 10, border: '1px solid #e2e8f0' }} 
-                          />
-                        ) : (
-                          <div style={{ width: 48, height: 48, background: '#f1f5f9', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                            <FaImage size={16} />
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ fontWeight: 700, color: '#1e293b' }}>
-                        {belt.name}
-                      </td>
-                      <td style={{ fontWeight: 600, color: '#475569' }}>
-                        Rs. {parseFloat(belt.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td style={{ fontWeight: 600, color: '#475569' }}>
-                        {belt.stock} pcs
-                      </td>
-                      <td>
-                        <div 
-                          className="status-badge"
-                          style={{
-                            display: 'inline-flex',
-                            padding: '5px 12px',
-                            borderRadius: 10,
-                            fontSize: 11,
-                            fontWeight: 700,
-                            background: belt.isActive ? '#ecfdf5' : '#fef2f2',
-                            color: belt.isActive ? '#10b981' : '#ef4444',
-                            border: `1px solid ${belt.isActive ? '#d1fae5' : '#fee2e2'}`,
-                            textTransform: 'uppercase'
-                          }}
-                        >
-                          {belt.isActive ? 'Active' : 'Inactive'}
-                        </div>
-                      </td>
-                      <td className="text-right">
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                          <button 
-                            onClick={() => openModal(belt)} 
-                            className="btn-icon"
-                            style={{ background: '#f1f5f9', color: '#6366f1' }}
-                            title="Edit"
-                          >
-                            <FaEdit size={14} />
-                          </button>
-                          <button 
-                            onClick={() => setDeleteConfirmId(belt.id)} 
-                            className="btn-icon"
-                            style={{ background: '#fef2f2', color: '#ef4444' }}
-                            title="Delete"
-                          >
-                            <FaTrash size={14} />
-                          </button>
                         </div>
                       </td>
                     </tr>

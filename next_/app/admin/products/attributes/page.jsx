@@ -12,7 +12,8 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import FormField from '@/components/admin/ui/FormField';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
-import { useToast } from '@/context/ToastContext';
+import DataTable from '@/components/admin/table/DataTable';
+import StatusBadge from '@/components/admin/table/StatusBadge';
 
 const AttributeList = () => {
   const toast = useToast();
@@ -337,27 +338,21 @@ const AttributeList = () => {
           </div>
         </>
       ) : (
-        <>
-          <PageHeader
-            title="Product Attributes"
-            subtitle="Define global properties like Size, Material, or Color"
-            action={{ label: 'New Attribute', icon: 'fas fa-plus', onClick: () => setShowAttrForm(true) }}
-          />
-
-          <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
-            {loading.attributes ? (
-              <Loader message="Loading attribute set..." />
-            ) : errors.attributes ? (
-              <ErrorBanner message={errors.attributes} onRetry={() => refetch.attributes()} />
-            ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <div style={{ minWidth: 900 }}>
-                  <div ref={tableRef}></div>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
+        <DataTable
+          title="Product Attributes"
+          subtitle="Define global properties like Size, Material, or Color"
+          data={attributes}
+          columns={columns}
+          loading={loading.attributes}
+          minWidth={950}
+          action={{
+            label: 'New Attribute',
+            icon: 'fas fa-plus',
+            onClick: () => setShowAttrForm(true)
+          }}
+          exportFileName="product_attributes"
+          emptyTitle="No attributes found"
+        />
       )}
 
       {/* Attribute Modal */}

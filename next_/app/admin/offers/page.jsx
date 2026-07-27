@@ -12,7 +12,7 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
-import { useToast } from '@/context/ToastContext';
+import DataTable from '@/components/admin/table/DataTable';
 
 const OffersPage = () => {
   const toast = useToast();
@@ -292,27 +292,21 @@ const OffersPage = () => {
         </div>
       )}
 
-      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Active Campaigns</h3>
-          <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
-            <i className="fas fa-list mr-1"></i> Total {offers.length} offers
-          </div>
-        </div>
-        <div style={{ padding: '0 8px 8px 8px' }}>
-          {loading.offers ? (
-            <div className="py-24"><Loader message="Loading offers..." /></div>
-          ) : errors.offers ? (
-            <div className="p-8"><ErrorBanner message={errors.offers} onRetry={() => refetch.offers()} /></div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <div style={{ minWidth: 1000, borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-                <div ref={tableRef}></div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataTable
+        title="Promotional Offers"
+        subtitle="Manage discounts, coupons and campaign validity"
+        data={offers}
+        columns={columns}
+        loading={loading.offers}
+        minWidth={1000}
+        action={{
+          label: 'Add New Offer',
+          icon: 'fas fa-plus',
+          onClick: () => setShowForm(true)
+        }}
+        exportFileName="promotional_offers"
+        emptyTitle="No offers found"
+      />
 
       {/* Offer Modal (Create/Edit) */}
       <AdminModal isOpen={showForm} onClose={closeModal} title={editingRecord ? "Edit Promotional Offer" : "Create New Offer"} maxWidth={680}>

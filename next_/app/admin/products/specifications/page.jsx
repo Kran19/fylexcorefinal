@@ -11,7 +11,8 @@ import PageHeader from '@/components/admin/ui/PageHeader';
 import Loader from '@/components/admin/ui/Loader';
 import FormField from '@/components/admin/ui/FormField';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
-import { useToast } from '@/context/ToastContext';
+import DataTable from '@/components/admin/table/DataTable';
+import StatusBadge from '@/components/admin/table/StatusBadge';
 
 const SpecificationManagement = () => {
   const toast = useToast();
@@ -453,25 +454,25 @@ const SpecificationManagement = () => {
       )}
 
       {/* Main Table Container */}
-      <div className="bg-white rounded-[24px] shadow-soft-lg border border-slate-100/80 overflow-hidden">
-        <div className="!p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-           <div className="relative group max-w-sm w-full">
-             <input 
-               type="text" 
-               placeholder={`Search for ${activeTab}...`} 
-               className="w-full pl-11 !pr-5 !py-3 !bg-white !border !border-slate-200 !rounded-2xl text-sm outline-none focus:ring-4 focus:ring-indigo-50/50 focus:border-indigo-300 transition-all shadow-sm" 
-             />
-           </div>
-           <div className="flex gap-2">
-              <button className="!p-3 !text-slate-400 rounded-xl transition-all"><i className="fas fa-arrows-rotate"></i></button>
-              <button className="!p-3 !text-slate-400 rounded-xl transition-all"><i className="fas fa-ellipsis-v"></i></button>
-           </div>
-        </div>
-        
-        <div className="p-2 md:p-4">
-          <div ref={tableRef} className="custom-tabulator-rounded"></div>
-        </div>
-      </div>
+      <DataTable
+        title={activeTab === 'specs' ? 'Specifications' : activeTab === 'groups' ? 'Specification Groups' : `${selectedSpec?.name || 'Specification'} Values`}
+        subtitle={`Manage ${activeTab} and technical definitions`}
+        data={currentData}
+        columns={columns}
+        loading={activeTab === 'values' ? loadingValues : loading.specifications}
+        minWidth={950}
+        action={{
+          label: `New ${activeTab === 'specs' ? 'Specification' : activeTab === 'groups' ? 'Group' : 'Value'}`,
+          icon: 'fas fa-plus',
+          onClick: () => {
+            if (activeTab === 'specs') setShowForm(true);
+            else if (activeTab === 'groups') setShowGroupForm(true);
+            else setShowValueForm(true);
+          }
+        }}
+        exportFileName={`specifications_${activeTab}`}
+        emptyTitle={`No ${activeTab} data found`}
+      />
 
       {/* Spec Modal */}
       <AdminModal isOpen={showForm} onClose={closeModal} title={editingRecord ? "Edit Specification" : "Add New Specification"} maxWidth={550}>

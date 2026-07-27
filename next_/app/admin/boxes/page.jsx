@@ -7,6 +7,7 @@ import MediaPickerModal from '@/components/admin/MediaPickerModal';
 import AdminModal from '@/components/admin/AdminModal';
 import PageHeader from '@/components/admin/ui/PageHeader';
 import Loader from '@/components/admin/ui/Loader';
+import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
 import '@/app/admin/css/datatable.css';
@@ -123,62 +124,43 @@ export default function BoxesPage() {
     }
   };
 
+  const columns = [
+    {
+      title: "Image", field: "image", width: 90, hozAlign: "center", headerSort: false,
+      formatter: (cell) => {
+        const box = cell.getRow().getData();
+        const url = getFileUrl(box.image?.url || box.image?.filePath || box.image?.path || box.image?.fileName || (typeof box.image === 'string' ? box.image : null));
+        if (url) return `<img src="${url}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0" />`;
+        return `<div style="width:40px;height:40px;border-radius:8px;background:#f1f5f9;display:inline-flex;align-items:center;justify-content:center;color:#94a3b8"><i class="fas fa-box"></i></div>`;
+      }
+    },
+    { title: "Box Name", field: "name", minWidth: 250, formatter: cell => `<strong class="text-slate-800 font-bold">${cell.getValue()}</strong>` },
+    {
+      title: "Status", field: "isActive", width: 140, hozAlign: "center",
+      formatter: (cell) => {
+        const active = cell.getValue() === true || cell.getValue() === 1;
+        return `<span class="px-3 py-1 rounded-full text-xs font-bold ${active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-500'}">${active ? 'Active' : 'Inactive'}</span>`;
+      }
+    },
+    {
+      title: "Actions", width: 120, headerSort: false, hozAlign: "right",
+      formatter: () => `<div style="display:flex;gap:6px;justify-content:flex-end">
+        <button class="btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer"><i class="fas fa-trash-alt"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon-edit')) openModal(d);
+        if (e.target.closest('.btn-icon-delete')) setDeleteConfirmId(d.id);
+      }
+    }
+  ];
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader 
-        title="Boxes Management" 
+      <DataTable
+        title="Universal Boxes & Packaging"
         subtitle="Manage inventory boxes and universal packaging details"
-        action={{ label: 'Add Box', icon: 'fas fa-plus', onClick: () => openModal() }}
-      />
-
-      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
-        {loading ? (
-          <Loader message="Loading boxes..." />
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="admin-table w-full">
-              <thead>
-                <tr>
-                  <th style={{ width: 100 }}>Image</th>
-                  <th>Box Name</th>
-                  <th style={{ width: 180 }}>Status</th>
-                  <th style={{ width: 140, textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {boxes.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="text-center py-8 text-gray-500" style={{ fontWeight: 600 }}>
-                      No boxes found
-                    </td>
-                  </tr>
-                ) : (
-                  boxes.map(box => (
-                    <tr key={box.id} className="hover:bg-slate-50/50">
-                      <td className="py-3">
-                        {box.image ? (
-                          <img 
-                            src={getFileUrl(box.image.url || box.image.filePath || box.image.path || box.image.fileName || (typeof box.image === 'string' ? box.image : null))} 
-                            alt={box.name} 
-                            style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 10, border: '1px solid #e2e8f0' }} 
-                          />
-                        ) : (
-                          <div style={{ width: 48, height: 48, background: '#f1f5f9', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                            <FaImage size={16} />
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ fontWeight: 700, color: '#1e293b' }}>
-                        {box.name}
-                      </td>
-                      <td>
-                        <div 
-                          className="status-badge"
-                          style={{
-                            display: 'inline-flex',
-                            padding: '5px 12px',
-                            borderRadius: 10,
-                            fontSize: 11,
                             fontWeight: 700,
                             background: box.isActive ? '#ecfdf5' : '#fef2f2',
                             color: box.isActive ? '#10b981' : '#ef4444',

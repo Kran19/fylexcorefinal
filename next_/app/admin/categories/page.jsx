@@ -13,7 +13,7 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
-import { useToast } from '@/context/ToastContext';
+import DataTable from '@/components/admin/table/DataTable';
 
 const CategoriesPage = () => {
   const router = useRouter();
@@ -126,18 +126,21 @@ const CategoriesPage = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader
+      <DataTable
         title="Categories"
         subtitle="Manage product hierarchy and organization"
-        action={{ label: 'Add Category', icon: 'fas fa-plus', onClick: () => router.push('/admin/categories/create') }}
+        data={categories}
+        columns={columns}
+        loading={loading.categories}
+        minWidth={950}
+        action={{
+          label: 'Add Category',
+          icon: 'fas fa-plus',
+          onClick: () => router.push('/admin/categories/create')
+        }}
+        exportFileName="categories_hierarchy"
+        emptyTitle="No categories found"
       />
-
-      <div className="admin-card" style={{ borderRadius: 20, overflow: 'hidden', boxShadow: 'var(--admin-shadow-sm)', border: '1px solid var(--admin-border-light)' }}>
-        {loading.categories ? <Loader message="Loading categories..." /> :
-          errors.categories ? <ErrorBanner message={errors.categories} onRetry={() => refetch.categories()} /> :
-            <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 850 }}><div ref={tableRef}></div></div></div>
-        }
-      </div>
 
       <ConfirmModal
         isOpen={!!deleteTarget}

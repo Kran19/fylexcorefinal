@@ -12,8 +12,7 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import { useToast } from '@/context/ToastContext';
-import { getDisplayData } from '@/lib/utils';
-import { FaSearch } from 'react-icons/fa';
+import DataTable from '@/components/admin/table/DataTable';
 
 const AdminProducts = () => {
   const toast = useToast();
@@ -197,62 +196,21 @@ const AdminProducts = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <PageHeader
+      <DataTable
         title="Products"
         subtitle="Full Catalog & Inventory Management"
-        action={{ label: 'Add Product', icon: 'fas fa-plus', href: '/admin/products/create' }}
+        data={products}
+        columns={columns}
+        loading={loading.products}
+        minWidth={1000}
+        action={{
+          label: 'Add Product',
+          icon: 'fas fa-plus',
+          onClick: () => router.push('/admin/products/create')
+        }}
+        exportFileName="products_catalog"
+        emptyTitle="No products found"
       />
-
-      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="admin-search" style={{ flex: '1 1 240px', minWidth: 0, background: '#f8fafc', borderRadius: 10 }}>
-            <FaSearch style={{ color: '#94a3b8' }} />
-            <input 
-              type="text" 
-              placeholder="Search products by name or SKU..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              style={{ background: 'transparent' }}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <select 
-              style={{ padding: '10px 16px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 14, outline: 'none', color: '#475569', fontWeight: 600, background: '#fff' }}
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                if (tabulatorRef.current) {
-                  if (e.target.value) {
-                    tabulatorRef.current.setFilter(data => {
-                       const catName = data.mainCategory?.name || data.category?.name;
-                       return catName === e.target.value;
-                    });
-                  } else {
-                    tabulatorRef.current.clearFilter();
-                    if (searchTerm) tabulatorRef.current.setFilter("name", "like", searchTerm);
-                  }
-                }
-              }}
-            >
-              <option value="">All Categories</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.name}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {loading.products ? <Loader message="Loading catalog..." /> :
-          errors.products ? <ErrorBanner message={errors.products} onRetry={() => refetch.products()} /> :
-            <div style={{ padding: '0 8px 8px 8px' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <div style={{ minWidth: 1000, borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-                  <div ref={tableRef}></div>
-                </div>
-              </div>
-            </div>
-        }
-      </div>
 
       <ConfirmModal
         isOpen={!!deleteTarget}
