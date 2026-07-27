@@ -6,10 +6,10 @@ import settingsService from '@/services/settings.service';
 const DesignSystemContext = createContext();
 
 const defaultTheme = {
-  // Official FYLEX Brand Kit Settings
+  // Plain Dark Black & Contrast Settings
   'brand-primary': '#161413',      // Kokushoku Black
-  'brand-secondary': '#C79A67',    // Champagne Gold
-  'brand-accent': '#82694A',       // Bronze
+  'brand-secondary': '#161413',    // Dark Black
+  'brand-accent': '#FFFFFF',       // High Contrast White
   'brand-black': '#000000',        // Pure Black
   'brand-white': '#FFFFFF',        // Pure White
   'brand-silver': '#999B98',       // Walrus Gray

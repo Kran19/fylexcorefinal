@@ -20,21 +20,21 @@
   --fyl-deep-blue: var(--fyl-color-kokushoku);
   --fyl-black:     var(--fyl-color-kokushoku);
   --fyl-silver:    var(--fyl-color-walrus);
-  --fyl-orange:    var(--fyl-color-bronze);
-  --fyl-teal:      var(--fyl-color-champagne);
-  --fyl-gold:      var(--fyl-color-champagne);
-  --fyl-white:     var(--fyl-color-fatback);
+  --fyl-orange:    var(--fyl-color-walrus);
+  --fyl-teal:      var(--fyl-color-kokushoku);
+  --fyl-gold:      var(--fyl-color-kokushoku);
+  --fyl-white:     var(--fyl-color-white);
   --fyl-charcoal:  var(--fyl-color-walrus);
 
-  --gold: var(--fyl-color-champagne);
-  --gold-light: #FFF6ED;
-  --gold-dim: rgba(199, 154, 103, 0.35);
+  --gold: #161413;
+  --gold-light: #f8fafc;
+  --gold-dim: rgba(255, 255, 255, 0.1);
   --cream: var(--fyl-color-fatback);
   --cream-2: #FFF6ED;
   --cream-3: #E9ECEF;
   --dark: var(--fyl-color-kokushoku);
   --navy: var(--fyl-color-kokushoku);
-  --rust: var(--fyl-color-bronze);
+  --rust: var(--fyl-color-kokushoku);
   --ts: var(--fyl-color-walrus);
   --curve: 72px;
   --curve-sm: 40px;
@@ -99,7 +99,7 @@ h2, h3, h4, h5, h6, .title, .sub-heading, .hd-v2, .section-title {
   font-weight: 600;
   letter-spacing: .35em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: #999B98;
   margin-bottom: 24px;
   position: relative;
   padding-left: 40px;
@@ -112,7 +112,7 @@ h2, h3, h4, h5, h6, .title, .sub-heading, .hd-v2, .section-title {
   left: 0;
   width: 28px;
   height: 1px;
-  background: var(--gold);
+  background: #999B98;
   transform: translateY(-50%);
 }
 

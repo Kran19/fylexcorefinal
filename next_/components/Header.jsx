@@ -150,7 +150,7 @@ const Header = () => {
         .header-right-item svg { width: 18px; height: 18px; stroke-width: 1.5; }
 
         .badge-v1 {
-          background: #C79A67;
+          background: #ffffff;
           color: #161413;
           font-size: 10px;
           font-weight: 700;

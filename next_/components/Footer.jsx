@@ -10,7 +10,7 @@ const Footer = () => {
           background: #161413;
           padding: 60px clamp(20px, 5vw, 56px) 30px;
           min-height: 400px;
-          border-top: 1px solid rgba(199, 154, 103, 0.25);
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
           position: relative;
           display: flex;
           flex-direction: column;
@@ -47,7 +47,7 @@ const Footer = () => {
           display: inline-block;
           opacity: 0.85;
         }
-        .footer-link-v1:hover { color: #C79A67; opacity: 1; transform: translateY(-2px); }
+        .footer-link-v1:hover { color: #ffffff; opacity: 1; transform: translateY(-2px); }
         .footer-brand-v1 p {
           font-size: 0.85rem; line-height: 1.6;
           color: #999B98;
