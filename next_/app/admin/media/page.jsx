@@ -339,7 +339,7 @@ const MediaList = () => {
                                                          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                                                              <div style={{ width: 44, height: 44, borderRadius: 10, background: '#f1f5f9', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                                  {f.mimeType?.includes('image') ? (
-                                                                     <img src={getFileUrl(f.fileName)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = 'https://placehold.co/44x44?text=IMG'; }} />
+                                                                     <img src={getFileUrl(f.fileName || f.filePath || f.url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = 'https://placehold.co/44x44?text=IMG'; }} />
                                                                  ) : f.mimeType?.includes('video') ? (
                                                                      <i className="fas fa-video" style={{ color: '#6366f1' }}></i>
                                                                  ) : (
