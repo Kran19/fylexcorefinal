@@ -1414,8 +1414,7 @@ const EditProductPage = () => {
                                                          </div>
                                                          );
                                                      })()}
-                                                 </div>
-                                             )}
+
                                                 </div>
                                             )}
                                         </div>
