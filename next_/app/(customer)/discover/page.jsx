@@ -2207,31 +2207,56 @@ function DiscoverContent() {
           </div>
         </section>
 
-        {/* ── COMPATIBLE BELTS SECTION ── */}
+        {/* ── COMPATIBLE BELTS SECTION (HORIZONTALLY SCROLLABLE) ── */}
         {product.productBelts?.length > 0 && (
-          <section style={{ background: '#f5f5f3', padding: '80px 0 100px' }}>
-            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 40px' }}>
+          <section style={{ background: '#f5f5f3', padding: '80px 0 100px', width: '100%', overflow: 'hidden' }}>
+            <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 30px', width: '100%' }}>
               {/* Header */}
-              <div style={{ marginBottom: '56px' }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#333', marginBottom: '12px' }}>Compatible Straps</p>
-                <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                  Add to the look
-                </h2>
+              <div style={{ marginBottom: '36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#333', marginBottom: '10px' }}>Compatible Straps</p>
+                  <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                    Add to the look
+                  </h2>
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#666', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Scroll horizontally</span> →
+                </div>
               </div>
 
-              {/* Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '24px' }}>
+              {/* Horizontally Scrollable Row */}
+              <div style={{ 
+                display: 'flex', 
+                gap: '24px', 
+                overflowX: 'auto', 
+                paddingBottom: '24px',
+                paddingTop: '8px',
+                scrollSnapType: 'x mandatory',
+                scrollbarWidth: 'thin',
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch'
+              }}>
                 {product.productBelts.map(belt => (
-                  <div key={belt.id} className="group" style={{ cursor: 'default' }}>
+                  <div key={belt.id} className="group" style={{ 
+                    flex: '0 0 280px', 
+                    width: '280px', 
+                    scrollSnapAlign: 'start',
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
+                    border: '1px solid #eaeaea',
+                    transition: 'all 0.3s ease'
+                  }}>
                     {/* Image box */}
                     <div
                       style={{
-                        background: '#ebebeb',
-                        borderRadius: '4px',
+                        background: '#f9f9f8',
+                        borderRadius: '12px',
                         overflow: 'hidden',
                         position: 'relative',
-                        paddingBottom: '120%',
-                        marginBottom: '20px',
+                        paddingBottom: '110%',
+                        marginBottom: '16px',
                         transition: 'background 0.3s',
                       }}
                     >
@@ -2245,7 +2270,7 @@ function DiscoverContent() {
                             width: '100%',
                             height: '100%',
                             objectFit: 'contain',
-                            padding: '32px',
+                            padding: '24px',
                             transition: 'transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)',
                           }}
                           className="group-hover:scale-105"
@@ -2261,8 +2286,8 @@ function DiscoverContent() {
 
                     {/* Info */}
                     <div style={{ paddingBottom: '4px' }}>
-                      <h3 style={{ fontSize: '20px', fontWeight: 500, fontFamily: 'Georgia, serif', color: '#111', lineHeight: 1.25, marginBottom: '8px' }}>{belt.name}</h3>
-                      <p style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '0.05em', color: '#111', marginBottom: '16px' }}>₹{(belt.price || 0).toLocaleString()}</p>
+                      <h3 style={{ fontSize: '18px', fontWeight: 500, fontFamily: 'Georgia, serif', color: '#111', lineHeight: 1.25, marginBottom: '6px' }}>{belt.name}</h3>
+                      <p style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '0.05em', color: '#111', marginBottom: '14px' }}>₹{(belt.price || 0).toLocaleString()}</p>
 
                       <button
                         onClick={(e) => {
@@ -2273,8 +2298,10 @@ function DiscoverContent() {
                           }
                         }}
                         style={{
-                          display: 'inline-block',
-                          padding: '8px 18px',
+                          width: '100%',
+                          display: 'block',
+                          textAlign: 'center',
+                          padding: '10px 18px',
                           fontSize: '10px',
                           fontWeight: 700,
                           letterSpacing: '0.12em',
