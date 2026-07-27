@@ -2330,7 +2330,11 @@ function DiscoverContent() {
         {product.productBoxes?.length > 0 && (() => {
           const mainBox = product.productBoxes[0];
           const boxImg = mainBox?.image;
-          const cleanDesc = "Inspired by the travel cases from the 40's, simply sophisticated and refined, our packaging is crafted with attention to details to guarantee great robustness. It includes warranty and certificates papers, a micro-fiber cloth and a secondary strap.";
+          const defaultParagraph = "Inspired by the travel cases from the 40's, simply sophisticated and refined, our packaging is crafted with attention to details to guarantee great robustness. It includes warranty and certificates papers, a micro-fiber cloth and a secondary strap.";
+          let cleanDesc = mainBox?.description || defaultParagraph;
+          if (cleanDesc.includes("Inspired by the travel cases")) {
+            cleanDesc = defaultParagraph;
+          }
           return (
             <section style={{ 
               width: '100%', 
