@@ -10,7 +10,6 @@ if (typeof window !== 'undefined') {
       url.hostname = window.location.hostname;
       API_BASE_URL = url.toString().replace(/\/$/, '');
     }
-}
   } catch (e) {
     console.warn('Failed to parse API_BASE_URL', e);
   }
