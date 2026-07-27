@@ -30,21 +30,6 @@ export function getFileUrl(path) {
   }
 
   // 4. Dynamic Backend API Uploads (NestJS server with /api prefix)
-  let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
-  
-  if (typeof window !== 'undefined') {
-    try {
-      const url = new URL(rawApiUrl);
-      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-        url.hostname = window.location.hostname;
-      }
-      rawApiUrl = url.toString().replace(/\/$/, '');
-    } catch (e) {}
-  }
-
-  const apiPrefix = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
-
-  // Normalize key: remove leading slashes and 'uploads/' or 'api/uploads/' prefix if present
   let fileKey = cleanPath.replace(/^\/+/, '');
   if (fileKey.startsWith('api/uploads/')) {
     fileKey = fileKey.slice(12);
@@ -52,6 +37,27 @@ export function getFileUrl(path) {
     fileKey = fileKey.slice(8);
   }
 
+  if (typeof window !== 'undefined') {
+    // If running on standard HTTP/HTTPS ports (production server behind Nginx)
+    if (!window.location.port || window.location.port === '80' || window.location.port === '443') {
+      return `/api/uploads/${fileKey}`;
+    }
+    
+    // Otherwise fallback for custom dev ports (e.g. localhost:3002)
+    let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+    try {
+      const url = new URL(rawApiUrl);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        url.hostname = window.location.hostname;
+      }
+      rawApiUrl = url.toString().replace(/\/$/, '');
+    } catch (e) {}
+    const apiPrefix = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
+    return `${apiPrefix}/uploads/${fileKey}`;
+  }
+
+  let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+  const apiPrefix = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
   return `${apiPrefix}/uploads/${fileKey}`;
 }
 
