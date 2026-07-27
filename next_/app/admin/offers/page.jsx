@@ -13,6 +13,7 @@ import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
 import DataTable from '@/components/admin/table/DataTable';
+import { useToast } from '@/context/ToastContext';
 
 const OffersPage = () => {
   const toast = useToast();
