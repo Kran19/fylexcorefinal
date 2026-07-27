@@ -648,7 +648,7 @@ const EditProductPage = () => {
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div className="flex flex-col md:flex-row min-h-[650px]">
                         {/* Sidebar Tabs */}
-                        <div className="w-full md:w-64 bg-slate-50/80 border-r border-slate-200 p-4 space-y-2 shrink-0">
+                        <div className="w-full md:w-64 min-w-[260px] bg-slate-50/90 border-r border-slate-200 p-4 space-y-2 shrink-0">
                             {[
                                 { id: 'basic', label: 'Step 1: Basic Info', icon: 'fa-info-circle' },
                                 { id: 'story', label: 'Step 2: Story & Copy', icon: 'fa-align-left' },
@@ -664,15 +664,15 @@ const EditProductPage = () => {
                                         setActiveTab(tab.id);
                                         router.push(`/admin/products/edit/${productId}?step=${tab.id}`, { scroll: false });
                                     }}
-                                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
+                                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                                         activeTab === tab.id
                                             ? 'bg-indigo-600 text-white shadow-md'
-                                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                                            : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
                                     }`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <i className={`fas ${tab.icon} w-5`}></i>
-                                        {tab.label}
+                                        <i className={`fas ${tab.icon} w-5 text-center text-sm`}></i>
+                                        <span>{tab.label}</span>
                                     </div>
                                 </button>
                                 );
@@ -687,7 +687,7 @@ const EditProductPage = () => {
                                     <h3 className="text-xl font-bold text-gray-900 border-b pb-4 mb-6">Core Specifications</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="md:col-span-2">
-                                            <FormField label="Product Name *" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Fylex Chronograph X" required />
+                                            <FormField label="Product Name" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Fylex Chronograph X" required />
                                         </div>
                                         <FormField label="Slug" name="slug" value={form.slug} onChange={handleChange} placeholder="fylex-chronograph-x" />
                                         <FormField label="Product Code" name="productCode" value={form.productCode} onChange={handleChange} placeholder="FY-CHR-001" />
@@ -701,8 +701,8 @@ const EditProductPage = () => {
                                         ]} />
                                         {form.productType === 'simple' && (
                                             <>
-                                                <FormField label="Base Price *" name="price" type="number" value={form.price} onChange={handleChange} placeholder="0.00" required />
-                                                <FormField label="Inventory (Qty) *" name="qty" type="number" value={form.qty} onChange={handleChange} placeholder="0" required />
+                                                <FormField label="Base Price" name="price" type="number" value={form.price} onChange={handleChange} placeholder="0.00" required />
+                                                <FormField label="Inventory (Qty)" name="qty" type="number" value={form.qty} onChange={handleChange} placeholder="0" required />
                                             </>
                                         )}
                                         <div className="md:col-span-2 flex items-center gap-3 bg-indigo-50/60 p-5 rounded-2xl border border-indigo-100">
@@ -747,13 +747,10 @@ const EditProductPage = () => {
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                                     <h3 className="text-xl font-bold text-gray-900 border-b pb-4 mb-6">Classification & Media</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <FormField label="Main Category *" name="categoryId" type="select" value={form.categoryId} onChange={handleCategoryChange} options={[
-                                            { value: '', label: 'Select Category' },
-                                            ...categories.map(c => ({ value: c.id.toString(), label: c.name }))
-                                        ]} required />
+                                        <FormField label="Main Category" name="categoryId" type="select" value={form.categoryId} onChange={handleCategoryChange} options={categories.map(c => ({ value: c.id.toString(), label: c.name }))} required />
 
                                         <div className="md:col-span-2 space-y-2">
-                                            <label className="block text-sm font-bold text-slate-800">Tags</label>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Tags</label>
                                             <div className="flex flex-wrap gap-2.5 p-4 bg-slate-50 border border-slate-200 rounded-xl min-h-[60px] items-center">
                                                 {tags.map(tag => (
                                                     <button
@@ -765,7 +762,7 @@ const EditProductPage = () => {
                                                                 ? prev.tagIds.filter(id => id !== tag.id.toString())
                                                                 : [...prev.tagIds, tag.id.toString()]
                                                         }))}
-                                                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${form.tagIds.includes(tag.id.toString())
+                                                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${form.tagIds.includes(tag.id.toString())
                                                             ? 'bg-indigo-600 text-white shadow-sm'
                                                             : 'bg-white text-slate-700 border border-slate-200 hover:border-indigo-400 hover:bg-slate-50'
                                                             }`}
@@ -777,7 +774,7 @@ const EditProductPage = () => {
                                         </div>
 
                                         {/* Belts Configuration */}
-                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4 hover:border-slate-300 transition-all">
+                                        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-6 space-y-4 hover:border-slate-300 transition-all">
                                             <div className="flex items-center gap-3">
                                                 <input 
                                                     type="checkbox" 
@@ -793,12 +790,12 @@ const EditProductPage = () => {
                                             </div>
 
                                             {form.canSellBelts && (
-                                                <div className="pt-4 border-t border-slate-100 space-y-3">
+                                                <div className="pt-4 pb-2 border-t border-slate-100 space-y-3">
                                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Compatible Belts</label>
                                                     {belts.length === 0 ? (
                                                         <p className="text-sm text-slate-500 italic">No belts found. Please create belts in the Belts section first.</p>
                                                     ) : (
-                                                        <div className="flex flex-wrap gap-2.5">
+                                                        <div className="flex flex-wrap gap-2.5 pt-1 pb-1">
                                                             {belts.map(belt => (
                                                                 <button
                                                                     type="button"
@@ -811,7 +808,7 @@ const EditProductPage = () => {
                                                                                 : [...prev.beltIds, belt.id.toString()]
                                                                         }));
                                                                     }}
-                                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${form.beltIds.includes(belt.id.toString())
+                                                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${form.beltIds.includes(belt.id.toString())
                                                                         ? 'bg-slate-900 text-white shadow-md'
                                                                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                                     }`}
@@ -826,7 +823,7 @@ const EditProductPage = () => {
                                         </div>
 
                                         {/* Boxes Configuration */}
-                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4 hover:border-slate-300 transition-all">
+                                        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 p-6 space-y-4 hover:border-slate-300 transition-all">
                                             <div className="flex items-center gap-3">
                                                 <input 
                                                     type="checkbox" 
@@ -842,12 +839,12 @@ const EditProductPage = () => {
                                             </div>
 
                                             {form.canShowBoxes && (
-                                                <div className="pt-4 border-t border-slate-100 space-y-3">
+                                                <div className="pt-4 pb-2 border-t border-slate-100 space-y-3">
                                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Display Boxes</label>
                                                     {boxes.length === 0 ? (
                                                         <p className="text-sm text-slate-500 italic">No boxes found. Please create boxes in the Boxes section first.</p>
                                                     ) : (
-                                                        <div className="flex flex-wrap gap-2.5">
+                                                        <div className="flex flex-wrap gap-2.5 pt-1 pb-1">
                                                             {boxes.map(box => (
                                                                 <button
                                                                     type="button"
@@ -860,7 +857,7 @@ const EditProductPage = () => {
                                                                                 : [...prev.boxIds, box.id.toString()]
                                                                         }));
                                                                     }}
-                                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${form.boxIds.includes(box.id.toString())
+                                                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${form.boxIds.includes(box.id.toString())
                                                                         ? 'bg-slate-900 text-white shadow-md'
                                                                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                                     }`}
@@ -874,70 +871,79 @@ const EditProductPage = () => {
                                             )}
                                         </div>
 
-                                         {/* Default Product Media */}
-                                         <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 border-t pt-6">
-                                             <div className="md:col-span-2">
-                                                 <label className="block text-sm font-bold text-gray-900 mb-1">Default Product Media</label>
-                                                 <p className="text-[10px] text-gray-500 italic mb-4">Images shown on the Discover page before any variant attributes are selected.</p>
+                                          {/* Default Product Media */}
+                                          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 border-t border-slate-200 pt-6">
+                                              <div className="md:col-span-2">
+                                                  <label className="block text-base font-bold text-slate-900 mb-1">Default Product Media</label>
+                                                  <p className="text-xs text-slate-500 mb-4">Images shown on the Storefront Discover page before any variant attributes are selected.</p>
+                                              </div>
+                                              <div>
+                                                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Primary Image</label>
+                                                     <div
+                                                         onClick={() => setPickerTarget('primary')}
+                                                         className="h-56 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500 transition-all shadow-xs"
+                                                     >
+                                                         {(() => {
+                                                             const heroImgUrl = typeof form.heroImage === 'string' ? form.heroImage : (form.heroImage?.url || form.heroImage?.filePath || form.heroImage?.fileName);
+                                                             if (heroImgUrl) {
+                                                                 return <img src={getFileUrl(heroImgUrl)} className="w-full h-full object-contain p-2" alt="Primary Preview" />;
+                                                             }
+                                                             return (
+                                                                 <div className="text-center p-4">
+                                                                     <i className="fas fa-cloud-upload-alt text-indigo-400 text-3xl mb-2"></i>
+                                                                     <p className="text-slate-700 text-xs font-bold uppercase tracking-wider">Select Primary Image</p>
+                                                                     <p className="text-slate-400 text-[10px] mt-1">Click to browse media library</p>
+                                                                 </div>
+                                                             );
+                                                         })()}
+                                                     </div>
+                                                 </div>
+                                                 <div>
+                                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Gallery</label>
+                                                     <div className="grid grid-cols-3 gap-3">
+                                                         {form.gallery.map((img, i) => {
+                                                             const galleryUrl = typeof img === 'string' ? img : (img.url || img.filePath || img.fileName);
+                                                             return (
+                                                             <div key={i} className="aspect-square rounded-xl border border-slate-200 overflow-hidden relative group shadow-xs">
+                                                                 <img src={getFileUrl(galleryUrl)} className="w-full h-full object-cover" alt="Gallery" />
+                                                                 <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-1.5">
+                                                                     <button
+                                                                         type="button"
+                                                                         onClick={() => moveGalleryImage(i, -1)}
+                                                                         disabled={i === 0}
+                                                                         className="w-7 h-7 bg-white rounded-lg flex items-center justify-center text-slate-700 disabled:opacity-30 hover:bg-slate-100"
+                                                                     >
+                                                                         <i className="fas fa-chevron-left text-xs"></i>
+                                                                     </button>
+                                                                     <button
+                                                                         type="button"
+                                                                         onClick={() => setForm(prev => ({ ...prev, gallery: prev.gallery.filter(g => g.id !== img.id) }))}
+                                                                         className="w-7 h-7 bg-red-500 rounded-lg flex items-center justify-center text-white hover:bg-red-600"
+                                                                     >
+                                                                         <i className="fas fa-trash-alt text-xs"></i>
+                                                                     </button>
+                                                                     <button
+                                                                         type="button"
+                                                                         onClick={() => moveGalleryImage(i, 1)}
+                                                                         disabled={i === form.gallery.length - 1}
+                                                                         className="w-7 h-7 bg-white rounded-lg flex items-center justify-center text-slate-700 disabled:opacity-30 hover:bg-slate-100"
+                                                                     >
+                                                                         <i className="fas fa-chevron-right text-xs"></i>
+                                                                     </button>
+                                                                 </div>
+                                                             </div>
+                                                             );
+                                                         })}
+                                                         <button
+                                                             type="button"
+                                                             onClick={() => setPickerTarget('gallery')}
+                                                             className="aspect-square rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400 hover:border-indigo-500 hover:text-indigo-600 transition-all"
+                                                         >
+                                                             <i className="fas fa-plus text-lg"></i>
+                                                         </button>
+                                                     </div>
+                                                 </div>
                                              </div>
-                                             <div>
-                                                 <label className="block text-sm font-medium text-gray-700 mb-3">Primary Image</label>
-                                                    <div
-                                                        onClick={() => setPickerTarget('primary')}
-                                                        className="h-48 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-400 transition-all shadow-inner"
-                                                    >
-                                                        {form.heroImage ? (
-                                                            <img src={getFileUrl(form.heroImage.url)} className="w-full h-full object-contain" alt="Preview" />
-                                                        ) : (
-                                                            <div className="text-center">
-                                                                <i className="fas fa-image text-gray-400 text-2xl mb-2"></i>
-                                                                <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Select Image</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-3">Gallery</label>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {form.gallery.map((img, i) => (
-                                                            <div key={i} className="aspect-square rounded-lg border border-gray-200 overflow-hidden relative group">
-                                                                <img src={getFileUrl(img.url)} className="w-full h-full object-cover" alt="Gallery" />
-                                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => moveGalleryImage(i, -1)}
-                                                                        disabled={i === 0}
-                                                                        className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-gray-700 disabled:opacity-30 hover:bg-gray-100"
-                                                                    >
-                                                                        <i className="fas fa-chevron-left text-[10px]"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setForm(prev => ({ ...prev, gallery: prev.gallery.filter(g => g.id !== img.id) }))}
-                                                                        className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white hover:bg-red-600"
-                                                                    >
-                                                                        <i className="fas fa-trash-alt text-[10px]"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => moveGalleryImage(i, 1)}
-                                                                        disabled={i === form.gallery.length - 1}
-                                                                        className="w-6 h-6 bg-white rounded-full flex items-center justify-center text-gray-700 disabled:opacity-30 hover:bg-gray-100"
-                                                                    >
-                                                                        <i className="fas fa-chevron-right text-[10px]"></i>
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setPickerTarget('gallery')}
-                                                            className="aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400 hover:border-indigo-400 transition-all"
-                                                        >
-                                                            <i className="fas fa-plus"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
                                             </div>
                                          </div>
 
