@@ -161,44 +161,18 @@ export default function BoxesPage() {
       <DataTable
         title="Universal Boxes & Packaging"
         subtitle="Manage inventory boxes and universal packaging details"
-                            fontWeight: 700,
-                            background: box.isActive ? '#ecfdf5' : '#fef2f2',
-                            color: box.isActive ? '#10b981' : '#ef4444',
-                            border: `1px solid ${box.isActive ? '#d1fae5' : '#fee2e2'}`,
-                            textTransform: 'uppercase'
-                          }}
-                        >
-                          {box.isActive ? 'Active' : 'Inactive'}
-                        </div>
-                      </td>
-                      <td className="text-right">
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                          <button 
-                            onClick={() => openModal(box)} 
-                            className="btn-icon"
-                            style={{ background: '#f1f5f9', color: '#6366f1' }}
-                            title="Edit"
-                          >
-                            <FaEdit size={14} />
-                          </button>
-                          <button 
-                            onClick={() => setDeleteConfirmId(box.id)} 
-                            className="btn-icon"
-                            style={{ background: '#fef2f2', color: '#ef4444' }}
-                            title="Delete"
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        data={boxes}
+        columns={columns}
+        loading={loading}
+        minWidth={950}
+        action={{
+          label: 'Add Box',
+          icon: 'fas fa-plus',
+          onClick: () => openModal()
+        }}
+        exportFileName="packaging_boxes"
+        emptyTitle="No boxes found"
+      />
 
       {/* Edit/Create Box Modal */}
       <AdminModal

@@ -168,16 +168,18 @@ export default function BeltsPage() {
       <DataTable
         title="Belts Management"
         subtitle="Manage configurable watch belt accessories and stock levels"
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+        data={belts}
+        columns={columns}
+        loading={loading}
+        minWidth={950}
+        action={{
+          label: 'Add Belt',
+          icon: 'fas fa-plus',
+          onClick: () => openModal()
+        }}
+        exportFileName="watch_belts"
+        emptyTitle="No belts found"
+      />
 
       {/* Edit/Create Belt Modal */}
       <AdminModal
