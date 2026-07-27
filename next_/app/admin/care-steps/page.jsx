@@ -81,6 +81,8 @@ const CareStepsPage = () => {
             return url ? `<img src="${url}" class="w-16 h-16 object-cover rounded shadow-sm border border-slate-200" />` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
           }
         },
+        { title: 'TITLE', field: 'title', headerSort: false, formatter: (cell) => `<div class="font-bold text-slate-800">${cell.getValue()}</div>` },
+        { title: 'DESCRIPTION', field: 'description', headerSort: false, formatter: (cell) => `<div class="text-slate-500 text-sm truncate max-w-xs">${cell.getValue() || '-'}</div>` },
         {
           title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 120,
           formatter: () => `<div class="flex gap-2 justify-end">
@@ -233,6 +235,19 @@ const CareStepsPage = () => {
                     value={formData.stepNumber} 
                     onChange={handleChange} 
                     required
+                />
+                <FormField 
+                    label="Title" 
+                    name="title" 
+                    value={formData.title} 
+                    onChange={handleChange} 
+                />
+                <FormField 
+                    label="Description" 
+                    name="description" 
+                    type="textarea"
+                    value={formData.description} 
+                    onChange={handleChange} 
                 />
             </div>
 

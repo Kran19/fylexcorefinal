@@ -707,6 +707,7 @@ model Product {
   productCareSteps    ProductCareStep[]
   productBelts        ProductBelt[]
   productBoxes        ProductBox[]
+  pageThemes          PageTheme[]
 
   @@index([status], map: "products_status_index")
   @@index([brandId], map: "products_brand_id_foreign")
@@ -805,6 +806,21 @@ model ProductSpecification {
   @@index([variantId], map: "product_specifications_variant_id_foreign")
   @@index([specificationId], map: "product_specifications_specification_id_foreign")
   @@map("product_specifications")
+}
+
+model PageTheme {
+  id             Int       @id @default(autoincrement())
+  productId      Int       @map("product_id")
+  pageName       String    @map("page_name")
+  themeJson      String    @map("theme_json") @db.Text
+  createdAt      DateTime? @default(now()) @map("created_at")
+  updatedAt      DateTime? @updatedAt @map("updated_at")
+
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@unique([productId, pageName], map: "page_themes_product_id_page_name_unique")
+  @@index([productId], map: "page_themes_product_id_index")
+  @@map("page_themes")
 }
 
 model VariantAttribute {

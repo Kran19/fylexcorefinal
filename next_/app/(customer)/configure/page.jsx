@@ -388,12 +388,13 @@ function ConfigureContent() {
         .f-price { font-size: 16px; font-weight: 600; color: #111; text-align: left; }
         .alert-overlay { position: fixed; inset: 0; background: #fff; display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; visibility: hidden; transition: all 0.4s; }
         .alert-overlay.show { opacity: 1; visibility: visible; }
-        .alert-box { background: white; padding: 20px; text-align: center; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .alert-box { background: white; padding: 15px; text-align: center; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow-y: auto; }
         .alert-top-close { position: absolute; top: 30px; right: 30px; cursor: pointer; color: #006b4d; }
-        .alert-content-grid { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 450px; padding-top: 40px; }
-        .alert-watch-title { font-size: 2.2rem; font-weight: 700; margin-bottom: 20px; }
-        .alert-watch-preview { width: 100%; max-width: 320px; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.12)); }
-        .alert-footer-btn { margin-top: 40px; padding: 10px 24px; background: #1a1a1a; color: #fff; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; border: 1px solid #1a1a1a; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .alert-content-grid { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 100%; padding-top: 10px; }
+        .alert-watch-title { font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 700; margin-bottom: 10px; }
+        .alert-image-center { width: 100%; display: flex; justify-content: center; align-items: center; margin: -10px 0; overflow: visible; }
+        .alert-watch-preview { width: 100%; max-width: min(85vw, 680px); max-height: 62vh; object-fit: contain; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.12)); transform: scale(1.22); }
+        .alert-footer-btn { margin-top: 30px; padding: 12px 36px; background: #1a1a1a; color: #fff; border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; border: 1px solid #1a1a1a; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         @media (hover: hover) {
           .alert-footer-btn:hover { background: rgba(26, 26, 26, 0.8) !important; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-color: rgba(255, 255, 255, 0.1); transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2); }
         }
@@ -479,9 +480,14 @@ function ConfigureContent() {
           <button className="alert-top-close" onClick={() => setShowCustomAlert(false)}><X size={24} /></button>
           <div className="alert-content-grid">
             <h2 className="alert-watch-title">{product.title}</h2>
-            <ul style={{ listStyle: 'none', padding: 0, color: '#666', marginBottom: 30 }}>
-              {Object.keys(userSelections).map(key => <li key={key}>{userSelections[key]}</li>)}
-            </ul>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center', color: '#666', fontSize: '15px', fontWeight: 300, marginBottom: '25px', textTransform: 'capitalize' }}>
+              {Object.values(userSelections).map((val, idx, arr) => (
+                <React.Fragment key={idx}>
+                  <span>{val}</span>
+                  {idx < arr.length - 1 && <span style={{ opacity: 0.35 }}>•</span>}
+                </React.Fragment>
+              ))}
+            </div>
             <div className="alert-image-center"><img src={previewSrc} className="alert-watch-preview" /></div>
             <button className="alert-footer-btn" onClick={() => {
               const params = new URLSearchParams({ watch: watchId, ...userSelections });

@@ -10,7 +10,7 @@ import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
 import 'swiper/css/effect-coverflow';
 import 'swiper/css/free-mode';
-import { fetchProducts } from '../../../lib/api';
+import { fetchProducts, fetchBoxes } from '../../../lib/api';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useDesignSystem } from '@/context/DesignSystemContext';
@@ -42,9 +42,23 @@ function DiscoverContent() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const data = await fetchProducts();
-        if (data) {
-          const actualData = data.data || (Array.isArray(data) ? data : []);
+        const [prodRes, boxesRes] = await Promise.all([
+          fetchProducts(),
+          fetchBoxes().catch(() => null)
+        ]);
+        if (prodRes) {
+          const actualData = prodRes.data || (Array.isArray(prodRes) ? prodRes : []);
+          const rawBoxes = boxesRes?.data || [];
+          const universalBoxes = rawBoxes.filter(b => b.isActive).map(b => {
+            const bxImg = b.image?.url || b.image?.filePath || b.image?.path || b.image?.fileName || (typeof b.image === 'string' ? b.image : null);
+            return {
+              id: b.id,
+              name: b.name,
+              price: b.price || 0,
+              stock: b.stock || 0,
+              image: bxImg ? getFileUrl(bxImg) : null
+            };
+          });
           const hexToRgb = (hex) => {
             if (!hex) return '196, 163, 90';
             const cleanHex = hex.replace('#', '');
@@ -125,16 +139,7 @@ function DiscoverContent() {
                   image: bImg ? getFileUrl(bImg) : null
                 };
               }) || [],
-              productBoxes: p.productBoxes?.map(pb => {
-                const bxImg = pb.box?.image?.url || pb.box?.image?.filePath || pb.box?.image?.path || pb.box?.image?.fileName || (typeof pb.box?.image === 'string' ? pb.box?.image : null);
-                return {
-                  id: pb.box.id,
-                  name: pb.box.name,
-                  price: pb.box.price,
-                  stock: pb.box.stock,
-                  image: bxImg ? getFileUrl(bxImg) : null
-                };
-              }) || [],
+              productBoxes: universalBoxes,
               totalSoldConfigurations: (p.variants || []).reduce((sum, v) => sum + (v.fakeSoldCount || 0), 0)
             };
           });

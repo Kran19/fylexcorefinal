@@ -268,7 +268,7 @@ const Home = () => {
         if (settings) {
           const videoMap: Record<string, any> = {};
           settings.forEach((s: any) => {
-            if (s.group === 'video') videoMap[s.key] = s.value;
+            videoMap[s.key] = s.value;
           });
           setVideoSettings(videoMap);
         }
@@ -281,7 +281,7 @@ const Home = () => {
         if (hSections && hSections.length > 0) {
           const sectionMap: Record<string, boolean> = {};
           hSections.forEach((s: any) => {
-            sectionMap[s.type] = s.status === true || s.status === 'true' || s.status === 1 || s.status === '1';
+            sectionMap[s.type] = s.isActive === true || s.isActive === 'true' || s.isActive === 1 || s.isActive === '1' || s.status === true || s.status === 'true' || s.status === 1 || s.status === '1';
           });
           setHomeSections(sectionMap);
           // Refresh ScrollTrigger after a short delay to allow DOM to settle
@@ -403,8 +403,8 @@ const Home = () => {
   };
 
   // ── Render ────────────────────────────────────────────────────
-  const section2Banner = banners.find(b => b.position === 'Section 2');
-  const section3Banner = banners.find(b => b.position === 'Section 3');
+  const section2Banner = banners.find(b => b.position === 'Section 2' || b.type === 'home_s2');
+  const section3Banner = banners.find(b => b.position === 'Section 3' || b.type === 'home_s3');
 
   return (
     <div className="v1-home" ref={containerRef}>

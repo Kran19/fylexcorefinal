@@ -1,10 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import Swal from 'sweetalert2';
-import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaImage } from 'react-icons/fa';
+const axiosInstance = axios;
+import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaImage, FaExclamationTriangle } from 'react-icons/fa';
 import MediaPickerModal from '@/components/admin/MediaPickerModal';
+import AdminModal from '@/components/admin/AdminModal';
+import PageHeader from '@/components/admin/ui/PageHeader';
+import Loader from '@/components/admin/ui/Loader';
+import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
+import '@/app/admin/css/datatable.css';
+import '@/app/admin/css/custom.css';
 
 const getApiUrl = () => {
   let urlStr = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -21,10 +27,12 @@ const getApiUrl = () => {
 };
 
 export default function BoxesPage() {
+  const toast = useToast();
   const [boxes, setBoxes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBox, setEditingBox] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -37,7 +45,7 @@ export default function BoxesPage() {
   const fetchBoxes = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get(`${getApiUrl()}/boxes`);
+      const { data } = await axiosInstance.get(`${getApiUrl()}/boxes`);
       if (Array.isArray(data)) {
         setBoxes(data);
       } else if (data && Array.isArray(data.data)) {
@@ -48,7 +56,7 @@ export default function BoxesPage() {
       }
     } catch (err) {
       console.error(err);
-      Swal.fire('Error', 'Failed to fetch boxes', 'error');
+      toast?.error?.('Failed to fetch boxes');
     } finally {
       setLoading(false);
     }
@@ -88,195 +96,253 @@ export default function BoxesPage() {
     e.preventDefault();
     try {
       if (editingBox) {
-        await axios.put(`${getApiUrl()}/boxes/${editingBox.id}`, formData);
-        Swal.fire('Success', 'Box updated successfully', 'success');
+        await axiosInstance.put(`${getApiUrl()}/boxes/${editingBox.id}`, formData);
+        toast?.success?.('Box updated successfully');
       } else {
-        await axios.post(`${getApiUrl()}/boxes`, formData);
-        Swal.fire('Success', 'Box created successfully', 'success');
+        await axiosInstance.post(`${getApiUrl()}/boxes`, formData);
+        toast?.success?.('Box created successfully');
       }
       closeModal();
       fetchBoxes();
     } catch (err) {
       console.error(err);
-      Swal.fire('Error', 'Failed to save box', 'error');
+      toast?.error?.('Failed to save box');
     }
   };
 
-  const handleDelete = async (id) => {
-    const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, delete it!'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await axios.delete(`${getApiUrl()}/boxes/${id}`);
-        Swal.fire('Deleted!', 'Box has been deleted.', 'success');
-        fetchBoxes();
-      } catch (err) {
-        console.error(err);
-        Swal.fire('Error', 'Failed to delete box', 'error');
-      }
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return;
+    try {
+      await axiosInstance.delete(`${getApiUrl()}/boxes/${deleteConfirmId}`);
+      toast?.success?.('Box has been deleted successfully');
+      setDeleteConfirmId(null);
+      fetchBoxes();
+    } catch (err) {
+      console.error(err);
+      toast?.error?.('Failed to delete box');
     }
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Boxes Management</h1>
-        <button 
-          onClick={() => openModal()} 
-          className="bg-black text-white px-4 py-2 rounded flex items-center gap-2"
-        >
-          <FaPlus /> Add Box
-        </button>
-      </div>
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader 
+        title="Boxes Management" 
+        subtitle="Manage inventory boxes and universal packaging details"
+        action={{ label: 'Add Box', icon: 'fas fa-plus', onClick: () => openModal() }}
+      />
 
-      {loading ? (
-        <div className="text-center py-10">Loading boxes...</div>
-      ) : (
-        <div className="bg-white rounded shadow overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gray-100 border-b">
-                <th className="p-4">Name</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {boxes.length === 0 ? (
+      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
+        {loading ? (
+          <Loader message="Loading boxes..." />
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="admin-table w-full">
+              <thead>
                 <tr>
-                  <td colSpan="5" className="p-4 text-center text-gray-500">No boxes found</td>
+                  <th style={{ width: 100 }}>Image</th>
+                  <th>Box Name</th>
+                  <th style={{ width: 180 }}>Status</th>
+                  <th style={{ width: 140, textAlign: 'right' }}>Actions</th>
                 </tr>
-              ) : (
-                boxes.map(box => (
-                  <tr key={box.id} className="border-b hover:bg-gray-50">
-                    <td className="p-4 flex items-center gap-3">
-                      {box.image ? (
-                        <img src={getFileUrl(box.image.url || box.image.filePath || box.image.path || box.image.fileName || (typeof box.image === 'string' ? box.image : null))} alt={box.name} className="w-10 h-10 object-cover rounded shadow-sm border border-gray-200" />
-                      ) : (
-                        <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-400 border border-gray-200"><FaImage /></div>
-                      )}
-                      <span>{box.name}</span>
-                    </td>
-                    <td className="p-4">
-                      {box.isActive ? (
-                        <span className="text-green-500 flex items-center gap-1"><FaCheck /> Active</span>
-                      ) : (
-                        <span className="text-red-500 flex items-center gap-1"><FaTimes /> Inactive</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right">
-                      <button 
-                        onClick={() => openModal(box)} 
-                        className="text-blue-500 hover:text-blue-700 mr-4"
-                        title="Edit"
-                      >
-                        <FaEdit size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(box.id)} 
-                        className="text-red-500 hover:text-red-700"
-                        title="Delete"
-                      >
-                        <FaTrash size={18} />
-                      </button>
+              </thead>
+              <tbody>
+                {boxes.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="text-center py-8 text-gray-500" style={{ fontWeight: 600 }}>
+                      No boxes found
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+                ) : (
+                  boxes.map(box => (
+                    <tr key={box.id} className="hover:bg-slate-50/50">
+                      <td className="py-3">
+                        {box.image ? (
+                          <img 
+                            src={getFileUrl(box.image.url || box.image.filePath || box.image.path || box.image.fileName || (typeof box.image === 'string' ? box.image : null))} 
+                            alt={box.name} 
+                            style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 10, border: '1px solid #e2e8f0' }} 
+                          />
+                        ) : (
+                          <div style={{ width: 48, height: 48, background: '#f1f5f9', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                            <FaImage size={16} />
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ fontWeight: 700, color: '#1e293b' }}>
+                        {box.name}
+                      </td>
+                      <td>
+                        <div 
+                          className="status-badge"
+                          style={{
+                            display: 'inline-flex',
+                            padding: '5px 12px',
+                            borderRadius: 10,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            background: box.isActive ? '#ecfdf5' : '#fef2f2',
+                            color: box.isActive ? '#10b981' : '#ef4444',
+                            border: `1px solid ${box.isActive ? '#d1fae5' : '#fee2e2'}`,
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {box.isActive ? 'Active' : 'Inactive'}
+                        </div>
+                      </td>
+                      <td className="text-right">
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                          <button 
+                            onClick={() => openModal(box)} 
+                            className="btn-icon"
+                            style={{ background: '#f1f5f9', color: '#6366f1' }}
+                            title="Edit"
+                          >
+                            <FaEdit size={14} />
+                          </button>
+                          <button 
+                            onClick={() => setDeleteConfirmId(box.id)} 
+                            className="btn-icon"
+                            style={{ background: '#fef2f2', color: '#ef4444' }}
+                            title="Delete"
+                          >
+                            <FaTrash size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-md" style={{ padding: '24px' }}>
-            <h2 className="text-xl font-bold mb-4">{editingBox ? 'Edit Box' : 'Add Box'}</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Box Name *</label>
-                <input 
-                  type="text" 
-                  className="w-full border rounded p-2 focus:outline-none focus:border-black"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
+      {/* Edit/Create Box Modal */}
+      <AdminModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={editingBox ? 'Edit Box Details' : 'Add New Box'}
+        maxWidth={460}
+      >
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
+          <div className="form-group">
+            <label style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 8, display: 'block' }}>Box Name *</label>
+            <input 
+              type="text" 
+              style={{ width: '100%', padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: 10, outline: 'none' }}
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              placeholder="e.g. Premium Piano Lacquer Box"
+              required
+            />
+          </div>
 
-              <div className="mb-4">
-                <label className="block text-gray-700 mb-2">Box Image</label>
-                <div className="flex items-center gap-4">
-                  {formData.imageObj ? (
-                    <div className="relative">
-                      <img 
-                        src={formData.imageObj.fileName ? getFileUrl(formData.imageObj.fileName) : formData.imageObj.url} 
-                        alt="Box" 
-                        className="w-20 h-20 object-cover rounded border"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setFormData({...formData, imageId: null, imageObj: null})}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md"
-                      >
-                        <FaTimes />
-                      </button>
-                    </div>
-                  ) : formData.imageId ? (
-                     <div className="w-20 h-20 bg-gray-100 rounded border flex items-center justify-center text-green-500">
-                        <FaCheck />
-                     </div>
-                  ) : null}
-                  
+          <div className="form-group">
+            <label style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 8, display: 'block' }}>Box Asset Media</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {formData.imageObj ? (
+                <div style={{ position: 'relative', width: 80, height: 80 }}>
+                  <img 
+                    src={formData.imageObj.fileName ? getFileUrl(formData.imageObj.fileName) : formData.imageObj.url} 
+                    alt="Box Preview" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, border: '1px solid #e2e8f0' }}
+                  />
                   <button
                     type="button"
-                    onClick={() => setIsMediaModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 border rounded hover:bg-gray-50 text-gray-700"
+                    onClick={() => setFormData({...formData, imageId: null, imageObj: null})}
+                    style={{
+                      position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff',
+                      borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', fontSize: 10, border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                    }}
                   >
-                    <FaImage /> {formData.imageId ? 'Change Image' : 'Select Image'}
+                    <FaTimes />
                   </button>
                 </div>
-              </div>
+              ) : (
+                <div style={{ width: 80, height: 80, background: '#f8fafc', borderRadius: 12, border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                  <FaImage size={24} />
+                </div>
+              )}
               
-              <div className="mb-6 flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  id="isActive"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
-                  className="w-4 h-4"
-                />
-                <label htmlFor="isActive" className="text-gray-700 ml-2">Active</label>
-              </div>
-              
-              <div className="flex justify-end" style={{ gap: '8px' }}>
-                <button 
-                  type="button" 
-                  onClick={closeModal}
-                  className="px-4 py-2 border rounded hover:bg-gray-100"
-                  style={{ marginRight: '8px' }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
+              <button
+                type="button"
+                onClick={() => setIsMediaModalOpen(true)}
+                className="btn-filter-dark"
+                style={{ padding: '10px 16px', fontSize: 13, borderRadius: 10 }}
+              >
+                <FaImage className="mr-2 inline" /> {formData.imageId ? 'Change Image' : 'Select Image'}
+              </button>
+            </div>
+          </div>
+          
+          <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input 
+              type="checkbox" 
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
+              style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#000' }}
+            />
+            <label htmlFor="isActive" style={{ fontSize: 14, fontWeight: 600, color: '#334155', cursor: 'pointer' }}>Visible and Active in Configuration</label>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, paddingTop: 16, borderTop: '1px solid #f1f5f9' }}>
+            <button 
+              type="button" 
+              onClick={closeModal}
+              className="btn-filter-dark"
+              style={{ background: '#f1f5f9', color: '#475569', border: 'none' }}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn-filter-dark"
+              style={{ background: '#000', color: '#fff' }}
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </AdminModal>
+
+      {/* Delete Confirmation Modal */}
+      <AdminModal
+        isOpen={deleteConfirmId !== null}
+        onClose={() => setDeleteConfirmId(null)}
+        title="Confirm Deletion"
+        maxWidth={400}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 16, padding: '10px 0' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+            <FaExclamationTriangle size={24} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1e293b', marginBottom: 6 }}>Are you absolutely sure?</h3>
+            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5 }}>
+              This action cannot be undone. This box packaging option will be permanently removed from products.
+            </p>
+          </div>
+          <div style={{ display: 'flex', width: '100%', gap: 12, marginTop: 12 }}>
+            <button
+              onClick={() => setDeleteConfirmId(null)}
+              className="btn-filter-dark"
+              style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={executeDelete}
+              className="btn-filter-dark"
+              style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none' }}
+            >
+              Delete Option
+            </button>
           </div>
         </div>
-      )}
+      </AdminModal>
       
       <MediaPickerModal 
         isOpen={isMediaModalOpen}

@@ -207,18 +207,30 @@ export function getPageTheme(product, pageName = 'discover', overrides = null) {
     return { bg: 'var(--ds-bg-primary)', textColor: 'var(--ds-text-primary)', accentColor: 'var(--ds-brand-secondary)', gradient: null };
   }
 
-  let themeConfig = {};
-  if (product.themeConfig) {
-    themeConfig = typeof product.themeConfig === 'string' ? JSON.parse(product.themeConfig) : product.themeConfig;
-  } else if (product.theme && product.theme.startsWith('{')) {
-    try { themeConfig = JSON.parse(product.theme); } catch (e) {}
+  // Support for the new PageTheme Architecture
+  let pageThemeData = {};
+  if (product.pageThemes && Array.isArray(product.pageThemes)) {
+    const pt = product.pageThemes.find(t => t.pageName === pageName);
+    if (pt && pt.themeJson) {
+      try {
+        pageThemeData = typeof pt.themeJson === 'string' ? JSON.parse(pt.themeJson) : pt.themeJson;
+      } catch (e) {}
+    }
   }
 
-  const prefix = pageName; // 'discover' | 'products' | 'preConfigure'
-  const customBg = (overrides && overrides[`${prefix}Bg`]) || themeConfig[`${prefix}Bg`] || product[`${prefix}Bg`];
-  const customText = (overrides && overrides[`${prefix}TextColor`]) || themeConfig[`${prefix}TextColor`] || product[`${prefix}TextColor`];
-  const customAccent = (overrides && overrides[`${prefix}AccentColor`]) || themeConfig[`${prefix}AccentColor`] || product[`${prefix}AccentColor`];
-  const customGradient = (overrides && overrides[`${prefix}Gradient`]) || themeConfig[`${prefix}Gradient`] || product[`${prefix}Gradient`];
+  // Legacy fallback via product.theme
+  let legacyThemeConfig = {};
+  if (product.themeConfig) {
+    legacyThemeConfig = typeof product.themeConfig === 'string' ? JSON.parse(product.themeConfig) : product.themeConfig;
+  } else if (product.theme && product.theme.startsWith('{')) {
+    try { legacyThemeConfig = JSON.parse(product.theme); } catch (e) {}
+  }
+
+  const prefix = pageName;
+  const customBg = (overrides && overrides[`${prefix}Bg`]) || pageThemeData.bgColor || legacyThemeConfig[`${prefix}Bg`] || product[`${prefix}Bg`];
+  const customText = (overrides && overrides[`${prefix}TextColor`]) || pageThemeData.textColor || legacyThemeConfig[`${prefix}TextColor`] || product[`${prefix}TextColor`];
+  const customAccent = (overrides && overrides[`${prefix}AccentColor`]) || pageThemeData.accentColor || legacyThemeConfig[`${prefix}AccentColor`] || product[`${prefix}AccentColor`];
+  const customGradient = (overrides && overrides[`${prefix}Gradient`]) || pageThemeData.gradient || legacyThemeConfig[`${prefix}Gradient`] || product[`${prefix}Gradient`];
 
   const bg = customBg || product.bgColor || 'var(--ds-bg-primary)';
   

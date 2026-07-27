@@ -15,7 +15,7 @@ export class MediaController {
 
   @Post('upload')
   @UseInterceptors(FilesInterceptor('file', 500, {
-    limits: { fileSize: 20 * 1024 * 1024 },
+    limits: { fileSize: 200 * 1024 * 1024 },
     storage: diskStorage({
       destination: './uploads',
       filename: (req, file, cb) => {

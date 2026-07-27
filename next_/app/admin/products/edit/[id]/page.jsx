@@ -65,6 +65,8 @@ const EditProductPage = () => {
     const [activeTab, setActiveTab] = useState(initialStep);
     const [selectedAttributeValues, setSelectedAttributeValues] = useState({}); // attrId: [valIds]
     const [variants, setVariants] = useState([]);
+    const [variantPage, setVariantPage] = useState(1);
+    const variantsPerPage = 10;
     const [pickerTarget, setPickerTarget] = useState(null); // 'primary' | 'gallery' | {variantIndex, type}
     const [variantImageModal, setVariantImageModal] = useState(null); // { index, name }
     const [pageThemeTab, setPageThemeTab] = useState('discover');
@@ -218,6 +220,28 @@ const EditProductPage = () => {
                     } catch (e) {
                         console.error("Failed to parse theme JSON:", e);
                     }
+                }
+                
+                if (p.pageThemes && Array.isArray(p.pageThemes)) {
+                    p.pageThemes.forEach(pt => {
+                        try {
+                            const ptData = typeof pt.themeJson === 'string' ? JSON.parse(pt.themeJson) : pt.themeJson;
+                            if (pt.pageName === 'discover') {
+                                if (ptData.bgColor) parsedTheme.discoverBg = ptData.bgColor;
+                                if (ptData.textColor) parsedTheme.discoverTextColor = ptData.textColor;
+                                if (ptData.accentColor) parsedTheme.discoverAccentColor = ptData.accentColor;
+                                if (ptData.gradient) parsedTheme.discoverGradient = ptData.gradient;
+                            } else if (pt.pageName === 'products') {
+                                if (ptData.bgColor) parsedTheme.productsBg = ptData.bgColor;
+                                if (ptData.textColor) parsedTheme.productsTextColor = ptData.textColor;
+                                if (ptData.accentColor) parsedTheme.productsAccentColor = ptData.accentColor;
+                            } else if (pt.pageName === 'preConfigure') {
+                                if (ptData.bgColor) parsedTheme.preConfigureBg = ptData.bgColor;
+                                if (ptData.textColor) parsedTheme.preConfigureTextColor = ptData.textColor;
+                                if (ptData.accentColor) parsedTheme.preConfigureAccentColor = ptData.accentColor;
+                            }
+                        } catch(e) {}
+                    });
                 }
                 
                 // 1. Basic Form
@@ -562,8 +586,8 @@ const EditProductPage = () => {
             heroImageId: form.heroImage?.id,
             galleryIds: form.gallery.map(g => g.id),
             images: [form.heroImage?.url, ...form.gallery.map(g => g.url)].filter(Boolean),
-            ...(form.canSellBelts ? { beltIds: form.beltIds } : {}),
-            ...(form.canShowBoxes ? { boxIds: form.boxIds } : {}),
+            beltIds: form.canSellBelts ? form.beltIds : [],
+            boxIds: form.canShowBoxes ? form.boxIds : [],
             specifications: Object.entries(form.specifications || {}).map(([id, val]) => {
                 const specItem = categoryDetails?.specGroups?.flatMap(sg => sg.specGroup.specifications).find(s => s.specification.id.toString() === id);
                 const isDropdown = specItem?.specification.type === 'select';
@@ -1177,7 +1201,9 @@ const EditProductPage = () => {
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-gray-50">
-                                                            {variants.map((variant, vIdx) => (
+                                                            {variants.slice((variantPage - 1) * variantsPerPage, variantPage * variantsPerPage).map((variant, localIdx) => {
+                                                                const vIdx = (variantPage - 1) * variantsPerPage + localIdx;
+                                                                return (
                                                                 <tr key={vIdx} className="hover:bg-gray-50 transition-colors">
                                                                     <td className="!px-4 !py-4">
                                                                         <div className="flex items-center gap-1">
@@ -1223,9 +1249,37 @@ const EditProductPage = () => {
                                                                         <button type="button" onClick={() => removeVariant(vIdx)} className="text-gray-300 hover:text-red-500 transition-colors"><i className="fas fa-trash-alt"></i></button>
                                                                     </td>
                                                                 </tr>
-                                                            ))}
+                                                                );
+                                                            })}
                                                         </tbody>
                                                     </table>
+
+                                                    {/* Pagination Controls */}
+                                                    {variants.length > variantsPerPage && (
+                                                        <div className="flex items-center justify-between !px-4 !py-3 bg-white border-t border-gray-100">
+                                                            <div className="text-xs text-gray-500 font-medium">
+                                                                Showing <span className="font-bold text-gray-900">{(variantPage - 1) * variantsPerPage + 1}</span> to <span className="font-bold text-gray-900">{Math.min(variantPage * variantsPerPage, variants.length)}</span> of <span className="font-bold text-gray-900">{variants.length}</span> variants
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setVariantPage(p => Math.max(1, p - 1))}
+                                                                    disabled={variantPage === 1}
+                                                                    className="!px-3 !py-1.5 text-xs font-bold border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                                >
+                                                                    Prev
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setVariantPage(p => Math.min(Math.ceil(variants.length / variantsPerPage), p + 1))}
+                                                                    disabled={variantPage === Math.ceil(variants.length / variantsPerPage)}
+                                                                    className="!px-3 !py-1.5 text-xs font-bold border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                                                >
+                                                                    Next
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

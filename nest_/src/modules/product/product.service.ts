@@ -617,6 +617,7 @@ export class ProductService {
             quantity: true
           }
         },
+        pageThemes: true,
         _count: {
           select: {
             variants: true,
@@ -776,6 +777,40 @@ export class ProductService {
             if (tagData.length > 0) {
               await tx.productTag.createMany({ data: tagData as any });
             }
+          }
+        }
+
+        // 3.1 Sync Page Themes
+        if (filteredPrismaData.theme) {
+          try {
+            const parsedTheme = JSON.parse(filteredPrismaData.theme);
+            const pages = ['discover', 'products', 'preConfigure', 'configure'];
+            for (const page of pages) {
+              const pageThemeData = {
+                bgColor: parsedTheme[`${page}Bg`] || undefined,
+                textColor: parsedTheme[`${page}TextColor`] || undefined,
+                accentColor: parsedTheme[`${page}AccentColor`] || undefined,
+                gradient: parsedTheme[`${page}Gradient`] || undefined
+              };
+              
+              if (Object.values(pageThemeData).some(v => v !== undefined)) {
+                await tx.pageTheme.upsert({
+                  where: {
+                    productId_pageName: { productId, pageName: page }
+                  },
+                  update: {
+                    themeJson: JSON.stringify(pageThemeData)
+                  },
+                  create: {
+                    productId,
+                    pageName: page,
+                    themeJson: JSON.stringify(pageThemeData)
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            console.error("Failed to parse theme for PageTheme sync", e);
           }
         }
 

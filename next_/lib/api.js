@@ -163,4 +163,5 @@ export const updatePolicy = (id, data) => request('PUT', `/policies/${id}`, data
 export const deletePolicy = (id) => request('DELETE', `/policies/${id}`);
 
 export const fetchSettings = () => request('GET', '/system/settings');
+export const fetchBoxes = () => request('GET', '/boxes');
 

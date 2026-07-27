@@ -163,7 +163,7 @@ export default function Cart() {
         <h1 className="cart-hero-title">Shopping Cart</h1>
       </div>
 
-      <div className="cart-layout">
+      <div className={`cart-layout ${items.length === 0 ? 'empty' : ''}`}>
         {/* Items */}
         <div className="cart-items-col">
           {items.length === 0 ? (
@@ -193,55 +193,57 @@ export default function Cart() {
         </div>
 
         {/* Summary */}
-        <div
-          ref={summaryRef}
-          className="cart-summary-col"
-          style={{
-            opacity: summaryVisible ? 1 : 0,
-            transform: summaryVisible ? 'translateY(0)' : 'translateY(30px)',
-            transition: 'opacity 0.65s ease 0.2s, transform 0.65s ease 0.2s',
-          }}
-        >
-          <div className="cart-summary-card">
-            <div className="cart-summary-title">Order Summary</div>
-            <div className="cart-summary-line">
-              <span>Subtotal</span><span>₹{subtotal.toLocaleString()}</span>
-            </div>
-            <div className="cart-summary-line">
-              <span>Shipping</span>
-              <span>{shippingPlaceholder === 0 ? <span className="cart-free-tag">Free</span> : (subtotal > 0 ? "Calculated at checkout" : "₹0")}</span>
-            </div>
-            <div className="cart-summary-divider" />
-            <div className="cart-summary-total">
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span>Total</span>
-                {shippingPlaceholder > 0 && <span style={{ fontSize: '10px', fontWeight: '400', color: '#94a3b8' }}>Excl. shipping</span>}
+        {items.length > 0 && (
+          <div
+            ref={summaryRef}
+            className="cart-summary-col"
+            style={{
+              opacity: summaryVisible ? 1 : 0,
+              transform: summaryVisible ? 'translateY(0)' : 'translateY(30px)',
+              transition: 'opacity 0.65s ease 0.2s, transform 0.65s ease 0.2s',
+            }}
+          >
+            <div className="cart-summary-card">
+              <div className="cart-summary-title">Order Summary</div>
+              <div className="cart-summary-line">
+                <span>Subtotal</span><span>₹{subtotal.toLocaleString()}</span>
               </div>
-              <span>₹{total.toLocaleString()}</span>
+              <div className="cart-summary-line">
+                <span>Shipping</span>
+                <span>{shippingPlaceholder === 0 ? <span className="cart-free-tag">Free</span> : (subtotal > 0 ? "Calculated at checkout" : "₹0")}</span>
+              </div>
+              <div className="cart-summary-divider" />
+              <div className="cart-summary-total">
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span>Total</span>
+                  {shippingPlaceholder > 0 && <span style={{ fontSize: '10px', fontWeight: '400', color: '#94a3b8' }}>Excl. shipping</span>}
+                </div>
+                <span>₹{total.toLocaleString()}</span>
+              </div>
+              <button className="cart-checkout-btn" onClick={() => navigate.push('/checkout')}>
+                <span>Proceed to Checkout</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <Link href="/products" className="cart-continue-link">← Continue Shopping</Link>
             </div>
-            <button className="cart-checkout-btn" onClick={() => navigate.push('/checkout')}>
-              <span>Proceed to Checkout</span>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            <Link href="/products" className="cart-continue-link">← Continue Shopping</Link>
-          </div>
 
-          {/* Trust badges */}
-          {/* <div className="cart-trust-badges">
-            {[
-              { icon: '🔒', label: 'Secure Payment' },
-              { icon: '↩', label: '30-Day Returns' },
-              { icon: '🚚', label: 'Fast Delivery' },
-            ].map(b => (
-              <div className="cart-badge" key={b.label}>
-                <span className="cart-badge-icon">{b.icon}</span>
-                <span className="cart-badge-label">{b.label}</span>
-              </div>
-            ))}
-          </div> */}
-        </div>
+            {/* Trust badges */}
+            {/* <div className="cart-trust-badges">
+              {[
+                { icon: '🔒', label: 'Secure Payment' },
+                { icon: '↩', label: '30-Day Returns' },
+                { icon: '🚚', label: 'Fast Delivery' },
+              ].map(b => (
+                <div className="cart-badge" key={b.label}>
+                  <span className="cart-badge-icon">{b.icon}</span>
+                  <span className="cart-badge-label">{b.label}</span>
+                </div>
+              ))}
+            </div> */}
+          </div>
+        )}
       </div>
 
       <style>{`
@@ -277,6 +279,10 @@ export default function Cart() {
           grid-template-columns: 1fr 360px;
           gap: 32px;
           align-items: start;
+        }
+        .cart-layout.empty {
+          grid-template-columns: 1fr;
+          max-width: 600px;
         }
         @media(max-width: 860px) {
           .cart-layout { grid-template-columns: 1fr; }

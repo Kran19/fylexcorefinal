@@ -143,7 +143,13 @@ const OffersPage = () => {
         {
           title: 'STATUS', field: 'isActive', width: 120, hozAlign: 'center',
           formatter: (cell) => {
+            const d = cell.getRow().getData();
             const active = cell.getValue() === true;
+            const endsAt = d.endsAt;
+            const isExpired = endsAt && new Date(endsAt) < new Date();
+            if (isExpired) {
+               return `<div class="status-badge" style="display:inline-flex;padding:5px 14px;border-radius:10px;font-size:11px;font-weight:700;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;text-transform:uppercase;letter-spacing:0.02em">EXPIRED</div>`;
+            }
             return `<div class="status-badge" style="display:inline-flex;padding:5px 14px;border-radius:10px;font-size:11px;font-weight:700;background:${active ? '#ecfdf5' : '#fef2f2'};color:${active ? '#10b981' : '#ef4444'};border:1px solid ${active ? '#d1fae5' : '#fee2e2'};text-transform:uppercase;letter-spacing:0.02em">${active ? 'active' : 'inactive'}</div>`;
           },
         },
@@ -252,57 +258,59 @@ const OffersPage = () => {
   };
 
   return (
-    <div className="w-full px-6 lg:px-10 xl:px-16 py-6">
-      <div className="max-w-[1600px] mx-auto">
-        <PageHeader
-          title="Promotional Offers"
-          subtitle="Manage discounts, coupons and campaign validity."
-          action={{ label: 'Add New Offer', icon: 'fas fa-plus', onClick: () => setShowForm(true) }}
-        />
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Promotional Offers"
+        subtitle="Manage discounts, coupons and campaign validity."
+        action={{ label: 'Add New Offer', icon: 'fas fa-plus', onClick: () => setShowForm(true) }}
+      />
 
-        {analytics && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginTop: '24px' }}>
-            <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '20px', gap: '8px' }}>
-              <div className="stat-label">Total Coupons</div>
-              <div className="stat-value">{analytics.totalCoupons}</div>
+      {analytics && (
+        <div className="admin-card" style={{ padding: '24px', borderRadius: '16px', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Coupons</div>
+              <div style={{ fontSize: '28px', fontWeight: '800', color: '#1e293b' }}>{analytics.totalCoupons}</div>
             </div>
-            <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '20px', gap: '8px' }}>
-              <div className="stat-label">Active Coupons</div>
-              <div className="stat-value" style={{ color: 'var(--admin-primary)' }}>{analytics.activeCoupons}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Coupons</div>
+              <div style={{ fontSize: '28px', fontWeight: '800', color: '#6366f1' }}>{analytics.activeCoupons}</div>
             </div>
-            <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '20px', gap: '8px' }}>
-              <div className="stat-label">Total Uses</div>
-              <div className="stat-value">{analytics.totalUses.toLocaleString()}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Uses</div>
+              <div style={{ fontSize: '28px', fontWeight: '800', color: '#1e293b' }}>{analytics.totalUses.toLocaleString()}</div>
             </div>
-            <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '20px', gap: '8px' }}>
-              <div className="stat-label">Discount Given</div>
-              <div className="stat-value" style={{ color: 'var(--admin-danger)' }}>-₹{analytics.totalDiscountGiven.toLocaleString()}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Discount Given</div>
+              <div style={{ fontSize: '28px', fontWeight: '800', color: '#ef4444' }}>-₹{analytics.totalDiscountGiven.toLocaleString()}</div>
             </div>
-            <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '20px', gap: '8px' }}>
-              <div className="stat-label">Revenue Gen.</div>
-              <div className="stat-value" style={{ color: 'var(--admin-success)' }}>₹{analytics.totalRevenueGenerated.toLocaleString()}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Revenue Gen.</div>
+              <div style={{ fontSize: '28px', fontWeight: '800', color: '#10b981' }}>₹{analytics.totalRevenueGenerated.toLocaleString()}</div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="admin-section" style={{ marginTop: '32px' }}>
-          <div className="admin-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3>Active Campaigns</h3>
-            <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--admin-text-muted)' }}>
-              <i className="fas fa-info-circle mr-1"></i> Total {offers.length} offers
-            </div>
+      <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1e293b', margin: 0 }}>Active Campaigns</h3>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#64748b' }}>
+            <i className="fas fa-list mr-1"></i> Total {offers.length} offers
           </div>
-          <div className="admin-section-body" style={{ padding: '4px' }}>
-            {loading.offers ? (
-              <div className="py-24"><Loader message="Loading offers..." /></div>
-            ) : errors.offers ? (
-              <div className="p-8"><ErrorBanner message={errors.offers} onRetry={() => refetch.offers()} /></div>
-            ) : (
-              <div className="overflow-x-auto">
-                <div style={{ minWidth: '900px' }}><div ref={tableRef}></div></div>
+        </div>
+        <div style={{ padding: '0 8px 8px 8px' }}>
+          {loading.offers ? (
+            <div className="py-24"><Loader message="Loading offers..." /></div>
+          ) : errors.offers ? (
+            <div className="p-8"><ErrorBanner message={errors.offers} onRetry={() => refetch.offers()} /></div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <div style={{ minWidth: 1000, borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+                <div ref={tableRef}></div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
