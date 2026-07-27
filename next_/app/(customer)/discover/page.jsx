@@ -2269,7 +2269,7 @@ function DiscoverContent() {
                             width: '100%',
                             height: '100%',
                             objectFit: 'contain',
-                            padding: '24px',
+                            padding: '0px',
                             transition: 'transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)',
                           }}
                           className="group-hover:scale-105"
@@ -2362,10 +2362,10 @@ function DiscoverContent() {
                     style={{
                       width: '100%',
                       height: 'auto',
-                      maxHeight: '650px',
-                      objectFit: 'cover',
+                      maxHeight: '75vh',
+                      objectFit: 'contain',
                       display: 'block',
-                      margin: 0,
+                      margin: '0 auto',
                       padding: 0
                     }}
                   />

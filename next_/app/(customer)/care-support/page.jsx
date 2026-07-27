@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { fetchActiveFaqs, fetchProductCareStepsGrouped, fetchProducts, formatImageUrl } from '@/lib/api';
+import { fetchActiveFaqs, fetchProductCareStepsGrouped, fetchProducts } from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 import { useOrder } from '@/context/OrderContext';
 import { useAuth } from '@/context/AuthContext';
 
@@ -152,6 +153,11 @@ export default function CareSupport() {
           border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; 
           font-family: inherit; font-size: 1rem; outline: none; cursor: pointer;
           transition: all 0.3s ease;
+        }
+        .product-selector select option {
+          background-color: #111111 !important;
+          color: #ffffff !important;
+          padding: 12px;
         }
         .product-selector select:focus { border-color: rgba(255,255,255,0.5); }
 
@@ -335,7 +341,7 @@ export default function CareSupport() {
 
             <div className="images-only-timeline">
               {selectedGroup.steps.filter(s => s.imageUrl || s.image || s.image_url).map((step, sIdx) => {
-                const imgSrc = formatImageUrl(step.imageUrl || step.image || step.image_url);
+                const imgSrc = getFileUrl(step.imageUrl || step.image || step.image_url);
                 return (
                   <div key={sIdx} className="image-only-item">
                     <div className="image-only-img-wrapper">

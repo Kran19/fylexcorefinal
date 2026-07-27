@@ -341,6 +341,27 @@ const PreConfigure = () => {
           background: #000000 !important;
         }
 
+        @media (max-width: 768px) {
+          .product-image {
+            transform: scale(2.05) translateY(-15px) !important;
+          }
+          .product-info {
+            padding: 0 24px !important;
+            bottom: 60px !important;
+          }
+          .btn-container {
+            justify-content: flex-start !important;
+            width: 100% !important;
+          }
+          .btn-configure {
+            width: auto !important;
+            max-width: 60% !important;
+            padding: 12px 28px !important;
+            align-self: flex-start !important;
+            margin-left: 0 !important;
+          }
+        }
+
 
         .header-wrapper {
           position: absolute;

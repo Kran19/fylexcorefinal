@@ -42,15 +42,13 @@ const CareStepsManagement = () => {
   });
   const [formErrors, setFormErrors] = useState({});
 
-
-
-  const columns = [
+  const columns = useMemo(() => [
     { title: 'STEP NO', field: 'stepNumber', width: 90, hozAlign: 'center', formatter: (cell) => `<span class="w-6 h-6 inline-flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-full font-bold text-xs">${cell.getValue()}</span>` },
     { 
       title: 'IMAGE', field: 'imageUrl', width: 120, hozAlign: 'center', headerSort: false,
       formatter: (cell) => {
         const raw = cell.getValue() || cell.getRow().getData().image || cell.getRow().getData().image_url || '';
-        const url = api.formatImageUrl(raw);
+        const url = getFileUrl(raw);
         return url ? `<img src="${url}" class="w-16 h-16 object-cover rounded shadow-sm border border-slate-200" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" /><div class="w-16 h-16 bg-slate-100 rounded items-center justify-center text-slate-300 hidden"><i class="fas fa-image"></i></div>` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
       }
     },
@@ -229,7 +227,7 @@ const CareStepsManagement = () => {
               
               {formData.imageUrl ? (
                 <div className="relative inline-block group">
-                  <img src={formData.imageUrl} alt="Preview" className="w-full max-w-[200px] rounded-lg border border-slate-300 shadow-sm" />
+                  <img src={getFileUrl(formData.imageUrl)} alt="Preview" className="w-full max-w-[200px] rounded-lg border border-slate-300 shadow-sm" />
                   <button 
                     type="button" 
                     onClick={() => setFormData({ ...formData, imageUrl: '' })}
