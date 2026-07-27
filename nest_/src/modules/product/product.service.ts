@@ -40,6 +40,8 @@ export class ProductService {
       switch (error.code) {
         case 'P2002':
           const target = (error.meta?.target as string[])?.join(', ') || 'field';
+          // Auto-trigger sequence sync in background if id sequence was out of sync
+          this.prisma.syncAllSequences().catch(() => {});
           throw new ConflictException(`Unique constraint failed on ${target}. This ${target} is already in use.`);
         case 'P2025':
           throw new NotFoundException(`${context} target record not found.`);
@@ -875,13 +877,21 @@ export class ProductService {
 
         // 4. Update Variants
         if (variants !== undefined) {
+          const isExistingId = (id: any) => {
+            if (!id) return false;
+            const str = id.toString();
+            if (str.startsWith('new') || str.startsWith('temp') || str.includes('.')) return false;
+            const num = Number(id);
+            return !isNaN(num) && num > 0 && Number.isInteger(num);
+          };
+
           const currentVariants = await tx.productVariant.findMany({ 
             where: { productId },
             select: { id: true }
           });
           const currentIds = currentVariants.map(v => v.id);
           const incomingIds = variants
-            .filter((v: any) => v.id && !v.id.toString().includes('.'))
+            .filter((v: any) => isExistingId(v.id))
             .map((v: any) => this.safeNumber(v.id, 'variantId'))
             .filter(Boolean);
 
@@ -891,9 +901,9 @@ export class ProductService {
           }
 
           for (const variant of variants) {
-            const isNew = !variant.id || variant.id.toString().includes('.');
+            const isNew = !isExistingId(variant.id);
             const variantData: any = {
-              sku: variant.sku || `VAR-${Date.now()}-${Math.random()}`,
+              sku: variant.sku || `VAR-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
               price: Number(variant.price || 0),
               comparePrice: variant.comparePrice ? Number(variant.comparePrice) : null,
               sellingPrice: Number(variant.price || 0),
