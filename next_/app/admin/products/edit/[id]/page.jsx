@@ -1167,19 +1167,27 @@ const EditProductPage = () => {
                                                         <div key={idx} className="!p-4 rounded-lg border border-gray-200 bg-white">
                                                             <label className="font-bold text-gray-700 !mb-3 block">{attr.name}</label>
                                                             <div className="flex flex-wrap gap-2">
-                                                                {attr.values?.map(val => (
-                                                                    <button
-                                                                        key={val.id}
-                                                                        type="button"
-                                                                        onClick={() => toggleAttributeValue(attr.id, val.id)}
-                                                                        className={`!px-4 !py-2 rounded-lg text-xs font-bold transition-all border ${selectedAttributeValues[attr.id.toString()]?.includes(val.id.toString())
-                                                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                                                                            : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-400'
-                                                                            }`}
-                                                                    >
-                                                                        {val.label || val.value}
-                                                                    </button>
-                                                                ))}
+                                                                {attr.values?.map(val => {
+                                                                    const clientLabel = val.label;
+                                                                    const adminValue = val.value || val.name;
+                                                                    let displayName = clientLabel || adminValue;
+                                                                    if (clientLabel && adminValue && clientLabel.trim().toLowerCase() !== adminValue.trim().toLowerCase()) {
+                                                                        displayName = `${clientLabel} (${adminValue})`;
+                                                                    }
+                                                                    return (
+                                                                        <button
+                                                                            key={val.id}
+                                                                            type="button"
+                                                                            onClick={() => toggleAttributeValue(attr.id, val.id)}
+                                                                            className={`!px-4 !py-2 rounded-lg text-xs font-bold transition-all border ${selectedAttributeValues[attr.id.toString()]?.includes(val.id.toString())
+                                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                                                                                : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-400'
+                                                                                }`}
+                                                                        >
+                                                                            {displayName}
+                                                                        </button>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     );
