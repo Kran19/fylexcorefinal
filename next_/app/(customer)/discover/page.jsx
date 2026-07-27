@@ -2006,7 +2006,6 @@ function DiscoverContent() {
           <div className="cfg-details-box" style={{ zIndex: 10 }}>
             <div className="cfg-details-left">
               <h1 className="cfg-details-title" style={product.heroBgImage ? { color: '#ffffff' } : { color: product.textColor || '#111111' }}>{product.title}</h1>
-              <p className="cfg-details-specs" style={product.heroBgImage ? { color: 'rgba(255,255,255,0.8)' } : { color: product.textColor ? `${product.textColor}aa` : '#666666' }}>{product.subtitle}</p>
 
               {hasConfig && (
                 <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
