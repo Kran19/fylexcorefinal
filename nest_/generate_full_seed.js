@@ -56,14 +56,28 @@ const SEED_DATA = ${JSON.stringify(data, null, 2)};
 async function main() {
   console.log('🚀 Starting Full Database Seed...');
 
-  // 1. Settings
+  // 1. Settings (Fixed group_key unique constraint)
   console.log('⏳ Seeding Settings (' + SEED_DATA.settings.length + ')...');
   for (const item of SEED_DATA.settings) {
+    const groupVal = item.group || 'general';
     await prisma.setting.upsert({
-      where: { key: item.key },
-      update: { value: item.value, group: item.group },
-      create: { key: item.key, value: item.value, group: item.group || 'general' }
-    }).catch(e => console.error('  Setting error:', e.message));
+      where: {
+        group_key: {
+          group: groupVal,
+          key: item.key
+        }
+      },
+      update: { value: item.value, label: item.label || item.key, type: item.type || 'text' },
+      create: {
+        group: groupVal,
+        key: item.key,
+        value: item.value,
+        label: item.label || item.key,
+        type: item.type || 'text',
+        description: item.description || null,
+        options: item.options || null
+      }
+    }).catch(e => console.error('  Setting error (' + item.key + '):', e.message));
   }
 
   // 2. FAQs
