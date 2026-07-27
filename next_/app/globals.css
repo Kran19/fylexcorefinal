@@ -2,8 +2,7 @@
 @import url('https://fonts.cdnfonts.com/css/neue-haas-grotesk-display-pro');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
-@source "./admin";
-@source "../components/admin";
+@source "..";
 
 :root {
   /* Master Palette */
@@ -30,14 +29,6 @@
   --curve: 72px;
   --curve-sm: 40px;
   --header-h: 70px;
-}
-
-*,
-*::before,
-*::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
 }
 
 html {
