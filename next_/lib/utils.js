@@ -112,28 +112,30 @@ export function resolveProductImage(product, variant = null) {
 
   let resolvedPath = null;
   
-  // 1. PRIORITY: Explicitly selected variant media
+  // 1. PRIORITY: Explicitly selected variant MAIN / Primary image
   if (variant) {
     const vImages = variant.variantImages || [];
     if (vImages.length > 0) {
-      const mainImg = vImages.find(img => img.type === 'MAIN' || img.isPrimary) || vImages.find(img => img.type === 'GALLERY') || vImages[0];
+      const mainImg = vImages.find(img => img.type === 'MAIN' || img.isPrimary || img.type === 'PRIMARY') || vImages[0];
       resolvedPath = extractMediaPath(mainImg);
     }
   }
 
-  // 2. PRIORITY: Product-level Default Media (Source of Truth)
+  // 2. PRIORITY: Product-level Default MAIN Media (Source of Truth)
   if (!resolvedPath && product.productMedia?.length > 0) {
-    const mainMedia = product.productMedia.find(m => m.type === 'MAIN' || m.isPrimary) || product.productMedia.find(m => m.type === 'GALLERY') || product.productMedia[0];
+    const mainMedia = product.productMedia.find(m => m.type === 'MAIN' || m.isPrimary || m.type === 'PRIMARY') || product.productMedia[0];
     resolvedPath = extractMediaPath(mainMedia);
   }
 
-  // 3. PRIORITY: First variant media (If productMedia is empty)
+  // 3. PRIORITY: First variant MAIN media (If productMedia is empty)
   if (!resolvedPath && product.variants?.length > 0) {
-    const firstV = product.variants[0];
-    const vImages = firstV.variantImages || [];
-    if (vImages.length > 0) {
-      const mainImg = vImages.find(img => img.type === 'MAIN' || img.isPrimary) || vImages.find(img => img.type === 'GALLERY') || vImages[0];
-      resolvedPath = extractMediaPath(mainImg);
+    for (const firstV of product.variants) {
+      const vImages = firstV.variantImages || [];
+      if (vImages.length > 0) {
+        const mainImg = vImages.find(img => img.type === 'MAIN' || img.isPrimary || img.type === 'PRIMARY') || vImages[0];
+        resolvedPath = extractMediaPath(mainImg);
+        if (resolvedPath) break;
+      }
     }
   }
 

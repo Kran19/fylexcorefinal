@@ -344,8 +344,11 @@ function DiscoverContent() {
     product.variantName = vDisplay.subtitle;
     product.price = vDisplay.price;
     product.formattedPrice = vDisplay.formattedPrice;
-    product.heroImage = vDisplay.image;
-    product.image = vDisplay.image;
+    
+    // Always resolve primary image
+    const primaryImg = resolveProductImage(product, matchingVariant) || resolveProductImage(product);
+    product.heroImage = primaryImg;
+    product.image = primaryImg;
     product.heroBgImage = vDisplay.heroBgImage;
 
     const vGallery = (matchingVariant.variantImages || [])

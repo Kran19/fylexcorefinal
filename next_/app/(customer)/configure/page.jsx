@@ -446,15 +446,25 @@ function ConfigureContent() {
             <div className="c-selection-controls">
               <div className="step-title">{stepsData[currentStep]?.title}</div>
               <div className="options-row">
-                {getCompatibleOptions(stepsData[currentStep]).map((opt, i) => (
-                  <span key={i} className={`opt ${(isDialStep ? appliedDial === opt.dialImg : activeOpt === i) ? 'active' : ''}`}
-                    onClick={() => {
-                      if (isDialStep) { setAppliedDial(opt.dialImg); updatePreviewImage(opt.img); setUserSelections(prev => ({ ...prev, dial: opt.name })); }
-                      else handleOptClick(i, opt.img);
-                    }}>
-                    {opt.name}
-                  </span>
-                ))}
+                {getCompatibleOptions(stepsData[currentStep]).map((opt, i) => {
+                  const isSelected = (isDialStep ? appliedDial === opt.dialImg : activeOpt === i);
+                  return (
+                    <span key={i} className={`opt ${isSelected ? 'active' : ''}`}
+                      style={{
+                        color: isSelected ? '#006039' : '#64748b',
+                        fontWeight: isSelected ? '700' : '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onClick={() => {
+                        if (isDialStep) { setAppliedDial(opt.dialImg); updatePreviewImage(opt.img); setUserSelections(prev => ({ ...prev, dial: opt.name })); }
+                        else handleOptClick(i, opt.img);
+                      }}>
+                      {opt.name}
+                    </span>
+                  );
+                })}
               </div>
               <div className="nav-buttons-row">
                 {currentStep > 0 && <button className="btn-circular-back" onClick={handlePrevStep}><ChevronLeft size={22} /></button>}
