@@ -58,48 +58,48 @@ const FaqsManagement = () => {
       onDelete: (id, name) => setDeleteTarget({ id, name })
     };
 
-    tabulatorRef.current = new Tabulator(tableRef.current, {
-      data: faqs,
-      layout: 'fitColumns',
-      responsiveLayout: false,
-      pagination: 'local',
-      paginationSize: 10,
-      placeholder: 'No FAQs found',
-      columns: [
-        { title: 'ID', field: 'id', width: 70, hozAlign: 'center', formatter: (cell) => `<span class="text-slate-400 font-bold">#${cell.getValue()}</span>` },
-        { 
-          title: 'QUESTION', field: 'question', minWidth: 250,
-          formatter: (cell) => `<div class="font-bold text-slate-800 whitespace-normal leading-tight py-2">${cell.getValue()}</div>`
-        },
-        { 
-          title: 'ANSWER', field: 'answer', minWidth: 350,
-          formatter: (cell) => `<div class="text-slate-500 text-sm whitespace-normal leading-snug line-clamp-2 py-2">${cell.getValue()}</div>`
-        },
-        { title: 'SORT', field: 'sortOrder', width: 90, hozAlign: 'center' },
-        { 
-          title: 'STATUS', field: 'isActive', width: 110, hozAlign: 'center',
-          formatter: (cell) => {
-            const active = cell.getValue();
-            return `<div class="inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}">${active ? 'active' : 'hidden'}</div>`;
-          }
-        },
-        {
-          title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 120,
-          formatter: () => `<div class="flex gap-2 justify-end">
-            <button class="btn-icon-edit w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl transition-colors" title="Edit"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon-delete w-9 h-9 bg-rose-50 text-rose-600 rounded-xl transition-colors" title="Delete"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete')) actionsRef.current.onDelete(d.id, 'this FAQ');
-          },
-        },
-      ],
-    });
-
-    return () => { tabulatorRef.current?.destroy(); tabulatorRef.current = null; };
-  }, [faqs, loading.faqs]);
+  const columns = [
+    { title: 'ID', field: 'id', width: 70, hozAlign: 'center', formatter: (cell) => `<span class="text-slate-400 font-bold">#${cell.getValue()}</span>` },
+    { 
+      title: 'QUESTION', field: 'question', minWidth: 250,
+      formatter: (cell) => `<div class="font-bold text-slate-800 whitespace-normal leading-tight py-2">${cell.getValue()}</div>`
+    },
+    { 
+      title: 'ANSWER', field: 'answer', minWidth: 350,
+      formatter: (cell) => `<div class="text-slate-500 text-sm whitespace-normal leading-snug line-clamp-2 py-2">${cell.getValue()}</div>`
+    },
+    { title: 'SORT', field: 'sortOrder', width: 90, hozAlign: 'center' },
+    { 
+      title: 'STATUS', field: 'isActive', width: 110, hozAlign: 'center',
+      formatter: (cell) => {
+        const active = cell.getValue();
+        return `<span class="px-3 py-1 rounded-full text-xs font-bold ${active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}">${active ? 'Active' : 'Inactive'}</span>`;
+      }
+    },
+    {
+      title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 110,
+      formatter: () => `<div class="flex gap-2 justify-end">
+        <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete"><i class="fas fa-trash-alt"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon')) {
+          setEditingRecord(d);
+          setFormData({
+            question: d.question || '',
+            answer: d.answer || '',
+            sortOrder: d.sortOrder?.toString() || '0',
+            isActive: d.isActive
+          });
+          setShowForm(true);
+        }
+        if (e.target.closest('.btn-icon-delete')) {
+          setDeleteTarget({ id: d.id, name: 'this FAQ' });
+        }
+      },
+    },
+  ];
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;

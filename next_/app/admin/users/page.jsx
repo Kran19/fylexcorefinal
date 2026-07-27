@@ -54,84 +54,60 @@ const UsersPage = () => {
       onDelete: (u) => setDeleteTarget({ id: u.id, name: u.name }),
     };
 
-    tabulatorRef.current = new Tabulator(tableRef.current, {
-      data: users,
-      layout: 'fitColumns',
-      responsiveLayout: false,
-      pagination: 'local',
-      paginationSize: 10,
-      placeholder: 'No customers found',
-      columns: [
-        {
-          title: 'CUSTOMER', field: 'name', minWidth: 280,
-          formatter: (cell) => {
-            const d = cell.getRow().getData();
-            const letter = (d.name || '?')[0].toUpperCase();
-            return `<div style="display:flex;align-items:center;gap:14px;padding:6px 0">
-              <div style="width:40px;height:40px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#6366f1;font-size:14px;flex-shrink:0">${letter}</div>
-              <div style="min-width:0">
-                <div style="font-weight:800;color:#1e293b;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name || '—'}</div>
-                <div style="font-size:11px;font-weight:600;color:#94a3b8">${d.email || d.mobile || 'No contact'}</div>
-              </div>
-            </div>`;
-          },
-        },
-        {
-          title: 'ORDERS', field: '_count.orders', width: 100, hozAlign: 'center',
-          formatter: (cell) => `<div style="text-align:center"><span style="font-weight:800;color:#1e293b">${cell.getValue() ?? 0}</span><div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:0.02em">Orders</div></div>`,
-        },
-        {
-          title: 'TOTAL SPENT', field: 'totalSpent', width: 140, hozAlign: 'center',
-          formatter: (cell) => `<div style="font-weight:800;color:#1e293b;font-size:14px">₹${Number(cell.getValue() || 0).toLocaleString('en-IN')}</div>`,
-        },
-        {
-          title: 'STATUS', field: 'isActive', width: 120, hozAlign: 'center',
-          formatter: (cell) => {
-            const u = cell.getRow().getData();
-            const blocked = u.isBlocked === true;
-            const active = u.isActive === true;
-            return `<div class="status-badge" style="display:inline-flex;padding:5px 14px;border-radius:10px;font-size:11px;font-weight:700;background:${blocked ? '#fef2f2' : active ? '#ecfdf5' : '#f8fafc'};color:${blocked ? '#ef4444' : active ? '#10b981' : '#64748b'};border:1px solid ${blocked ? '#fee2e2' : active ? '#d1fae5' : '#e2e8f0'}">
-                ${blocked ? 'BLOCKED' : active ? 'ACTIVE' : 'INACTIVE'}
-            </div>`;
-          },
-        },
-        {
-          title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 150,
-          formatter: (cell) => {
-            const u = cell.getRow().getData();
-            const blockIcon = u.isBlocked ? 'fa-unlock' : 'fa-ban';
-            return `<div style="display:flex;gap:8px;justify-content:flex-end">
-              <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1" title="View Details"><i class="fas fa-eye"></i></button>
-              <button class="btn-icon btn-icon-block" style="background:#fef2f2;color:#ef4444" title="${u.isBlocked ? 'Unblock' : 'Block'} User"><i class="fas ${blockIcon}"></i></button>
-              <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444" title="Delete User"><i class="fas fa-trash"></i></button>
-            </div>`;
-          },
-          cellClick: (e, cell) => {
-            const u = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-edit')) actionsRef.current.onView(u);
-            if (e.target.closest('.btn-icon-block')) actionsRef.current.onBlock(u);
-            if (e.target.closest('.btn-icon-delete')) actionsRef.current.onDelete(u);
-          },
-        },
-      ],
-    });
-
-    tabulatorRef.current.on("tableBuilt", () => setTableBuilt(true));
-
-    return () => { tabulatorRef.current?.destroy(); tabulatorRef.current = null; setTableBuilt(false); };
-  }, [users, loading.users]);
-
-  useEffect(() => {
-    if (!tabulatorRef.current || !tableBuilt) return;
-    if (search) {
-      tabulatorRef.current.setFilter([
-        { field: 'name', type: 'like', value: search },
-        { field: 'email', type: 'like', value: search },
-      ], 'or');
-    } else {
-      tabulatorRef.current.clearFilter();
-    }
-  }, [search, tableBuilt]);
+  const columns = [
+    {
+      title: 'CUSTOMER', field: 'name', minWidth: 280,
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        const letter = (d.name || '?')[0].toUpperCase();
+        return `<div style="display:flex;align-items:center;gap:14px;padding:6px 0">
+          <div style="width:40px;height:40px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#6366f1;font-size:14px;flex-shrink:0">${letter}</div>
+          <div style="min-width:0">
+            <div style="font-weight:800;color:#1e293b;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.name || '—'}</div>
+            <div style="font-size:11px;font-weight:600;color:#94a3b8">${d.email || d.mobile || 'No contact'}</div>
+          </div>
+        </div>`;
+      },
+    },
+    {
+      title: 'ORDERS', field: '_count.orders', width: 100, hozAlign: 'center',
+      formatter: (cell) => `<div style="text-align:center"><span style="font-weight:800;color:#1e293b">${cell.getValue() ?? 0}</span><div style="font-size:9px;color:#94a3b8;text-transform:uppercase;font-weight:700;letter-spacing:0.02em">Orders</div></div>`,
+    },
+    {
+      title: 'TOTAL SPENT', field: 'totalSpent', width: 140, hozAlign: 'center',
+      formatter: (cell) => `<div style="font-weight:800;color:#1e293b;font-size:14px">₹${Number(cell.getValue() || 0).toLocaleString('en-IN')}</div>`,
+    },
+    {
+      title: 'STATUS', field: 'isActive', width: 120, hozAlign: 'center',
+      formatter: (cell) => {
+        const u = cell.getRow().getData();
+        const blocked = u.isBlocked === true;
+        const active = u.isActive === true;
+        return `<span class="px-3 py-1 rounded-full text-xs font-bold ${blocked ? 'bg-rose-50 text-rose-600' : active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}">${blocked ? 'Blocked' : active ? 'Active' : 'Inactive'}</span>`;
+      },
+    },
+    {
+      title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 120,
+      formatter: (cell) => {
+        const u = cell.getRow().getData();
+        const blockIcon = u.isBlocked ? 'fa-unlock' : 'fa-ban';
+        return `<div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="View Details"><i class="fas fa-eye"></i></button>
+          <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete User"><i class="fas fa-trash"></i></button>
+        </div>`;
+      },
+      cellClick: (e, cell) => {
+        const u = cell.getRow().getData();
+        if (e.target.closest('.btn-icon')) {
+          setSelectedUser(u);
+          setShowDetails(true);
+        }
+        if (e.target.closest('.btn-icon-delete')) {
+          setDeleteTarget({ id: u.id, name: u.name });
+        }
+      },
+    },
+  ];
 
   const handleBlockToggle = async () => {
     if (!blockTarget) return;

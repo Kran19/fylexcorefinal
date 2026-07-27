@@ -112,172 +112,162 @@ const SpecificationManagement = () => {
       onDelete: (id, name) => setDeleteTarget({ type: activeTab, id, name }),
       onViewValues: (spec) => { setSelectedSpec(spec); setActiveTab('values'); },
       onViewGroup: (group) => { setSelectedGroup(group); setShowGroupView(true); }
-    };
+  };
 
-    const currentData = activeTab === 'specs' ? specifications : (activeTab === 'groups' ? groups : specValues);
-    
-    let columns = [];
-    if (activeTab === 'specs') {
-      columns = [
-        { formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center", headerSort: false, width: 40 },
-        { title: "ID", field: "id", width: 80, hozAlign: "center", formatter: cell => `<span class="id-badge">${cell.getValue()}</span>` },
-        {
-          title: "Name", field: "name", minWidth: 200,
-          formatter: (cell) => {
-            const d = cell.getRow().getData();
-            return `<div class="name-column">
-              <div class="icon-box"><i class="fas fa-tag"></i></div>
-              <div>
-                <div class="main-text font-bold">${d.name}</div>
-                <div class="sub-text">${d.code}</div>
-              </div>
-            </div>`;
-          }
+  const currentData = activeTab === 'specs' ? specifications : (activeTab === 'groups' ? groups : specValues);
+  
+  let columns = [];
+  if (activeTab === 'specs') {
+    columns = [
+      { formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center", headerSort: false, width: 40 },
+      { title: "ID", field: "id", width: 80, hozAlign: "center", formatter: cell => `<span class="id-badge">#${cell.getValue()}</span>` },
+      {
+        title: "Name", field: "name", minWidth: 200,
+        formatter: (cell) => {
+          const d = cell.getRow().getData();
+          return `<div class="name-column">
+            <div class="icon-box"><i class="fas fa-tag"></i></div>
+            <div>
+              <div class="main-text font-bold">${d.name}</div>
+              <div class="sub-text">${d.code}</div>
+            </div>
+          </div>`;
+        }
+      },
+      {
+        title: "Type", field: "type", width: 130, hozAlign: "center",
+        formatter: (cell) => {
+          const type = cell.getValue() || 'text';
+          const colors = {
+            select: { bg: 'rgba(16, 185, 129, 0.1)', text: '#10b981', icon: 'fa-mouse-pointer' },
+            multiselect: { bg: 'rgba(245, 158, 11, 0.1)', text: '#f59e0b', icon: 'fa-list-check' },
+            textarea: { bg: 'rgba(239, 68, 68, 0.1)', text: '#ef4444', icon: 'fa-align-left' },
+            checkbox: { bg: 'rgba(219, 39, 119, 0.1)', text: '#db2777', icon: 'fa-check-square' },
+            radio: { bg: 'rgba(59, 130, 246, 0.1)', text: '#3b82f6', icon: 'fa-circle-dot' },
+            text: { bg: 'rgba(99, 102, 241, 0.1)', text: '#6366f1', icon: 'fa-font' }
+          };
+          const style = colors[type.toLowerCase()] || colors.text;
+          return `<span class="type-badge" style="background:${style.bg};color:${style.text}">
+            <i class="fas ${style.icon}"></i>${type.charAt(0).toUpperCase() + type.slice(1)}
+          </span>`;
+        }
+      },
+      {
+        title: "Values", field: "values_count", width: 100, hozAlign: "center",
+        formatter: (cell) => {
+          const d = cell.getRow().getData();
+          const count = d._count?.values || 0;
+          return `<button class="btn-values-count"><i class="fas fa-layer-group"></i>${count}</button>`;
         },
-        {
-          title: "Type", field: "type", width: 130, hozAlign: "center",
-          formatter: (cell) => {
-            const type = cell.getValue() || 'text';
-            const colors = {
-              select: { bg: 'rgba(16, 185, 129, 0.1)', text: '#10b981', icon: 'fa-mouse-pointer' },
-              multiselect: { bg: 'rgba(245, 158, 11, 0.1)', text: '#f59e0b', icon: 'fa-list-check' },
-              textarea: { bg: 'rgba(239, 68, 68, 0.1)', text: '#ef4444', icon: 'fa-align-left' },
-              checkbox: { bg: 'rgba(219, 39, 119, 0.1)', text: '#db2777', icon: 'fa-check-square' },
-              radio: { bg: 'rgba(59, 130, 246, 0.1)', text: '#3b82f6', icon: 'fa-circle-dot' },
-              text: { bg: 'rgba(99, 102, 241, 0.1)', text: '#6366f1', icon: 'fa-font' }
-            };
-            const style = colors[type.toLowerCase()] || colors.text;
-            return `<span class="type-badge" style="background:${style.bg};color:${style.text}">
-              <i class="fas ${style.icon}"></i>${type.charAt(0).toUpperCase() + type.slice(1)}
-            </span>`;
-          }
-        },
-        {
-          title: "Values", field: "values_count", width: 100, hozAlign: "center",
-          formatter: (cell) => {
-            const d = cell.getRow().getData();
-            const count = d._count?.values || 0;
-            return `<button class="btn-values-count"><i class="fas fa-layer-group"></i>${count}</button>`;
-          },
-          cellClick: (e, cell) => { actionsRef.current.onViewValues(cell.getRow().getData()); }
-        },
-        {
-          title: "Required", field: "isRequired", width: 110, hozAlign: "center",
-          formatter: (cell) => cell.getValue() 
-              ? `<span class="badge-status-req"><i class="fas fa-circle"></i> Required</span>`
-              : `<span class="badge-status-opt">Optional</span>`
-        },
-        {
-          title: "Filters", field: "isFilterable", width: 100, hozAlign: "center",
-          formatter: (cell) => cell.getValue()
-              ? `<span class="badge-status-filt"><i class="fas fa-filter"></i> Yes</span>`
-              : `<span class="badge-status-opt">No</span>`
-        },
-        {
-          title: "Status", field: "isActive", width: 110, hozAlign: "center",
-          formatter: (cell) => {
-            const active = cell.getValue();
-            return `<span class="badge-active ${active ? 'active' : 'inactive'}">
-              <i class="fas fa-circle"></i> ${active ? 'Active' : 'Inactive'}
-            </span>`;
-          }
-        },
-        { title: "Order", field: "sortOrder", width: 80, hozAlign: "center" },
-        {
-          title: "Actions", width: 110, headerSort: false, hozAlign: "right",
-          formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-            <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Specification"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Specification"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.name);
-          }
-        },
-      ];
-    } else if (activeTab === 'groups') {
-      columns = [
-        { formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center", headerSort: false, width: 40 },
-        { title: "ID", field: "id", width: 80, hozAlign: "center", formatter: cell => `<span class="id-badge">${cell.getValue()}</span>` },
-        { 
-          title: "Group Name", field: "name", minWidth: 250, 
-          formatter: (cell) => `<div class="name-column">
-            <div class="icon-box-blue"><i class="fas fa-folder-tree"></i></div>
-            <div class="main-text font-bold">${cell.getValue()}</div>
-          </div>`
-        },
-        { 
-          title: "Specifications", field: "specs_count", width: 180, hozAlign: "center",
-          formatter: (cell) => `<span class="spec-count-badge"><i class="fas fa-tags"></i> ${cell.getValue() || 0} Specs</span>`
-        },
-        {
-          title: "Status", field: "isActive", width: 130, hozAlign: "center",
-          formatter: () => `<span class="badge-active active"><i class="fas fa-circle"></i> Active</span>`
-        },
-        { title: "Order", field: "sortOrder", width: 100, hozAlign: "center" },
-        {
-          title: "Actions", width: 140, headerSort: false, hozAlign: "right",
-          formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-            <button class="btn-icon btn-icon-view" style="background:#e0f2fe;color:#0284c7;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="View Group Details"><i class="fas fa-eye"></i></button>
-            <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Group"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Group"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-view') || e.target.closest('.btn-view')) actionsRef.current.onViewGroup(d);
-            if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.name);
-          }
-        },
-      ];
-    } else if (activeTab === 'values') {
-      columns = [
-        { formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center", headerSort: false, width: 40 },
-        { title: "ID", field: "id", width: 100, hozAlign: "center", formatter: cell => `<span class="id-badge">${cell.getValue()}</span>` },
-        { title: "Value", field: "value", minWidth: 200, formatter: (cell) => `<div class="value-text font-bold">${cell.getValue()}</div>` },
-        { title: "Order", field: "sortOrder", width: 120, hozAlign: "center" },
-        {
-          title: "Status", field: "status", width: 120, hozAlign: "center",
-          formatter: (cell) => {
-            const active = cell.getValue() === 1;
-            return `<span class="badge-active ${active ? 'active' : 'inactive'}">
-              <i class="fas fa-circle"></i> ${active ? 'Active' : 'Inactive'}
-            </span>`;
-          }
-        },
-        { 
-          title: "Created", field: "createdAt", width: 180, 
-          formatter: (cell) => {
-             const val = cell.getValue();
-             if (!val) return '<span class="date-text text-slate-400">N/A</span>';
-             return `<span class="date-text">${new Date(val).toLocaleString('en-US', { dateStyle: 'medium' })}</span>`;
-          }
-        },
-        {
-          title: "Actions", width: 110, headerSort: false, hozAlign: "right",
-          formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-            <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Option Value"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Option Value"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) actionsRef.current.onDelete(d.id, d.value);
-          }
-        },
-      ];
-    }
-
-    tabulatorRef.current = new Tabulator(tableRef.current, {
-      data: currentData, layout: 'fitColumns', responsiveLayout: false,
-      pagination: 'local', paginationSize: 15, placeholder: `No ${activeTab} data found`,
-      columns: columns, headerVisible: true,
-      paginationSizeSelector: [15, 30, 50, 100],
-    });
-
-    return () => { tabulatorRef.current?.destroy(); };
-  }, [specifications, groups, specValues, activeTab, loading.specifications, loadingValues]);
+        cellClick: (e, cell) => { setSelectedSpec(cell.getRow().getData()); setActiveTab('values'); }
+      },
+      {
+        title: "Required", field: "isRequired", width: 110, hozAlign: "center",
+        formatter: (cell) => cell.getValue() 
+            ? `<span class="badge-status-req"><i class="fas fa-circle"></i> Required</span>`
+            : `<span class="badge-status-opt">Optional</span>`
+      },
+      {
+        title: "Filters", field: "isFilterable", width: 100, hozAlign: "center",
+        formatter: (cell) => cell.getValue()
+            ? `<span class="badge-status-filt"><i class="fas fa-filter"></i> Yes</span>`
+            : `<span class="badge-status-opt">No</span>`
+      },
+      {
+        title: "Status", field: "isActive", width: 110, hozAlign: "center",
+        formatter: (cell) => {
+          const active = cell.getValue();
+          return `<span class="badge-active ${active ? 'active' : 'inactive'}">
+            <i class="fas fa-circle"></i> ${active ? 'Active' : 'Inactive'}
+          </span>`;
+        }
+      },
+      { title: "Order", field: "sortOrder", width: 80, hozAlign: "center" },
+      {
+        title: "Actions", width: 110, headerSort: false, hozAlign: "right",
+        formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+          <button class="btn-icon btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Specification"><i class="fas fa-edit"></i></button>
+          <button class="btn-icon btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Specification"><i class="fas fa-trash-alt"></i></button>
+        </div>`,
+        cellClick: (e, cell) => {
+          const d = cell.getRow().getData();
+          if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) openModal(d);
+          if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.name });
+        }
+      },
+    ];
+  } else if (activeTab === 'groups') {
+    columns = [
+      { formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center", headerSort: false, width: 40 },
+      { title: "ID", field: "id", width: 80, hozAlign: "center", formatter: cell => `<span class="id-badge">#${cell.getValue()}</span>` },
+      { 
+        title: "Group Name", field: "name", minWidth: 250, 
+        formatter: (cell) => `<div class="name-column">
+          <div class="icon-box-blue"><i class="fas fa-folder-tree"></i></div>
+          <div class="main-text font-bold">${cell.getValue()}</div>
+        </div>`
+      },
+      { 
+        title: "Specifications", field: "specs_count", width: 180, hozAlign: "center",
+        formatter: (cell) => `<span class="spec-count-badge"><i class="fas fa-tags"></i> ${cell.getValue() || 0} Specs</span>`
+      },
+      {
+        title: "Status", field: "isActive", width: 130, hozAlign: "center",
+        formatter: () => `<span class="badge-active active"><i class="fas fa-circle"></i> Active</span>`
+      },
+      { title: "Order", field: "sortOrder", width: 100, hozAlign: "center" },
+      {
+        title: "Actions", width: 140, headerSort: false, hozAlign: "right",
+        formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+          <button class="btn-icon btn-icon-view" style="background:#e0f2fe;color:#0284c7;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="View Group Details"><i class="fas fa-eye"></i></button>
+          <button class="btn-icon btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Group"><i class="fas fa-edit"></i></button>
+          <button class="btn-icon btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Group"><i class="fas fa-trash-alt"></i></button>
+        </div>`,
+        cellClick: (e, cell) => {
+          const d = cell.getRow().getData();
+          if (e.target.closest('.btn-icon-view') || e.target.closest('.btn-view')) { setSelectedGroup(d); setShowGroupView(true); }
+          if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) openGroupModal(d);
+          if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.name });
+        }
+      },
+    ];
+  } else if (activeTab === 'values') {
+    columns = [
+      { formatter: "rowSelection", titleFormatter: "rowSelection", hozAlign: "center", headerSort: false, width: 40 },
+      { title: "ID", field: "id", width: 100, hozAlign: "center", formatter: cell => `<span class="id-badge">#${cell.getValue()}</span>` },
+      { title: "Value", field: "value", minWidth: 200, formatter: (cell) => `<div class="value-text font-bold">${cell.getValue()}</div>` },
+      { title: "Order", field: "sortOrder", width: 120, hozAlign: "center" },
+      {
+        title: "Status", field: "status", width: 120, hozAlign: "center",
+        formatter: (cell) => {
+          const active = cell.getValue() === 1;
+          return `<span class="badge-active ${active ? 'active' : 'inactive'}">
+            <i class="fas fa-circle"></i> ${active ? 'Active' : 'Inactive'}
+          </span>`;
+        }
+      },
+      { 
+        title: "Created", field: "createdAt", width: 180, 
+        formatter: (cell) => {
+           const val = cell.getValue();
+           if (!val) return '<span class="date-text text-slate-400">N/A</span>';
+           return `<span class="date-text">${new Date(val).toLocaleString('en-US', { dateStyle: 'medium' })}</span>`;
+        }
+      },
+      {
+        title: "Actions", width: 110, headerSort: false, hozAlign: "right",
+        formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
+          <button class="btn-icon btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Option Value"><i class="fas fa-edit"></i></button>
+          <button class="btn-icon btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Option Value"><i class="fas fa-trash-alt"></i></button>
+        </div>`,
+        cellClick: (e, cell) => {
+          const d = cell.getRow().getData();
+          if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) openValueModal(d);
+          if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.value });
+        }
+      },
+    ];
+  }
 
   // ─── Handlers ───
   const handleSubmit = async (e) => {

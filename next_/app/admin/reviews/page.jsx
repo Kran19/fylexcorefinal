@@ -47,69 +47,63 @@ const ReviewsPage = () => {
             onDelete: (id, name) => setDeleteTarget({ id, name }),
         };
 
-        tabulatorRef.current = new Tabulator(tableRef.current, {
-            data: reviews,
-            layout: 'fitColumns',
-            responsiveLayout: false,
-            pagination: 'local',
-            paginationSize: 10,
-            placeholder: 'No reviews found',
-            columns: [
-                {
-                    title: 'ID', field: 'id', width: 70, hozAlign: 'center',
-                    formatter: (cell) => `<span style="font-weight:600;color:#94a3b8">#${cell.getValue()}</span>`
-                },
-                {
-                    title: 'CUSTOMER/PRODUCT', field: 'customer.name', minWidth: 260,
-                    formatter: (cell) => {
-                        const d = cell.getRow().getData();
-                        const cName = d.customer?.name || 'Guest User';
-                        const pName = d.product?.name || 'Unknown Product';
-                        return `
-                <div style="line-height:1.4;padding:4px 0">
-                  <div style="font-weight:800;color:#1e293b;font-size:14px">${cName}</div>
-                  <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:2px">${pName}</div>
-                </div>`;
-                    }
-                },
-                {
-                    title: 'RATING', field: 'rating', width: 130, hozAlign: 'center',
-                    formatter: (cell) => {
-                        const r = cell.getValue() || 0;
-                        const stars = [1, 2, 3, 4, 5].map(n =>
-                            `<i class="${n <= r ? 'fas' : 'far'} fa-star" style="font-size:11px;color:${n <= r ? '#f59e0b' : '#e2e8f0'};margin:0 1px"></i>`
-                        ).join('');
-                        return `<div style="text-align:center"><div style="font-weight:800;color:#1e293b;font-size:14px">${r}.0</div><div style="display:flex;justify-content:center">${stars}</div></div>`;
-                    }
-                },
-                {
-                    title: 'COMMENT', field: 'comment', minWidth: 300,
-                    formatter: (cell) => `<div style="font-size:12px;color:#475569;line-height:1.5;max-height:36px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal">${cell.getValue() || 'No comment'}</div>`
-                },
-                {
-                    title: 'STATUS', field: 'isActive', width: 130, hozAlign: 'center',
-                    formatter: (cell) => {
-                        const active = cell.getValue() === true;
-                        return `<div class="status-badge" style="display:inline-flex;padding:5px 14px;border-radius:10px;font-size:11px;font-weight:700;background:${active ? '#ecfdf5' : '#fffbeb'};color:${active ? '#10b981' : '#f59e0b'};border:1px solid ${active ? '#d1fae5' : '#fde68a'}">${active ? 'PUBLISHED' : 'PENDING'}</div>`;
-                    }
-                },
-                {
-                    title: 'ACTIONS', width: 100, headerSort: false, hozAlign: "right",
-                    formatter: () => `<div style="display:flex;gap:8px;justify-content:flex-end">
-                <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1"><i class="fas fa-eye"></i></button>
-                <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444"><i class="fas fa-trash-alt"></i></button>
-              </div>`,
-                    cellClick: (e, cell) => {
-                        const d = cell.getRow().getData();
-                        if (e.target.closest('.btn-icon-edit')) actionsRef.current.onView(d);
-                        if (e.target.closest('.btn-icon-delete')) actionsRef.current.onDelete(d.id, d.customer?.name);
-                    }
-                }
-            ],
-        });
-
-        return () => { tabulatorRef.current?.destroy(); tabulatorRef.current = null; };
-    }, [reviews, loading.reviews]);
+  const columns = [
+    {
+      title: 'ID', field: 'id', width: 70, hozAlign: 'center',
+      formatter: (cell) => `<span style="font-weight:600;color:#94a3b8">#${cell.getValue()}</span>`
+    },
+    {
+      title: 'CUSTOMER/PRODUCT', field: 'customer.name', minWidth: 260,
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        const cName = d.customer?.name || 'Guest User';
+        const pName = d.product?.name || 'Unknown Product';
+        return `
+          <div style="line-height:1.4;padding:4px 0">
+            <div style="font-weight:800;color:#1e293b;font-size:14px">${cName}</div>
+            <div style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:2px">${pName}</div>
+          </div>`;
+      }
+    },
+    {
+      title: 'RATING', field: 'rating', width: 130, hozAlign: 'center',
+      formatter: (cell) => {
+        const r = cell.getValue() || 0;
+        const stars = [1, 2, 3, 4, 5].map(n =>
+          `<i class="${n <= r ? 'fas' : 'far'} fa-star" style="font-size:11px;color:${n <= r ? '#f59e0b' : '#e2e8f0'};margin:0 1px"></i>`
+        ).join('');
+        return `<div style="text-align:center"><div style="font-weight:800;color:#1e293b;font-size:14px">${r}.0</div><div style="display:flex;justify-content:center">${stars}</div></div>`;
+      }
+    },
+    {
+      title: 'COMMENT', field: 'comment', minWidth: 300,
+      formatter: (cell) => `<div style="font-size:12px;color:#475569;line-height:1.5;max-height:36px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal">${cell.getValue() || 'No comment'}</div>`
+    },
+    {
+      title: 'STATUS', field: 'isActive', width: 130, hozAlign: 'center',
+      formatter: (cell) => {
+        const active = cell.getValue() === true;
+        return `<span class="px-3 py-1 rounded-full text-xs font-bold ${active ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}">${active ? 'Published' : 'Pending'}</span>`;
+      }
+    },
+    {
+      title: 'ACTIONS', width: 100, headerSort: false, hozAlign: "right",
+      formatter: () => `<div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="View"><i class="fas fa-eye"></i></button>
+        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete"><i class="fas fa-trash-alt"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon')) {
+          setSelectedReview(d);
+          setShowDetail(true);
+        }
+        if (e.target.closest('.btn-icon-delete')) {
+          setDeleteTarget({ id: d.id, name: d.customer?.name });
+        }
+      }
+    }
+  ];
 
     const handleApprovalToggle = async (id, currentStatus) => {
         setUpdatingStatus(true);

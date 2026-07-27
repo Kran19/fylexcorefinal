@@ -68,150 +68,112 @@ const TaxPage = () => {
 
   const [formErrors, setFormErrors] = useState({});
 
-  // ─── Tabulator: Tax Rates ────────────────────────────────────
-  useEffect(() => {
-    if (!ratesTableRef.current || loading.taxes || activeTab !== 'rates') return;
-    ratesTabulatorRef.current?.destroy();
-
-    ratesActionsRef.current = {
-      onEdit: (rec) => {
-        setEditingRate(rec);
-        setRateForm({
-          name: rec.name || '',
-          code: rec.code || '',
-          description: rec.description || '',
-          rate: rec.rate?.toString() || '0',
-          type: rec.type || 'percentage',
-          priority: rec.priority?.toString() || '0',
-          sortOrder: rec.sortOrder?.toString() || '0',
-          taxClassIds: rec.taxClasses?.map(c => c.id.toString()) || [],
-          isCompound: !!rec.isCompound,
-          isActive: rec.isActive === true || rec.isActive === 1
-        });
-        setShowRateForm(true);
+  const columns = [
+    { title: 'ID', field: 'id', width: 70, hozAlign: 'center', formatter: (cell) => `<span class="text-slate-400 font-bold">#${cell.getValue()}</span>` },
+    { 
+      title: 'TAX NAME', field: 'name', minWidth: 200,
+      formatter: (cell) => `<div><div class="font-bold text-slate-800">${cell.getValue()}</div><div class="text-xs text-slate-400">${cell.getRow().getData().code || ''}</div></div>`
+    },
+    { 
+      title: 'RATE', field: 'rate', width: 120, hozAlign: 'center',
+      formatter: (cell) => {
+        const row = cell.getRow().getData();
+        const symbol = row.type === 'percentage' ? '%' : ' (Fixed)';
+        return `<span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg font-mono font-bold border border-indigo-100">${cell.getValue()}${symbol}</span>`;
+      }
+    },
+    { 
+        title: 'CLASSES', field: 'taxClasses', minWidth: 150,
+        formatter: (cell) => {
+            const classes = cell.getValue() || [];
+            if (classes.length === 0) return '<span class="text-slate-300 text-xs">—</span>';
+            return `<div class="flex flex-wrap gap-1">${classes.map(c => `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase">${c.name}</span>`).join('')}</div>`;
+        }
+    },
+    { 
+      title: 'STATUS', field: 'isActive', width: 110, hozAlign: 'center',
+      formatter: (cell) => {
+        const active = cell.getValue() === true || cell.getValue() === 1;
+        return `<span class="px-3 py-1 rounded-full text-xs font-bold ${active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}">${active ? 'Active' : 'Disabled'}</span>`;
+      }
+    },
+    {
+      title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 110,
+      formatter: () => `<div class="flex gap-2 justify-end">
+        <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete"><i class="fas fa-trash-alt"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon')) {
+          setEditingRate(d);
+          setRateForm({
+            name: d.name || '',
+            code: d.code || '',
+            description: d.description || '',
+            rate: d.rate?.toString() || '0',
+            type: d.type || 'percentage',
+            priority: d.priority?.toString() || '0',
+            sortOrder: d.sortOrder?.toString() || '0',
+            taxClassIds: d.taxClasses?.map(c => c.id.toString()) || [],
+            isCompound: !!d.isCompound,
+            isActive: d.isActive === true || d.isActive === 1
+          });
+          setShowRateForm(true);
+        }
+        if (e.target.closest('.btn-icon-delete')) {
+          setDeleteTarget({ id: d.id, name: d.name, type: 'rate' });
+        }
       },
-      onDelete: (id, name) => setDeleteTarget({ id, name, type: 'rate' })
-    };
+    },
+  ];
 
-    ratesTabulatorRef.current = new Tabulator(ratesTableRef.current, {
-      data: taxes,
-      layout: 'fitColumns',
-      responsiveLayout: false,
-      pagination: 'local',
-      paginationSize: 10,
-      placeholder: 'No tax rates found',
-      columns: [
-        { title: 'ID', field: 'id', width: 70, hozAlign: 'center', formatter: (cell) => `<span class="text-slate-400 font-bold">#${cell.getValue()}</span>` },
-        { 
-          title: 'TAX NAME', field: 'name', minWidth: 200,
-          formatter: (cell) => `<div><div class="font-bold text-slate-800">${cell.getValue()}</div><div class="text-xs text-slate-400">${cell.getRow().getData().code || ''}</div></div>`
-        },
-        { 
-          title: 'RATE', field: 'rate', width: 120, hozAlign: 'center',
-          formatter: (cell) => {
-            const row = cell.getRow().getData();
-            const symbol = row.type === 'percentage' ? '%' : ' (Fixed)';
-            return `<span class="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg font-mono font-bold border border-indigo-100">${cell.getValue()}${symbol}</span>`;
-          }
-        },
-        { 
-            title: 'CLASSES', field: 'taxClasses', minWidth: 150,
-            formatter: (cell) => {
-                const classes = cell.getValue() || [];
-                if (classes.length === 0) return '<span class="text-slate-300 text-xs">—</span>';
-                return `<div class="flex flex-wrap gap-1">${classes.map(c => `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase">${c.name}</span>`).join('')}</div>`;
-            }
-        },
-        { 
-          title: 'STATUS', field: 'isActive', width: 110, hozAlign: 'center',
-          formatter: (cell) => {
-            const active = cell.getValue() === true || cell.getValue() === 1;
-            return `<div class="inline-flex px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${active ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}">${active ? 'active' : 'disabled'}</div>`;
-          }
-        },
-        {
-          title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 120,
-          formatter: () => `<div class="flex gap-2 justify-end">
-            <button class="btn-icon-edit w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl transition-colors" title="Edit"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon-delete w-9 h-9 bg-rose-50 text-rose-600 rounded-xl transition-colors" title="Delete"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-edit')) ratesActionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete')) ratesActionsRef.current.onDelete(d.id, d.name);
-          },
-        },
-      ],
-    });
-
-    return () => { ratesTabulatorRef.current?.destroy(); ratesTabulatorRef.current = null; };
-  }, [taxes, loading.taxes, activeTab]);
-
-  // ─── Tabulator: Tax Classes ───────────────────────────────────
-  useEffect(() => {
-    if (!classesTableRef.current || loading.taxClasses || activeTab !== 'classes') return;
-    classesTabulatorRef.current?.destroy();
-
-    classesActionsRef.current = {
-      onEdit: (rec) => {
-        setEditingClass(rec);
-        setClassForm({
-          name: rec.name || '',
-          code: rec.code || '',
-          description: rec.description || '',
-          taxRateIds: rec.taxRates?.map(r => r.id.toString()) || [],
-          isDefault: rec.isDefault === true || rec.isDefault === 1
-        });
-        setShowClassForm(true);
+  const classColumns = [
+    { title: 'ID', field: 'id', width: 70, hozAlign: 'center', formatter: (cell) => `<span class="text-slate-400 font-bold">#${cell.getValue()}</span>` },
+    { 
+      title: 'CLASS NAME', field: 'name', minWidth: 200,
+      formatter: (cell) => `<div><div class="font-bold text-slate-800 uppercase tracking-tight">${cell.getValue()}</div><div class="text-xs text-slate-400">${cell.getRow().getData().code || ''}</div></div>`
+    },
+    { 
+        title: 'TAX RATES', field: 'taxRates', minWidth: 200,
+        formatter: (cell) => {
+            const rates = cell.getValue() || [];
+            if (rates.length === 0) return '<span class="text-slate-300 text-xs">No rates assigned</span>';
+            return `<div class="flex flex-wrap gap-1">${rates.map(r => `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[10px] font-bold border border-indigo-100">${r.name} (${r.rate}%)</span>`).join('')}</div>`;
+        }
+    },
+    { 
+      title: 'DEFAULT', field: 'isDefault', width: 120, hozAlign: 'center',
+      formatter: (cell) => {
+        const isDef = cell.getValue() === true || cell.getValue() === 1;
+        return isDef ? `<div class="text-amber-500 font-bold"><i class="fas fa-star mr-1"></i> Default</div>` : `<span class="text-slate-300 text-xs">No</span>`;
+      }
+    },
+    {
+      title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 110,
+      formatter: () => `<div class="flex gap-2 justify-end">
+        <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete"><i class="fas fa-trash-alt"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon')) {
+          setEditingClass(d);
+          setClassForm({
+            name: d.name || '',
+            code: d.code || '',
+            description: d.description || '',
+            taxRateIds: d.taxRates?.map(r => r.id.toString()) || [],
+            isDefault: d.isDefault === true || d.isDefault === 1
+          });
+          setShowClassForm(true);
+        }
+        if (e.target.closest('.btn-icon-delete')) {
+          setDeleteTarget({ id: d.id, name: d.name, type: 'class' });
+        }
       },
-      onDelete: (id, name) => setDeleteTarget({ id, name, type: 'class' })
-    };
-
-    classesTabulatorRef.current = new Tabulator(classesTableRef.current, {
-      data: taxClasses,
-      layout: 'fitColumns',
-      responsiveLayout: false,
-      pagination: 'local',
-      paginationSize: 10,
-      placeholder: 'No tax classes found',
-      columns: [
-        { title: 'ID', field: 'id', width: 70, hozAlign: 'center', formatter: (cell) => `<span class="text-slate-400 font-bold">#${cell.getValue()}</span>` },
-        { 
-          title: 'CLASS NAME', field: 'name', minWidth: 200,
-          formatter: (cell) => `<div><div class="font-bold text-slate-800 uppercase tracking-tight">${cell.getValue()}</div><div class="text-xs text-slate-400">${cell.getRow().getData().code || ''}</div></div>`
-        },
-        { 
-            title: 'TAX RATES', field: 'taxRates', minWidth: 200,
-            formatter: (cell) => {
-                const rates = cell.getValue() || [];
-                if (rates.length === 0) return '<span class="text-slate-300 text-xs">No rates assigned</span>';
-                return `<div class="flex flex-wrap gap-1">${rates.map(r => `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[10px] font-bold border border-indigo-100">${r.name} (${r.rate}%)</span>`).join('')}</div>`;
-            }
-        },
-        { 
-          title: 'DEFAULT', field: 'isDefault', width: 120, hozAlign: 'center',
-          formatter: (cell) => {
-            const isDef = cell.getValue() === true || cell.getValue() === 1;
-            return isDef ? `<div class="text-amber-500"><i class="fas fa-star mr-1"></i> Default</div>` : `<span class="text-slate-300 text-xs">No</span>`;
-          }
-        },
-        {
-          title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 120,
-          formatter: () => `<div class="flex gap-2 justify-end">
-            <button class="btn-icon-edit w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl transition-colors" title="Edit"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon-delete w-9 h-9 bg-rose-50 text-rose-600 rounded-xl transition-colors" title="Delete"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-edit')) classesActionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete')) classesActionsRef.current.onDelete(d.id, d.name);
-          },
-        },
-      ],
-    });
-
-    return () => { classesTabulatorRef.current?.destroy(); classesTabulatorRef.current = null; };
-  }, [taxClasses, loading.taxClasses, activeTab]);
+    },
+  ];
 
   // ─── Handlers ───────────────────────────────────────────────
   const handleRateChange = (e) => {

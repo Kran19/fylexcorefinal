@@ -67,76 +67,82 @@ const AttributeList = () => {
       }
     };
 
-    tabulatorRef.current = new Tabulator(tableRef.current, {
-      data: attributes,
-      layout: 'fitColumns',
-      responsiveLayout: false,
-      pagination: 'local',
-      paginationSize: 10,
-      placeholder: 'No attributes found',
-      columns: [
-        { title: "ID", field: "id", width: 70, hozAlign: "center", formatter: cell => `<span style="font-weight:600;color:#94a3b8">#${cell.getValue()}</span>` },
-        {
-          title: "ATTRIBUTE NAME", field: "name", minWidth: 200,
-          formatter: (cell) => {
-            const d = cell.getRow().getData();
-            return `<div><div style="font-weight:700;color:#1e293b;font-size:14px">${d.name}</div><div style="font-size:11px;color:#94a3b8;font-family:monospace">#${d.code}</div></div>`;
-          }
-        },
-        {
-            title: "FORMAT", field: "type", width: 120,
-            formatter: (cell) => `<span style="font-family:monospace;font-size:11px;font-weight:800;color:#6366f1;background:#f5f3ff;padding:4px 10px;border-radius:6px;text-transform:uppercase;border:1px solid rgba(99,102,241,0.1)">${cell.getValue()}</span>`
-        },
-        {
-            title: "VALUES", field: "values", width: 160, hozAlign: "center",
-            formatter: (cell) => {
-                const count = cell.getValue()?.length || 0;
-                return `
-                  <div style="display:flex; flex-direction:column; gap:4px; align-items:center; padding:4px 0">
-                    <span style="color:#6366f1; font-weight:700; font-size:12px;">${count} values</span>
-                    <div style="display:flex; gap:6px;">
-                      <button class="btn-val-add" style="background:#f5f3ff; color:#6366f1; border:1px solid #e0e7ff; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; cursor:pointer;">+ Add</button>
-                      <button class="btn-val-manage" style="background:#ecfdf5; color:#10b981; border:1px solid #d1fae5; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; cursor:pointer;"><i class="fas fa-list-ul mr-1"></i>Manage</button>
-                    </div>
-                  </div>
-                `;
-            },
-            cellClick: (e, cell) => {
-                const d = cell.getRow().getData();
-                if (e.target.closest('.btn-val-add')) actionsRef.current.onAddValue(d);
-                if (e.target.closest('.btn-val-manage')) actionsRef.current.onViewValues(d);
-            }
-        },
-        {
-            title: "IS VARIANT", field: "isVariant", width: 100, hozAlign: "center",
-            formatter: (cell) => cell.getValue() 
-                ? `<div style="color:#10b981;font-size:16px"><i class="fas fa-check-circle"></i></div>` 
-                : `<div style="color:#e2e8f0;font-size:16px"><i class="fas fa-times-circle"></i></div>`
-        },
-        {
-            title: "STATUS", field: "isActive", width: 120, hozAlign: "center",
-            formatter: (cell) => {
-                const active = cell.getValue() === true || cell.getValue() === 1;
-                return `<div class="status-badge" style="background:${active ? '#ecfdf5' : '#f8fafc'};color:${active ? '#10b981' : '#64748b'};font-weight:700;padding:4px 12px;border-radius:8px">${active ? 'active' : 'inactive'}</div>`;
-            }
-        },
-        {
-          title: "ACTIONS", width: 110, headerSort: false, hozAlign: "right",
-          formatter: () => `<div style="display:flex;gap:8px;justify-content:flex-end">
-            <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete')) actionsRef.current.onDelete(d.id, d.name);
-          }
-        },
-      ],
-    });
-
-    return () => { tabulatorRef.current?.destroy(); tabulatorRef.current = null; };
-  }, [attributes, loading.attributes, view]);
+  const columns = [
+    { title: "ID", field: "id", width: 70, hozAlign: "center", formatter: cell => `<span style="font-weight:600;color:#94a3b8">#${cell.getValue()}</span>` },
+    {
+      title: "ATTRIBUTE NAME", field: "name", minWidth: 200,
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        return `<div><div style="font-weight:700;color:#1e293b;font-size:14px">${d.name}</div><div style="font-size:11px;color:#94a3b8;font-family:monospace">#${d.code}</div></div>`;
+      }
+    },
+    {
+      title: "FORMAT", field: "type", width: 120,
+      formatter: (cell) => `<span style="font-family:monospace;font-size:11px;font-weight:800;color:#6366f1;background:#f5f3ff;padding:4px 10px;border-radius:6px;text-transform:uppercase;border:1px solid rgba(99,102,241,0.1)">${cell.getValue()}</span>`
+    },
+    {
+      title: "VALUES", field: "values", width: 180, hozAlign: "center",
+      formatter: (cell) => {
+        const count = cell.getValue()?.length || 0;
+        return `
+          <div style="display:flex; flex-direction:column; gap:4px; align-items:center; padding:4px 0">
+            <span style="color:#6366f1; font-weight:700; font-size:12px;">${count} values</span>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-val-add" style="background:#f5f3ff; color:#6366f1; border:1px solid #e0e7ff; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; cursor:pointer;">+ Add</button>
+              <button class="btn-val-manage" style="background:#ecfdf5; color:#10b981; border:1px solid #d1fae5; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; cursor:pointer;"><i class="fas fa-list-ul mr-1"></i>Manage</button>
+            </div>
+          </div>
+        `;
+      },
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-val-add')) {
+          setSelectedAttr(d);
+          setValForm({ label: '', value: '', sortOrder: 0, isActive: true });
+          setShowValForm(true);
+        }
+        if (e.target.closest('.btn-val-manage')) {
+          setSelectedAttr(d);
+          setView('values');
+        }
+      }
+    },
+    {
+      title: "IS VARIANT", field: "isVariant", width: 110, hozAlign: "center",
+      formatter: (cell) => cell.getValue() 
+        ? `<div style="color:#10b981;font-size:16px"><i class="fas fa-check-circle"></i></div>` 
+        : `<div style="color:#cbd5e1;font-size:16px"><i class="fas fa-times-circle"></i></div>`
+    },
+    {
+      title: "STATUS", field: "isActive", width: 120, hozAlign: "center",
+      formatter: (cell) => {
+        const active = cell.getValue() === true || cell.getValue() === 1;
+        return `<div class="status-badge" style="background:${active ? '#ecfdf5' : '#f8fafc'};color:${active ? '#10b981' : '#64748b'};font-weight:700;padding:4px 12px;border-radius:8px">${active ? 'active' : 'inactive'}</div>`;
+      }
+    },
+    {
+      title: "ACTIONS", width: 110, headerSort: false, hozAlign: "right",
+      formatter: () => `<div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-icon btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer"><i class="fas fa-trash-alt"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon-edit')) {
+          setEditingRecord(d);
+          setAttrForm({
+            name: d.name || '',
+            code: d.code || '',
+            type: d.type || 'select',
+            isVariant: !!d.isVariant,
+            isActive: d.isActive === true || d.isActive === 1
+          });
+          setShowAttrForm(true);
+        }
+        if (e.target.closest('.btn-icon-delete')) setDeleteTarget({ type: 'attribute', id: d.id, name: d.name });
+      }
+    },
+  ];
 
   // ─── Attribute Handlers ───
   const handleSaveAttribute = async (e) => {

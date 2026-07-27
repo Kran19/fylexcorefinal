@@ -33,77 +33,63 @@ const InventoryList = () => {
   const modalActionsRef = useRef({ setSelectedItemId, setShowAdjustModal });
   useEffect(() => { modalActionsRef.current = { setSelectedItemId, setShowAdjustModal }; }, []);
 
-  useEffect(() => {
-    if (tableRef.current) {
-      const tabulator = new Tabulator(tableRef.current, {
-        data: inventory,
-        layout: "fitDataFill",
-        responsiveLayout: false,
-        pagination: "local",
-        paginationSize: 10,
-        columns: [
-          { 
-            title: "PRODUCT", field: "product_name", width: 320,
-            formatter: (cell) => {
-              const d = cell.getRow().getData();
-              const letter = d.product_name?.charAt(0) || 'P';
-              return `
-                <div style="display:flex;align-items:center;gap:14px;padding:4px 0">
-                  <div style="width:40px;height:40px;background:#f1f5f9;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#64748b;font-size:14px;flex-shrink:0;border:1px solid #e2e8f0">${letter}</div>
-                  <div style="display:flex;flex-direction:column;gap:2px">
-                    <div style="font-weight:700;color:#1e293b;font-size:14px">${d.product_name}</div>
-                    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.02em">SKU: ${d.sku}</div>
-                  </div>
-                </div>
-              `;
-            }
-          },
-          { 
-            title: "STOCK", field: "stock", width: 100, hozAlign: "center",
-            formatter: (cell) => `<span style="font-weight:700;color:#1e293b">${cell.getValue()}</span>`
-          },
-          { 
-            title: "RESERVED", field: "reserved", width: 110, hozAlign: "center",
-            formatter: (cell) => `<span style="font-weight:600;color:#94a3b8">${cell.getValue() || 0}</span>`
-          },
-          {
-            title: "AVAILABLE", field: "available", width: 140, hozAlign: "center",
-            formatter: (cell) => {
-              const v = cell.getValue() || 0;
-              const bg = v > 0 ? '#f0fdf4' : '#fef2f2';
-              const color = v > 0 ? '#15803d' : '#dc2626';
-              return `<span class="status-pill" style="background:${bg};color:${color};border-radius:8px;padding:4px 12px;font-weight:700">${v} IN STOCK</span>`;
-            }
-          },
-          { 
-            title: "MIN STOCK", field: "min_stock", width: 110, hozAlign: "center",
-            formatter: (cell) => `<span style="font-weight:600;color:#64748b;padding:2px 8px;background:#f8fafc;border-radius:4px">${cell.getValue() || 0}</span>`
-          },
-          { 
-            title: "WAREHOUSE", field: "warehouse", width: 140,
-            formatter: (cell) => `<span style="text-transform:uppercase;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.03em">${cell.getValue() || 'MAIN'}</span>`
-          },
-          {
-            title: "ACTIONS", headerSort: false, hozAlign: "right", width: 140,
-            formatter: () => `
-              <div style="display:flex;gap:12px;justify-content:flex-end">
-                <button class="btn-filter-dark" style="padding:6px 12px;font-size:11px;height:auto;border-radius:6px">ADJUST</button>
-              </div>
-            `,
-            cellClick: (e, cell) => {
-              modalActionsRef.current.setSelectedItemId(cell.getRow().getData().id);
-              modalActionsRef.current.setShowAdjustModal(true);
-            }
-          }
-        ],
-      });
-      setTable(tabulator);
+  const columns = [
+    { 
+      title: "PRODUCT", field: "product_name", width: 320,
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        const letter = d.product_name?.charAt(0) || 'P';
+        return `
+          <div style="display:flex;align-items:center;gap:14px;padding:4px 0">
+            <div style="width:40px;height:40px;background:#f1f5f9;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#64748b;font-size:14px;flex-shrink:0;border:1px solid #e2e8f0">${letter}</div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <div style="font-weight:700;color:#1e293b;font-size:14px">${d.product_name || d.name || 'Product'}</div>
+              <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.02em">SKU: ${d.sku || 'N/A'}</div>
+            </div>
+          </div>
+        `;
+      }
+    },
+    { 
+      title: "STOCK", field: "stock", width: 100, hozAlign: "center",
+      formatter: (cell) => `<span style="font-weight:700;color:#1e293b">${cell.getValue() ?? cell.getRow().getData().qty ?? 0}</span>`
+    },
+    { 
+      title: "RESERVED", field: "reserved", width: 110, hozAlign: "center",
+      formatter: (cell) => `<span style="font-weight:600;color:#94a3b8">${cell.getValue() || 0}</span>`
+    },
+    {
+      title: "AVAILABLE", field: "available", width: 140, hozAlign: "center",
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        const v = cell.getValue() ?? d.stock ?? d.qty ?? 0;
+        const bg = v > 0 ? '#f0fdf4' : '#fef2f2';
+        const color = v > 0 ? '#15803d' : '#dc2626';
+        return `<span class="status-pill" style="background:${bg};color:${color};border-radius:8px;padding:4px 12px;font-weight:700">${v} IN STOCK</span>`;
+      }
+    },
+    { 
+      title: "MIN STOCK", field: "min_stock", width: 110, hozAlign: "center",
+      formatter: (cell) => `<span style="font-weight:600;color:#64748b;padding:2px 8px;background:#f8fafc;border-radius:4px">${cell.getValue() || 5}</span>`
+    },
+    { 
+      title: "WAREHOUSE", field: "warehouse", width: 140,
+      formatter: (cell) => `<span style="text-transform:uppercase;font-size:11px;font-weight:700;color:#64748b;letter-spacing:0.03em">${cell.getValue() || 'MAIN'}</span>`
+    },
+    {
+      title: "ACTIONS", headerSort: false, hozAlign: "right", width: 140,
+      formatter: () => `
+        <div style="display:flex;gap:12px;justify-content:flex-end">
+          <button class="btn-filter-dark style-btn-edit" style="padding:6px 12px;font-size:11px;height:auto;border-radius:6px;cursor:pointer;background:#1e293b;color:#fff">ADJUST</button>
+        </div>
+      `,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        setSelectedItemId(d.id);
+        setShowAdjustModal(true);
+      }
     }
-  }, []);
-
-  useEffect(() => {
-    if (table) table.replaceData(inventory);
-  }, [inventory, table]);
+  ];
 
   const handleApplyAdjustment = async () => {
     if (!selectedItem || !adjustForm.qty) return;

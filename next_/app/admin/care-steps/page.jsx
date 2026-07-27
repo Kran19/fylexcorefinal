@@ -61,46 +61,42 @@ const CareStepsManagement = () => {
       onDelete: (id, name) => setDeleteTarget({ id, name })
     };
 
-    tabulatorRef.current = new Tabulator(tableRef.current, {
-      data: steps,
-      layout: 'fitColumns',
-      responsiveLayout: false,
-      pagination: 'local',
-      paginationSize: 10,
-      groupBy: "productId",
-      groupHeader: (value, count, data, group) => {
-        const product = data[0]?.product;
-        return `<span class="text-slate-800 font-extrabold uppercase tracking-wider">${product?.name || 'Product ID ' + value}</span> <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded ml-2">${count} steps</span>`;
+  const columns = [
+    { title: 'STEP NO', field: 'stepNumber', width: 90, hozAlign: 'center', formatter: (cell) => `<span class="w-6 h-6 inline-flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-full font-bold text-xs">${cell.getValue()}</span>` },
+    { 
+      title: 'IMAGE', field: 'imageUrl', width: 120, hozAlign: 'center', headerSort: false,
+      formatter: (cell) => {
+        const url = cell.getValue();
+        return url ? `<img src="${url}" class="w-16 h-16 object-cover rounded shadow-sm border border-slate-200" />` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
+      }
+    },
+    { title: 'TITLE', field: 'title', headerSort: false, formatter: (cell) => `<div class="font-bold text-slate-800">${cell.getValue()}</div>` },
+    { title: 'DESCRIPTION', field: 'description', headerSort: false, formatter: (cell) => `<div class="text-slate-500 text-sm truncate max-w-xs">${cell.getValue() || '-'}</div>` },
+    {
+      title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 110,
+      formatter: () => `<div class="flex gap-2 justify-end">
+        <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Edit"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete"><i class="fas fa-trash-alt"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon')) {
+          setEditingItem(d);
+          setFormData({
+            productId: d.productId?.toString() || '',
+            stepNumber: d.stepNumber?.toString() || '1',
+            title: d.title || '',
+            description: d.description || '',
+            imageUrl: d.imageUrl || ''
+          });
+          setShowForm(true);
+        }
+        if (e.target.closest('.btn-icon-delete')) {
+          setDeleteTarget({ id: d.id, name: 'this care step' });
+        }
       },
-      placeholder: 'No Watch Care Steps found',
-      columns: [
-        { title: 'STEP NO', field: 'stepNumber', width: 90, hozAlign: 'center', formatter: (cell) => `<span class="w-6 h-6 inline-flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-full font-bold text-xs">${cell.getValue()}</span>` },
-        { 
-          title: 'IMAGE', field: 'imageUrl', width: 120, hozAlign: 'center', headerSort: false,
-          formatter: (cell) => {
-            const url = cell.getValue();
-            return url ? `<img src="${url}" class="w-16 h-16 object-cover rounded shadow-sm border border-slate-200" />` : `<div class="w-16 h-16 bg-slate-100 rounded flex items-center justify-center text-slate-300"><i class="fas fa-image"></i></div>`;
-          }
-        },
-        { title: 'TITLE', field: 'title', headerSort: false, formatter: (cell) => `<div class="font-bold text-slate-800">${cell.getValue()}</div>` },
-        { title: 'DESCRIPTION', field: 'description', headerSort: false, formatter: (cell) => `<div class="text-slate-500 text-sm truncate max-w-xs">${cell.getValue() || '-'}</div>` },
-        {
-          title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 120,
-          formatter: () => `<div class="flex gap-2 justify-end">
-            <button class="btn-icon-edit w-9 h-9 bg-indigo-50 text-indigo-600 rounded-xl transition-colors" title="Edit"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon-delete w-9 h-9 bg-rose-50 text-rose-600 rounded-xl transition-colors" title="Delete"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete')) actionsRef.current.onDelete(d.id, 'this care step');
-          },
-        },
-      ],
-    });
-
-    return () => { tabulatorRef.current?.destroy(); tabulatorRef.current = null; };
-  }, [steps, loading.productCareSteps]);
+    },
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;

@@ -75,103 +75,94 @@ const OffersPage = () => {
       onDelete: (id, name) => setDeleteTarget({ id, name })
     };
 
-    tabulatorRef.current = new Tabulator(tableRef.current, {
-      data: offers,
-      layout: 'fitColumns',
-      responsiveLayout: false,
-      pagination: 'local',
-      paginationSize: 10,
-      placeholder: 'No offers found',
-      columns: [
-        {
-          title: 'ID', field: 'id', width: 70, hozAlign: 'center', headerSort: true,
-          formatter: (cell) => `<span style="font-weight:600;color:#94a3b8">#${cell.getValue()}</span>`,
-        },
-        {
-          title: 'OFFER / CODE', field: 'name', minWidth: 240,
-          formatter: (cell) => {
-            const d = cell.getRow().getData();
-            const badgeBg = d.couponType === 'one_time' ? '#fef3c7' : (d.couponType === 'user_specific' ? '#dbeafe' : '#f1f5f9');
-            const badgeText = d.couponType === 'one_time' ? '#92400e' : (d.couponType === 'user_specific' ? '#1e40af' : '#475569');
-            const badgeLabel = (d.couponType || 'public').replace('_', ' ').toUpperCase();
-            
-            return `<div style="padding:4px 0">
-              <div style="font-weight:800;color:#1e293b;font-size:14px">${d.name || '—'}</div>
-              <div style="font-family:'SF Mono',monospace;font-size:11px;font-weight:700;color:#6366f1;margin-top:2px">${d.code || 'NO CODE'} <span style="margin-left:6px;padding:2px 6px;border-radius:4px;background:${badgeBg};color:${badgeText};font-size:9px;">${badgeLabel}</span></div>
-            </div>`;
-          },
-        },
-        {
-          title: 'DISCOUNT', field: 'discountValue', width: 140, hozAlign: 'center',
-          formatter: (cell) => {
-            const d = cell.getRow().getData();
-            const isPerc = d.offerType === 'percentage';
-            return `<div style="text-align:center"><div style="font-weight:800;color:#10b981;font-size:15px">${!isPerc ? '₹' : ''}${cell.getValue()}${isPerc ? '%' : ''}</div><div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase">${d.offerType}</div></div>`;
-          },
-        },
-        {
-          title: 'USAGE', field: 'usedCount', width: 100, hozAlign: 'center',
-          formatter: (cell) => {
-            const d = cell.getRow().getData();
-            return `<div style="text-align:center"><div style="font-weight:800;color:#1e293b">${cell.getValue() ?? 0}</div><div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase">${d.maxUses ? `/ ${d.maxUses}` : 'Uses'}</div></div>`;
-          }
-        },
-        {
-          title: 'REVENUE', field: 'analytics.revenueSum', width: 130, hozAlign: 'right',
-          formatter: (cell) => {
-            const val = cell.getValue() || 0;
-            return `<div style="font-weight:700;color:#10b981">₹${val.toLocaleString()}</div>`;
-          }
-        },
-        {
-          title: 'DISC GIVEN', field: 'analytics.discountSum', width: 130, hozAlign: 'right',
-          formatter: (cell) => {
-            const val = cell.getValue() || 0;
-            return `<div style="font-weight:700;color:#ef4444">-₹${val.toLocaleString()}</div>`;
-          }
-        },
-        {
-          title: 'VALID THRU', field: 'endsAt', width: 140,
-          formatter: (cell) => {
-            const val = cell.getValue();
-            if (!val) return `<span style="font-size:11px;color:#94a3b8;font-weight:600">Forever</span>`;
-            const d = new Date(val);
-            const expired = d < new Date();
-            return `<div style="font-size:12px;font-weight:600;color:${expired ? '#ef4444' : '#64748b'}">${d.toLocaleDateString('en-GB')}</div>`;
-          }
-        },
-        {
-          title: 'STATUS', field: 'isActive', width: 120, hozAlign: 'center',
-          formatter: (cell) => {
-            const d = cell.getRow().getData();
-            const active = cell.getValue() === true;
-            const endsAt = d.endsAt;
-            const isExpired = endsAt && new Date(endsAt) < new Date();
-            if (isExpired) {
-               return `<div class="status-badge" style="display:inline-flex;padding:5px 14px;border-radius:10px;font-size:11px;font-weight:700;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;text-transform:uppercase;letter-spacing:0.02em">EXPIRED</div>`;
-            }
-            return `<div class="status-badge" style="display:inline-flex;padding:5px 14px;border-radius:10px;font-size:11px;font-weight:700;background:${active ? '#ecfdf5' : '#fef2f2'};color:${active ? '#10b981' : '#ef4444'};border:1px solid ${active ? '#d1fae5' : '#fee2e2'};text-transform:uppercase;letter-spacing:0.02em">${active ? 'active' : 'inactive'}</div>`;
-          },
-        },
-        {
-          title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 140,
-          formatter: () => `<div style="display:flex;gap:8px;justify-content:flex-end">
-            <button class="btn-icon btn-icon-analytics" style="background:#ecfeff;color:#06b6d4" title="View Usage"><i class="fas fa-chart-line"></i></button>
-            <button class="btn-icon btn-icon-edit" style="background:#f5f3ff;color:#6366f1" title="Edit"><i class="fas fa-edit"></i></button>
-            <button class="btn-icon btn-icon-delete" style="background:#fef2f2;color:#ef4444" title="Delete"><i class="fas fa-trash-alt"></i></button>
-          </div>`,
-          cellClick: (e, cell) => {
-            const d = cell.getRow().getData();
-            if (e.target.closest('.btn-icon-analytics')) actionsRef.current.onAnalytics(d);
-            if (e.target.closest('.btn-icon-edit')) actionsRef.current.onEdit(d);
-            if (e.target.closest('.btn-icon-delete')) actionsRef.current.onDelete(d.id, d.name);
-          },
-        },
-      ],
-    });
-
-    return () => { tabulatorRef.current?.destroy(); tabulatorRef.current = null; };
-  }, [offers, loading.offers]);
+  const columns = [
+    {
+      title: 'ID', field: 'id', width: 70, hozAlign: 'center', headerSort: true,
+      formatter: (cell) => `<span style="font-weight:600;color:#94a3b8">#${cell.getValue()}</span>`,
+    },
+    {
+      title: 'OFFER / CODE', field: 'name', minWidth: 240,
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        const badgeBg = d.couponType === 'one_time' ? '#fef3c7' : (d.couponType === 'user_specific' ? '#dbeafe' : '#f1f5f9');
+        const badgeText = d.couponType === 'one_time' ? '#92400e' : (d.couponType === 'user_specific' ? '#1e40af' : '#475569');
+        const badgeLabel = (d.couponType || 'public').replace('_', ' ').toUpperCase();
+        
+        return `<div style="padding:4px 0">
+          <div style="font-weight:800;color:#1e293b;font-size:14px">${d.name || '—'}</div>
+          <div style="font-family:'SF Mono',monospace;font-size:11px;font-weight:700;color:#6366f1;margin-top:2px">${d.code || 'NO CODE'} <span style="margin-left:6px;padding:2px 6px;border-radius:4px;background:${badgeBg};color:${badgeText};font-size:9px;">${badgeLabel}</span></div>
+        </div>`;
+      },
+    },
+    {
+      title: 'DISCOUNT', field: 'discountValue', width: 140, hozAlign: 'center',
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        const isPerc = d.offerType === 'percentage';
+        return `<div style="text-align:center"><div style="font-weight:800;color:#10b981;font-size:15px">${!isPerc ? '₹' : ''}${cell.getValue()}${isPerc ? '%' : ''}</div><div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase">${d.offerType}</div></div>`;
+      },
+    },
+    {
+      title: 'USAGE', field: 'usedCount', width: 100, hozAlign: 'center',
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        return `<div style="text-align:center"><div style="font-weight:800;color:#1e293b">${cell.getValue() ?? 0}</div><div style="font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase">${d.maxUses ? `/ ${d.maxUses}` : 'Uses'}</div></div>`;
+      }
+    },
+    {
+      title: 'REVENUE', field: 'analytics.revenueSum', width: 130, hozAlign: 'right',
+      formatter: (cell) => {
+        const val = cell.getValue() || 0;
+        return `<div style="font-weight:700;color:#10b981">₹${val.toLocaleString()}</div>`;
+      }
+    },
+    {
+      title: 'DISC GIVEN', field: 'analytics.discountSum', width: 130, hozAlign: 'right',
+      formatter: (cell) => {
+        const val = cell.getValue() || 0;
+        return `<div style="font-weight:700;color:#ef4444">-₹${val.toLocaleString()}</div>`;
+      }
+    },
+    {
+      title: 'VALID THRU', field: 'endsAt', width: 140,
+      formatter: (cell) => {
+        const val = cell.getValue();
+        if (!val) return `<span style="font-size:11px;color:#94a3b8;font-weight:600">Forever</span>`;
+        const d = new Date(val);
+        const expired = d < new Date();
+        return `<div style="font-size:12px;font-weight:600;color:${expired ? '#ef4444' : '#64748b'}">${d.toLocaleDateString('en-GB')}</div>`;
+      }
+    },
+    {
+      title: 'STATUS', field: 'isActive', width: 120, hozAlign: 'center',
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        const active = cell.getValue() === true;
+        const endsAt = d.endsAt;
+        const isExpired = endsAt && new Date(endsAt) < new Date();
+        if (isExpired) {
+           return `<span class="px-3 py-1 bg-slate-100 text-slate-500 rounded-full font-bold text-xs">Expired</span>`;
+        }
+        return `<span class="px-3 py-1 rounded-full text-xs font-bold ${active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}">${active ? 'Active' : 'Inactive'}</span>`;
+      },
+    },
+    {
+      title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 120,
+      formatter: () => `<div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Edit Offer"><i class="fas fa-edit"></i></button>
+        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete Offer"><i class="fas fa-trash"></i></button>
+      </div>`,
+      cellClick: (e, cell) => {
+        const d = cell.getRow().getData();
+        if (e.target.closest('.btn-icon')) {
+          handleEdit(d);
+        }
+        if (e.target.closest('.btn-icon-delete')) {
+          setDeleteConfirmId(d.id);
+        }
+      },
+    },
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
