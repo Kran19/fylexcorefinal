@@ -372,8 +372,8 @@ function ConfigureContent() {
         .c-selection-controls { padding: 30px; display: flex; flex-direction: column; gap: 20px; }
         .step-title { font-size: 1.125rem; font-weight: 600; }
         .options-row { display: flex; gap: 30px; font-size: 16px; font-weight: 600; color: #8A8A8A; overflow-x: auto; scrollbar-width: none; }
-        .opt { cursor: pointer; transition: color 0.3s; white-space: nowrap; }
-        .opt.active { color: #008767; }
+        .opt { cursor: pointer; transition: color 0.3s; white-space: nowrap; color: #64748b; }
+        .opt.active { color: #0f172a; font-weight: 700; border-bottom: 2px solid #006039; }
         .nav-buttons-row { position: relative; display: flex; align-items: center; justify-content: center; min-height: 50px; margin-top: 15px; }
         .btn-circular-back { position: absolute; left: 0; width: 35px; height: 35px; border-radius: 50%; background: #1a1a1a; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; transition: transform 0.3s; }
         .btn-circular-back:hover { transform: scale(1.05); }
@@ -455,11 +455,13 @@ function ConfigureContent() {
                   return (
                     <span key={i} className={`opt ${isSelected ? 'active' : ''}`}
                       style={{
-                        color: isSelected ? '#006039' : '#64748b',
+                        color: isSelected ? '#0f172a' : '#64748b',
                         fontWeight: isSelected ? '700' : '500',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        borderBottom: isSelected ? '2px solid #006039' : '2px solid transparent',
+                        paddingBottom: '4px'
                       }}
                       onClick={() => {
                         if (isDialStep) { setAppliedDial(opt.dialImg); updatePreviewImage(opt.img); setUserSelections(prev => ({ ...prev, dial: opt.name })); }

@@ -1784,7 +1784,7 @@ function DiscoverContent() {
           letter-spacing: -0.02em;
         }
         .cfg-specs-title span {
-          color: #006039 !important;
+          color: #64748b !important;
           display: block;
         }
         .cfg-specs-ref {
