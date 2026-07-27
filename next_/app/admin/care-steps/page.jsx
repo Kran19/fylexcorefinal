@@ -63,7 +63,7 @@ const CareStepsManagement = () => {
       </div>`,
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
-        if (e.target.closest('.btn-icon')) {
+        if (e.target.closest('.style-btn-edit')) {
           setEditingItem(d);
           setFormData({
             productId: d.productId?.toString() || '',
@@ -73,8 +73,7 @@ const CareStepsManagement = () => {
             imageUrl: d.imageUrl || ''
           });
           setShowForm(true);
-        }
-        if (e.target.closest('.btn-icon-delete')) {
+        } else if (e.target.closest('.style-btn-delete')) {
           setDeleteTarget({ id: d.id, name: 'this care step' });
         }
       },

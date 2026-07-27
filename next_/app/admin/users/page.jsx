@@ -80,11 +80,10 @@ const UsersPage = () => {
       },
       cellClick: (e, cell) => {
         const u = cell.getRow().getData();
-        if (e.target.closest('.btn-icon')) {
+        if (e.target.closest('.style-btn-edit')) {
           setSelectedUser(u);
           setShowDetails(true);
-        }
-        if (e.target.closest('.btn-icon-delete')) {
+        } else if (e.target.closest('.style-btn-delete')) {
           setDeleteTarget({ id: u.id, name: u.name });
         }
       },

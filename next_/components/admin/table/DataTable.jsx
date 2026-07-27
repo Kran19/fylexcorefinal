@@ -20,21 +20,22 @@ export default function DataTable({
   onBulkDelete,
   onBulkActivate,
   onBulkDeactivate,
-  emptyTitle,
-  emptyDescription,
+  emptyTitle = "No records found",
+  emptyDescription = "There are no items to display right now.",
   onResetFilters,
   exportFileName = 'data_export'
 }) {
   const tableRef = useRef(null);
   const tabulatorRef = useRef(null);
+  const isBuiltRef = useRef(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [density, setDensity] = useState('default'); // 'compact', 'default', 'comfortable'
+  const [density, setDensity] = useState('default');
   const [selectedRows, setSelectedRows] = useState([]);
 
-  // Filter data locally if local filtering is enabled
+  // Filter data locally if searchQuery is present
   const filteredData = React.useMemo(() => {
     if (!searchQuery.trim()) return data;
     const q = searchQuery.toLowerCase().trim();
@@ -46,28 +47,28 @@ export default function DataTable({
     });
   }, [data, searchQuery]);
 
-  // Tabulator initialization
+  const columnsRef = useRef(columns);
+  useEffect(() => {
+    columnsRef.current = columns;
+  }, [columns]);
+
+  // Tabulator initialization (Runs ONLY when loading transitions to false or on initial mount)
   useEffect(() => {
     if (!tableRef.current || loading) return;
+
+    isBuiltRef.current = false;
     tabulatorRef.current?.destroy();
 
-    const rowHeights = {
-      compact: 42,
-      default: 56,
-      comfortable: 68
-    };
-
-    tabulatorRef.current = new Tabulator(tableRef.current, {
+    const instance = new Tabulator(tableRef.current, {
       data: filteredData,
-      columns: columns,
+      columns: columnsRef.current,
       layout: 'fitColumns',
       responsiveLayout: false,
       pagination: 'local',
       paginationSize: pageSize,
-      paginationElement: false, // Handled by PaginationFooter
+      paginationElement: false, // Handled by custom PaginationFooter below
       headerVisible: true,
       movableColumns: true,
-      rowHeight: rowHeights[density] || 56,
       placeholder: 'No records found',
       selectable: true,
       rowSelectionChanged: (data, rows) => {
@@ -75,15 +76,46 @@ export default function DataTable({
       }
     });
 
+    instance.on("tableBuilt", () => {
+      isBuiltRef.current = true;
+      if (tabulatorRef.current) {
+        tabulatorRef.current.redraw(true);
+      }
+    });
+
+    tabulatorRef.current = instance;
+
     return () => {
-      tabulatorRef.current?.destroy();
+      isBuiltRef.current = false;
+      instance.destroy();
       tabulatorRef.current = null;
     };
-  }, [filteredData, columns, loading, pageSize, density]);
+  }, [loading]);
 
-  // Sync pagination page changes
+  // Update Data dynamically without destroying table
   useEffect(() => {
-    if (tabulatorRef.current) {
+    if (tabulatorRef.current && isBuiltRef.current && !loading) {
+      tabulatorRef.current.replaceData(filteredData).catch(() => {});
+    }
+  }, [filteredData, loading]);
+
+  // Update Columns dynamically if needed without destroying table
+  useEffect(() => {
+    if (tabulatorRef.current && isBuiltRef.current && !loading) {
+      tabulatorRef.current.setColumns(columns).catch(() => {});
+    }
+  }, [columns, loading]);
+
+  // Sync Page Size
+  useEffect(() => {
+    if (tabulatorRef.current && isBuiltRef.current) {
+      tabulatorRef.current.setPageSize(pageSize).catch(() => {});
+    }
+  }, [pageSize]);
+
+  // Sync Current Page Navigation
+  useEffect(() => {
+    if (tabulatorRef.current && isBuiltRef.current) {
       tabulatorRef.current.setPage(currentPage).catch(() => {});
     }
   }, [currentPage]);
@@ -119,7 +151,10 @@ export default function DataTable({
         subtitle={subtitle}
         totalRecords={filteredData.length}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          setCurrentPage(1);
+        }}
         density={density}
         onDensityChange={setDensity}
         onExportCSV={handleExportCSV}

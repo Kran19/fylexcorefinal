@@ -132,11 +132,24 @@ const OffersPage = () => {
       </div>`,
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
-        if (e.target.closest('.btn-icon')) {
-          handleEdit(d);
-        }
-        if (e.target.closest('.btn-icon-delete')) {
-          setDeleteConfirmId(d.id);
+        if (e.target.closest('.style-btn-edit')) {
+          setEditingRecord(d);
+          setForm({
+            name: d.name || '',
+            code: d.code || '',
+            offerType: d.offerType || 'percentage',
+            couponType: d.couponType || 'public',
+            discountValue: d.discountValue?.toString() || '',
+            startsAt: d.startsAt ? new Date(d.startsAt).toISOString().split('T')[0] : '',
+            endsAt: d.endsAt ? new Date(d.endsAt).toISOString().split('T')[0] : '',
+            description: d.description || '',
+            isActive: d.status === 1 || d.isActive === true,
+            maxUses: d.maxUses?.toString() || '',
+            categoryIds: d.categories?.map(c => c.categoryId.toString()) || []
+          });
+          setShowForm(true);
+        } else if (e.target.closest('.style-btn-delete')) {
+          setDeleteTarget({ id: d.id, name: d.name });
         }
       },
     },

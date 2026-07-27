@@ -103,7 +103,7 @@ const AttributeList = () => {
       </div>`,
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
-        if (e.target.closest('.btn-icon-edit')) {
+        if (e.target.closest('.style-btn-edit')) {
           setEditingRecord(d);
           setAttrForm({
             name: d.name || '',
@@ -113,8 +113,9 @@ const AttributeList = () => {
             isActive: d.isActive === true || d.isActive === 1
           });
           setShowAttrForm(true);
+        } else if (e.target.closest('.style-btn-delete')) {
+          setDeleteTarget({ type: 'attribute', id: d.id, name: d.name });
         }
-        if (e.target.closest('.btn-icon-delete')) setDeleteTarget({ type: 'attribute', id: d.id, name: d.name });
       }
     },
   ];

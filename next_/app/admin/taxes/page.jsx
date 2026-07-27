@@ -105,7 +105,7 @@ const TaxPage = () => {
       </div>`,
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
-        if (e.target.closest('.btn-icon')) {
+        if (e.target.closest('.style-btn-edit')) {
           setEditingRate(d);
           setRateForm({
             name: d.name || '',
@@ -120,8 +120,7 @@ const TaxPage = () => {
             isActive: d.isActive === true || d.isActive === 1
           });
           setShowRateForm(true);
-        }
-        if (e.target.closest('.btn-icon-delete')) {
+        } else if (e.target.closest('.style-btn-delete')) {
           setDeleteTarget({ id: d.id, name: d.name, type: 'rate' });
         }
       },
@@ -153,11 +152,11 @@ const TaxPage = () => {
       title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 110,
       formatter: () => `<div class="flex gap-2 justify-end">
         <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Edit"><i class="fas fa-edit"></i></button>
-        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete"><i class="fas fa-trash-alt"></i></button>
+        <button class="btn-icon style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete"><i class="fas fa-trash-alt"></i></button>
       </div>`,
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
-        if (e.target.closest('.btn-icon')) {
+        if (e.target.closest('.style-btn-edit')) {
           setEditingClass(d);
           setClassForm({
             name: d.name || '',
@@ -167,8 +166,7 @@ const TaxPage = () => {
             isDefault: d.isDefault === true || d.isDefault === 1
           });
           setShowClassForm(true);
-        }
-        if (e.target.closest('.btn-icon-delete')) {
+        } else if (e.target.closest('.style-btn-delete')) {
           setDeleteTarget({ id: d.id, name: d.name, type: 'class' });
         }
       },

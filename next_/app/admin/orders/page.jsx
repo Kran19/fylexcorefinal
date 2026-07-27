@@ -113,10 +113,9 @@ const OrdersPage = () => {
       </div>`,
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
-        if (e.target.closest('.btn-icon')) {
+        if (e.target.closest('.style-btn-edit')) {
           router.push(`/admin/orders/${d.id}`);
-        }
-        if (e.target.closest('.btn-icon-delete')) {
+        } else if (e.target.closest('.style-btn-delete')) {
           deleteRecord('orders', d.id, api.deleteOrder);
         }
       },

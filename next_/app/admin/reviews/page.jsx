@@ -87,11 +87,10 @@ const ReviewsPage = () => {
       </div>`,
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
-        if (e.target.closest('.btn-icon')) {
+        if (e.target.closest('.style-btn-edit')) {
           setSelectedReview(d);
           setShowDetail(true);
-        }
-        if (e.target.closest('.btn-icon-delete')) {
+        } else if (e.target.closest('.style-btn-delete')) {
           setDeleteTarget({ id: d.id, name: d.customer?.name });
         }
       }

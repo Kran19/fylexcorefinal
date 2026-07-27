@@ -106,12 +106,9 @@ const AdminProducts = () => {
       </div>`,
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
-        if (e.target.closest('.btn-icon')) {
-          e.stopPropagation();
+        if (e.target.closest('.style-btn-edit')) {
           router.push(`/admin/products/edit/${d.id}`);
-        }
-        if (e.target.closest('.btn-icon-delete')) {
-          e.stopPropagation();
+        } else if (e.target.closest('.style-btn-delete')) {
           setDeleteTarget({ id: d.id, name: d.name });
         }
       },

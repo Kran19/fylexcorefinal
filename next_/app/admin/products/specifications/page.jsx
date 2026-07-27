@@ -83,6 +83,44 @@ const SpecificationManagement = () => {
 
 
 
+  const openModal = (rec) => {
+    setEditingRecord(rec);
+    if (rec) {
+      setForm({
+        name: rec.name || '', code: rec.code || '', type: rec.type || 'select',
+        sortOrder: Number(rec.sortOrder) || 0, isRequired: !!rec.isRequired,
+        isFilterable: !!rec.isFilterable, isActive: !!rec.isActive
+      });
+    } else {
+      setForm({ name: '', code: '', type: 'select', sortOrder: 0, isRequired: false, isFilterable: true, isActive: true });
+    }
+    setShowForm(true);
+  };
+
+  const openGroupModal = (rec) => {
+    setEditingRecord(rec);
+    if (rec) {
+      setGroupForm({
+        name: rec.name || '',
+        sortOrder: Number(rec.sortOrder) || 0,
+        specificationIds: rec.specifications?.map(s => s.specificationId.toString()) || []
+      });
+    } else {
+      setGroupForm({ name: '', sortOrder: 0, specificationIds: [] });
+    }
+    setShowGroupForm(true);
+  };
+
+  const openValueModal = (rec) => {
+    setEditingRecord(rec);
+    if (rec) {
+      setValueForm({ value: rec.value || '', sortOrder: Number(rec.sortOrder) || 0, status: rec.status !== undefined ? rec.status : 1 });
+    } else {
+      setValueForm({ value: '', sortOrder: 0, status: 1 });
+    }
+    setShowValueForm(true);
+  };
+
   const currentData = activeTab === 'specs' ? specifications : (activeTab === 'groups' ? groups : specValues);
   
   let columns = [];
@@ -155,13 +193,13 @@ const SpecificationManagement = () => {
       {
         title: "Actions", width: 110, headerSort: false, hozAlign: "right",
         formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-          <button class="btn-icon btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Specification"><i class="fas fa-edit"></i></button>
-          <button class="btn-icon btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Specification"><i class="fas fa-trash-alt"></i></button>
+          <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Specification"><i class="fas fa-edit"></i></button>
+          <button class="btn-icon style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Specification"><i class="fas fa-trash-alt"></i></button>
         </div>`,
         cellClick: (e, cell) => {
           const d = cell.getRow().getData();
-          if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) openModal(d);
-          if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.name });
+          if (e.target.closest('.style-btn-edit')) openModal(d);
+          else if (e.target.closest('.style-btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.name });
         }
       },
     ];
@@ -189,14 +227,14 @@ const SpecificationManagement = () => {
         title: "Actions", width: 140, headerSort: false, hozAlign: "right",
         formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
           <button class="btn-icon btn-icon-view" style="background:#e0f2fe;color:#0284c7;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="View Group Details"><i class="fas fa-eye"></i></button>
-          <button class="btn-icon btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Group"><i class="fas fa-edit"></i></button>
-          <button class="btn-icon btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Group"><i class="fas fa-trash-alt"></i></button>
+          <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Group"><i class="fas fa-edit"></i></button>
+          <button class="btn-icon style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Group"><i class="fas fa-trash-alt"></i></button>
         </div>`,
         cellClick: (e, cell) => {
           const d = cell.getRow().getData();
-          if (e.target.closest('.btn-icon-view') || e.target.closest('.btn-view')) { setSelectedGroup(d); setShowGroupView(true); }
-          if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) openGroupModal(d);
-          if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.name });
+          if (e.target.closest('.btn-icon-view')) { setSelectedGroup(d); setShowGroupView(true); }
+          else if (e.target.closest('.style-btn-edit')) openGroupModal(d);
+          else if (e.target.closest('.style-btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.name });
         }
       },
     ];
@@ -226,13 +264,13 @@ const SpecificationManagement = () => {
       {
         title: "Actions", width: 110, headerSort: false, hozAlign: "right",
         formatter: () => `<div class="table-actions" style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
-          <button class="btn-icon btn-icon-edit style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Option Value"><i class="fas fa-edit"></i></button>
-          <button class="btn-icon btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Option Value"><i class="fas fa-trash-alt"></i></button>
+          <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Edit Option Value"><i class="fas fa-edit"></i></button>
+          <button class="btn-icon style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center" title="Delete Option Value"><i class="fas fa-trash-alt"></i></button>
         </div>`,
         cellClick: (e, cell) => {
           const d = cell.getRow().getData();
-          if (e.target.closest('.btn-icon-edit') || e.target.closest('.btn-edit')) openValueModal(d);
-          if (e.target.closest('.btn-icon-delete') || e.target.closest('.btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.value });
+          if (e.target.closest('.style-btn-edit')) openValueModal(d);
+          else if (e.target.closest('.style-btn-delete')) setDeleteTarget({ type: activeTab, id: d.id, name: d.value });
         }
       },
     ];
