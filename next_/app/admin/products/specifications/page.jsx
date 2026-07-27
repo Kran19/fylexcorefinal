@@ -79,40 +79,8 @@ const SpecificationManagement = () => {
   };
 
   // ─── Table Effect ───
-  useEffect(() => {
-    if (!tableRef.current) return;
-    if (activeTab === 'specs' && loading.specifications) return;
-    if (activeTab === 'groups' && loading.specificationGroups) return;
-    if (activeTab === 'values' && loadingValues) return;
 
-    tabulatorRef.current?.destroy();
 
-    actionsRef.current = {
-      onEdit: (rec) => {
-        setEditingRecord(rec);
-        if (activeTab === 'specs') {
-          setForm({
-            name: rec.name || '', code: rec.code || '', type: rec.type || 'select',
-            sortOrder: Number(rec.sortOrder) || 0, isRequired: !!rec.isRequired,
-            isFilterable: !!rec.isFilterable, isActive: !!rec.isActive
-          });
-          setShowForm(true);
-        } else if (activeTab === 'groups') {
-          setGroupForm({
-            name: rec.name || '',
-            sortOrder: Number(rec.sortOrder) || 0,
-            specificationIds: rec.specifications?.map(s => s.specificationId.toString()) || []
-          });
-          setShowGroupForm(true);
-        } else if (activeTab === 'values') {
-          setValueForm({ value: rec.value || '', sortOrder: Number(rec.sortOrder) || 0, status: rec.status !== undefined ? rec.status : 1 });
-          setShowValueForm(true);
-        }
-      },
-      onDelete: (id, name) => setDeleteTarget({ type: activeTab, id, name }),
-      onViewValues: (spec) => { setSelectedSpec(spec); setActiveTab('values'); },
-      onViewGroup: (group) => { setSelectedGroup(group); setShowGroupView(true); }
-  };
 
   const currentData = activeTab === 'specs' ? specifications : (activeTab === 'groups' ? groups : specValues);
   

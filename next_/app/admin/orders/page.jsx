@@ -27,38 +27,7 @@ const OrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [tableBuilt, setTableBuilt] = useState(false);
 
-  const actionsRef = useRef({});
 
-  useEffect(() => {
-    if (!tableRef.current || loading.orders) return;
-    tabulatorRef.current?.destroy();
-
-    actionsRef.current = {
-      onView: (id) => router.push(`/admin/orders/${id}`),
-      onDelete: async (id) => {
-        const result = await Swal.fire({
-          title: 'Delete this order?',
-          text: "Are you sure you want to delete this order?",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#d33',
-          cancelButtonColor: '#3085d6',
-          confirmButtonText: 'Yes, delete it'
-        });
-        if (!result.isConfirmed) return;
-        try {
-          const res = await deleteOrderApi(id);
-          if (res.success) {
-            toast.success('Order deleted successfully');
-            refetch.orders();
-          } else {
-            toast.error(res.error || 'Failed to delete order');
-          }
-        } catch (error) {
-          toast.error('Failed to delete order');
-        }
-      }
-    };
 
   const columns = [
     {

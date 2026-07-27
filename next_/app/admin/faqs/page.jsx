@@ -40,23 +40,7 @@ const FaqsManagement = () => {
   });
   const [formErrors, setFormErrors] = useState({});
 
-  useEffect(() => {
-    if (!tableRef.current || loading.faqs) return;
-    tabulatorRef.current?.destroy();
 
-    actionsRef.current = {
-      onEdit: (rec) => {
-        setEditingItem(rec);
-        setFormData({
-          question: rec.question || '',
-          answer: rec.answer || '',
-          sortOrder: rec.sortOrder?.toString() || '0',
-          isActive: rec.isActive
-        });
-        setShowForm(true);
-      },
-      onDelete: (id, name) => setDeleteTarget({ id, name })
-    };
 
   const columns = [
     { title: 'ID', field: 'id', width: 70, hozAlign: 'center', formatter: (cell) => `<span class="text-slate-400 font-bold">#${cell.getValue()}</span>` },

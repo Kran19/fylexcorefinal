@@ -31,30 +31,7 @@ const AdminProducts = () => {
 
   const router = useRouter();
 
-  useEffect(() => {
-    if (!tableRef.current || loading.products) return;
-    tabulatorRef.current?.destroy();
 
-    actionsRef.current = {
-      onDelete: (id, name) => setDeleteTarget({ id, name }),
-      onToggleStatus: async (cell) => {
-        const d = cell.getRow().getData();
-        const currentStatus = d.isActive === true || d.isActive === 1 || d.status === 'active';
-        const newStatus = !currentStatus;
-        
-        // Optimistic UI update
-        cell.setValue(newStatus);
-        
-        const res = await api.updateProduct(d.id, { isActive: newStatus });
-        if (res.success) {
-            toast.success(`Product marked as ${newStatus ? 'active' : 'inactive'}`);
-            refetch.products?.(); 
-        } else {
-            cell.setValue(currentStatus);
-            toast.error(res.error || 'Failed to update status');
-        }
-      }
-    };
 
   const columns = [
     {

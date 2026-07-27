@@ -38,14 +38,7 @@ const ReviewsPage = () => {
     const [deleting, setDeleting] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
 
-    useEffect(() => {
-        if (!tableRef.current || loading.reviews) return;
-        tabulatorRef.current?.destroy();
 
-        actionsRef.current = {
-            onView: (r) => { setSelectedReview(r); setShowDetail(true); },
-            onDelete: (id, name) => setDeleteTarget({ id, name }),
-        };
 
   const columns = [
     {

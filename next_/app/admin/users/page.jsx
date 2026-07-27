@@ -33,26 +33,7 @@ const UsersPage = () => {
 
   const actionsRef = useRef({});
 
-  useEffect(() => {
-    if (!tableRef.current || loading.users) return;
-    tabulatorRef.current?.destroy();
 
-    actionsRef.current = {
-      onView: async (u) => { 
-        setSelectedUser(u); 
-        setShowDetails(true); 
-        setFetchingProfile(true);
-        const res = await api.getUser(u.id);
-        if (res.success) {
-          setSelectedUser(res.data);
-        } else {
-          toast.error("Failed to fetch full profile");
-        }
-        setFetchingProfile(false);
-      },
-      onBlock: (u) => setBlockTarget({ id: u.id, name: u.name, isBlocked: u.isBlocked }),
-      onDelete: (u) => setDeleteTarget({ id: u.id, name: u.name }),
-    };
 
   const columns = [
     {

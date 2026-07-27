@@ -50,30 +50,7 @@ const OffersPage = () => {
   });
   const [formErrors, setFormErrors] = useState({});
 
-  useEffect(() => {
-    if (!tableRef.current || loading.offers) return;
-    tabulatorRef.current?.destroy();
-    actionsRef.current = {
-      onAnalytics: (rec) => setViewingAnalytics(rec),
-      onEdit: (rec) => {
-        setEditingRecord(rec);
-        setForm({
-          name: rec.name || '',
-          code: rec.code || '',
-          offerType: rec.offerType || 'percentage',
-          couponType: rec.couponType || 'public',
-          discountValue: rec.discountValue?.toString() || '',
-          startsAt: rec.startsAt ? new Date(rec.startsAt).toISOString().split('T')[0] : '',
-          endsAt: rec.endsAt ? new Date(rec.endsAt).toISOString().split('T')[0] : '',
-          description: rec.description || '',
-          isActive: rec.status === 1 || rec.isActive === true,
-          maxUses: rec.maxUses?.toString() || '',
-          categoryIds: rec.categories?.map(c => c.categoryId.toString()) || []
-        });
-        setShowForm(true);
-      },
-      onDelete: (id, name) => setDeleteTarget({ id, name })
-    };
+
 
   const columns = [
     {

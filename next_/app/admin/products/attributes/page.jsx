@@ -39,33 +39,7 @@ const AttributeList = () => {
   const actionsRef = useRef({});
 
   // ─── Attribute Table ───
-  useEffect(() => {
-    if (!tableRef.current || loading.attributes || view !== 'list') return;
-    tabulatorRef.current?.destroy();
 
-    actionsRef.current = {
-      onEdit: (rec) => {
-        setEditingRecord(rec);
-        setAttrForm({
-          name: rec.name || '',
-          code: rec.code || '',
-          type: rec.type || 'select',
-          isVariant: !!rec.isVariant,
-          isActive: rec.isActive === true || rec.isActive === 1
-        });
-        setShowAttrForm(true);
-      },
-      onDelete: (id, name) => setDeleteTarget({ type: 'attribute', id, name }),
-      onViewValues: (attr) => {
-        setSelectedAttr(attr);
-        setView('values');
-      },
-      onAddValue: (attr) => {
-        setSelectedAttr(attr);
-        setValForm({ label: '', value: '', sortOrder: 0, isActive: true });
-        setShowValForm(true);
-      }
-    };
 
   const columns = [
     { title: "ID", field: "id", width: 70, hozAlign: "center", formatter: cell => `<span style="font-weight:600;color:#94a3b8">#${cell.getValue()}</span>` },

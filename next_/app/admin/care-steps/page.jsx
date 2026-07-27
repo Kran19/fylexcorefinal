@@ -42,24 +42,7 @@ const CareStepsManagement = () => {
   });
   const [formErrors, setFormErrors] = useState({});
 
-  useEffect(() => {
-    if (!tableRef.current || loading.productCareSteps) return;
-    tabulatorRef.current?.destroy();
 
-    actionsRef.current = {
-      onEdit: (rec) => {
-        setEditingItem(rec);
-        setFormData({
-          productId: rec.productId?.toString() || '',
-          stepNumber: rec.stepNumber?.toString() || '1',
-          title: rec.title || '',
-          description: rec.description || '',
-          imageUrl: rec.imageUrl || ''
-        });
-        setShowForm(true);
-      },
-      onDelete: (id, name) => setDeleteTarget({ id, name })
-    };
 
   const columns = [
     { title: 'STEP NO', field: 'stepNumber', width: 90, hozAlign: 'center', formatter: (cell) => `<span class="w-6 h-6 inline-flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-full font-bold text-xs">${cell.getValue()}</span>` },
