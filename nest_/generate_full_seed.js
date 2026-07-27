@@ -8,6 +8,7 @@ async function exportFullDatabase() {
   console.log('📦 Fetching data from local database...');
 
   const data = {
+    admins: await prisma.admin.findMany(),
     settings: await prisma.setting.findMany(),
     banners: await prisma.banner.findMany(),
     homeSections: await prisma.homeSection.findMany(),
@@ -45,7 +46,7 @@ async function exportFullDatabase() {
   const seedScriptContent = `/**
  * FYLEX FULL DATABASE SEED SCRIPT
  * Generated automatically from local database.
- * Contains: Products, Variants, Settings, FAQs, Banners, HomeSections, CareSteps, Testimonials, etc.
+ * Contains: Admins, Products, Variants, Settings, FAQs, Banners, HomeSections, CareSteps, Testimonials, etc.
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -55,6 +56,21 @@ const SEED_DATA = ${JSON.stringify(data, null, 2)};
 
 async function main() {
   console.log('🚀 Starting Full Database Seed...');
+
+  // 0. Admins
+  console.log('⏳ Seeding Admin user (admin@fylex.com)...');
+  const defaultAdminPasswordHash = '$2b$10$jCnaE/qg9wx43TNgApPdm.47Ym/qSj3UVmH6YtFJmD5FbtnjFWeS6'; // 'admin123'
+  await prisma.admin.upsert({
+    where: { email: 'admin@fylex.com' },
+    update: { password: defaultAdminPasswordHash, status: 1 },
+    create: {
+      name: 'Fylex Admin',
+      email: 'admin@fylex.com',
+      password: defaultAdminPasswordHash,
+      role: 'admin',
+      status: 1
+    }
+  }).catch(e => console.error('  Admin error:', e.message));
 
   // 1. Settings (Fixed group_key unique constraint)
   console.log('⏳ Seeding Settings (' + SEED_DATA.settings.length + ')...');

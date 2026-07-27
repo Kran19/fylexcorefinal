@@ -1,13 +1,45 @@
 /**
  * FYLEX FULL DATABASE SEED SCRIPT
  * Generated automatically from local database.
- * Contains: Products, Variants, Settings, FAQs, Banners, HomeSections, CareSteps, Testimonials, etc.
+ * Contains: Admins, Products, Variants, Settings, FAQs, Banners, HomeSections, CareSteps, Testimonials, etc.
  */
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const SEED_DATA = {
+  "admins": [
+    {
+      "id": 1,
+      "name": "Fylex Admin",
+      "email": "admin@fylex.com",
+      "password": "$2b$10$vtgC4cdjm1GPSpY8JsTvju0asFzUc3oq0FV8Vp/pr4WN3wBOdEBK2",
+      "role": "admin",
+      "status": 1,
+      "passwordChangedAt": null,
+      "lastLoginAt": null,
+      "lastLoginIp": null,
+      "rememberToken": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "deletedAt": null
+    },
+    {
+      "id": 2,
+      "name": "Primary Admin",
+      "email": "admin@gmail.com",
+      "password": "$2b$10$E9VJyqyTIA5npYcDCrqmFuKVz/tFwWStsdf74czk69GTTJUFBi8/y",
+      "role": "admin",
+      "status": 1,
+      "passwordChangedAt": null,
+      "lastLoginAt": null,
+      "lastLoginIp": null,
+      "rememberToken": null,
+      "createdAt": null,
+      "updatedAt": null,
+      "deletedAt": null
+    }
+  ],
   "settings": [
     {
       "id": 8,
@@ -6306,6 +6338,21 @@ const SEED_DATA = {
 
 async function main() {
   console.log('🚀 Starting Full Database Seed...');
+
+  // 0. Admins
+  console.log('⏳ Seeding Admin user (admin@fylex.com)...');
+  const defaultAdminPasswordHash = '$2b$10$jCnaE/qg9wx43TNgApPdm.47Ym/qSj3UVmH6YtFJmD5FbtnjFWeS6'; // 'admin123'
+  await prisma.admin.upsert({
+    where: { email: 'admin@fylex.com' },
+    update: { password: defaultAdminPasswordHash, status: 1 },
+    create: {
+      name: 'Fylex Admin',
+      email: 'admin@fylex.com',
+      password: defaultAdminPasswordHash,
+      role: 'admin',
+      status: 1
+    }
+  }).catch(e => console.error('  Admin error:', e.message));
 
   // 1. Settings (Fixed group_key unique constraint)
   console.log('⏳ Seeding Settings (' + SEED_DATA.settings.length + ')...');
