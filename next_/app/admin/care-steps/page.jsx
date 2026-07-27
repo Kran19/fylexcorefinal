@@ -286,4 +286,4 @@ const CareStepsManagement = () => {
   );
 };
 
-export default CareStepsPage;
+export default CareStepsManagement;

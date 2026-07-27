@@ -227,4 +227,4 @@ const FaqsManagement = () => {
   );
 };
 
-export default FaqPage;
+export default FaqsManagement;
