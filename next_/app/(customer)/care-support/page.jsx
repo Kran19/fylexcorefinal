@@ -389,7 +389,7 @@ export default function CareSupport() {
           Have questions? Chat with our care team on WhatsApp.
         </p>
         <a 
-          href={`https://wa.me/919724916167?text=${whatsappText}`} 
+          href={`https://wa.me/919664653623?text=${whatsappText}`} 
           target="_blank" 
           rel="noopener noreferrer"
           className="wa-btn"

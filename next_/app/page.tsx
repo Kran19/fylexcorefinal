@@ -297,11 +297,12 @@ const Home = () => {
       }
 
       try {
-        const { data: cImages } = await cmsService.getCommunityImages();
-        if (cImages && Array.isArray(cImages) && cImages.length > 0) {
+        const res = await cmsService.getCommunityImages();
+        const cImages = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        if (cImages && cImages.length > 0) {
           setCommunityImages(cImages.map((img: any) => ({
-            src: img.image?.startsWith('http') ? img.image : getFileUrl(img.image),
-            alt: img.title || 'Atelier'
+            src: getFileUrl(img.image || img.imageUrl || img.image_url || img.url),
+            alt: img.title || 'The FYLEX World'
           })));
         }
       } catch (err) {

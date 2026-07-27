@@ -182,3 +182,18 @@ export const deletePolicy = (id) => request('DELETE', `/policies/${id}`);
 export const fetchSettings = () => request('GET', '/system/settings');
 export const fetchBoxes = () => request('GET', '/boxes');
 
+// Community / CMS API
+export const getCommunityImages = () => request('GET', '/cms/community-images');
+export const getAllCommunityImages = () => request('GET', '/cms/community-images/all');
+export const createCommunityImage = (data) => request('POST', '/cms/community-images', data);
+export const updateCommunityImage = (id, data) => request('PUT', `/cms/community-images/${id}`, data);
+export const deleteCommunityImage = (id) => request('DELETE', `/cms/community-images/${id}`);
+
+export const cmsService = {
+  getCommunityImages,
+  getAllCommunityImages,
+  createCommunityImage,
+  updateCommunityImage,
+  deleteCommunityImage,
+};
+
