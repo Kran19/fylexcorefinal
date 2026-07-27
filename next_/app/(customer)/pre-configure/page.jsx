@@ -197,7 +197,7 @@ const PreConfigure = () => {
           width: 100%;
           height: 100%;
           object-fit: contain;
-          transform: scale(1.0);
+          transform: scale(1.45);
           filter: drop-shadow(0 30px 60px rgba(0,0,0,0.15));
           transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
         }
@@ -393,9 +393,9 @@ const PreConfigure = () => {
           }
           .product-image {
             width: auto;
-            height: 85%;
-            max-height: 800px;
-            transform: scale(1.1);
+            height: 90%;
+            max-height: 850px;
+            transform: scale(1.55);
             filter: drop-shadow(0 40px 80px rgba(0,0,0,0.3));
           }
           .product-info {
@@ -408,24 +408,24 @@ const PreConfigure = () => {
             text-align: left;
             display: flex;
             flex-direction: column;
-            gap: 25px;
+            gap: 20px;
             color: var(--theme-text, #1a1a1a);
           }
           .product-name {
             font-size: clamp(2.2rem, 3.8vw, 3.2rem);
             line-height: 1.05;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: var(--theme-text, #1a1a1a);
           }
           .product-price {
             font-size: 1.5rem;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: var(--theme-text, #1a1a1a);
             opacity: 0.8;
           }
           .product-desc-container {
             max-width: 480px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
           }
           .product-desc {
             font-size: 1.15rem;
@@ -439,9 +439,9 @@ const PreConfigure = () => {
           }
           .btn-configure {
             width: fit-content;
-            padding: 8px 24px;
-            font-size: 0.7rem;
-            letter-spacing: 0.12em;
+            padding: 12px 36px;
+            font-size: 0.78rem;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
             background: var(--theme-text, #1a1a1a);
             color: var(--theme-bg, #fff);
@@ -679,15 +679,9 @@ const PreConfigure = () => {
                           i
                         </button>
                       </div>
-                      <div className="flex gap-4 items-center mt-6 btn-container flex-wrap">
+                      <div className="flex items-center mt-3 btn-container">
                         <Link href={`/configure?watch=${product.id}`} className="btn-configure">
                           Configure
-                        </Link>
-                        <Link 
-                          href={`/discover?watch=${product.id}`} 
-                          className="btn-explore"
-                        >
-                          Explore Details &rarr;
                         </Link>
                       </div>
                     </div>
