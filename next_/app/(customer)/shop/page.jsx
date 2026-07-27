@@ -9,6 +9,8 @@ import Link from 'next/link';
 import { fetchProducts, fetchVariant } from '../../../lib/api';
 import cmsService from '@/services/cms.service';
 import { getFileUrl, resolveProductImage, getDisplayData, resolveProductBackground } from '@/lib/utils';
+import { useCart } from '@/context/CartContext';
+import { useToast } from '@/context/ToastContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -17,11 +19,28 @@ export default function Shop() {
   const canvasRef = useRef(null);
   const mainWatchRef = useRef(null);
 
+  const { addToCart } = useCart();
+  const toast = useToast();
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeWatchIndex, setActiveWatchIndex] = useState(0);
   const [videoSettings, setVideoSettings] = useState({});
   const [founderVariant, setFounderVariant] = useState(null);
+  const [addingFounder, setAddingFounder] = useState(false);
+
+  const handleAddToCart = async (e, variant) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const vId = variant?.id || variant?.productId;
+    if (!vId) return;
+    setAddingFounder(true);
+    const res = await addToCart(vId.toString(), 1);
+    setAddingFounder(false);
+    if (res?.success !== false) {
+      toast?.success?.('Added Founder’s Pick to Cart!');
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -707,20 +726,48 @@ export default function Shop() {
                       fontWeight: '500',
                       marginBottom: '10px'
                     }}>
-                      {founderVariant.product?.name || 'Watch'} - {founderVariant.sku}
+                      {founderVariant.product?.name || 'Watch'}
                     </h4>
-                    <div 
-                      className="bf"
-                      style={{
-                        marginTop: '15px',
-                        padding: '12px 24px',
-                        background: 'transparent',
-                        border: '1px solid var(--fyl-gold)',
-                        color: 'var(--fyl-gold)',
-                        letterSpacing: '0.2em'
-                      }}
-                    >
-                      DISCOVER TIMEPIECE
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px', justifyContent: 'center', width: '100%' }}>
+                      <button 
+                        onClick={(e) => handleAddToCart(e, founderVariant)}
+                        disabled={addingFounder}
+                        className="bf"
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: 'var(--fyl-gold)',
+                          border: '1px solid var(--fyl-gold)',
+                          color: '#000',
+                          fontWeight: '700',
+                          letterSpacing: '0.12em',
+                          cursor: 'pointer',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        {addingFounder ? 'ADDING...' : 'ADD TO CART'}
+                      </button>
+                      <div 
+                        className="bf"
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: 'transparent',
+                          border: '1px solid rgba(255,255,255,0.3)',
+                          color: '#fff',
+                          letterSpacing: '0.12em',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        DISCOVER
+                      </div>
                     </div>
                   </Link>
                 )}
