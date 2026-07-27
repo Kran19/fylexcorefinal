@@ -6,23 +6,22 @@ import settingsService from '@/services/settings.service';
 const DesignSystemContext = createContext();
 
 const defaultTheme = {
-  // Global Brand Settings
-  'brand-primary': '#1C2E4A',      // --fyl-deep-blue
-  'brand-secondary': '#F2C94C',    // --fyl-gold
-  'brand-accent': '#F28C38',       // --fyl-orange
-  'brand-black': '#0A0A0A',        // --fyl-black
-  'brand-white': '#F9F9F7',        // --fyl-white
-  'brand-silver': '#D3D3D3',       // --fyl-silver
-  'brand-teal': '#48C9B0',         // --fyl-teal
-  'brand-charcoal': '#555555',     // --fyl-charcoal
+  // Official FYLEX Brand Kit Settings
+  'brand-primary': '#161413',      // Kokushoku Black
+  'brand-secondary': '#C79A67',    // Champagne Gold
+  'brand-accent': '#82694A',       // Bronze
+  'brand-black': '#000000',        // Pure Black
+  'brand-white': '#FFFFFF',        // Pure White
+  'brand-silver': '#999B98',       // Walrus Gray
+  'brand-cream': '#FFF6ED',        // Fatback Light Cream
+  'brand-charcoal': '#999B98',     // Walrus
   
-  // New Global Settings mapped directly
-  'bg-primary': '#F9F9F7',         
-  'text-primary': '#111111',
-  'text-secondary': '#555555',
+  'bg-primary': '#161413',         
+  'text-primary': '#FFF6ED',
+  'text-secondary': '#999B98',
   
-  'btn-primary-bg': '#1a1a1a',
-  'btn-primary-text': '#ffffff',
+  'btn-primary-bg': '#161413',
+  'btn-primary-text': '#FFF6ED',
   'btn-radius': '999px',
   
   'radius-global': '12px',

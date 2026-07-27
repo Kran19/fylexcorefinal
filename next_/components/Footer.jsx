@@ -7,10 +7,10 @@ const Footer = () => {
     <>
       <style>{`
         footer.footer-v1 {
-          background: #000000;
+          background: #161413;
           padding: 60px clamp(20px, 5vw, 56px) 30px;
           min-height: 400px;
-          border-top: 1px solid var(--gold-dim);
+          border-top: 1px solid rgba(199, 154, 103, 0.25);
           position: relative;
           display: flex;
           flex-direction: column;
@@ -39,17 +39,18 @@ const Footer = () => {
         .footer-brand-v1 { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
         
         .footer-link-v1 {
+          font-family: 'Futura', 'Inter', sans-serif;
           font-size: 0.75rem; font-weight: 500;
           letter-spacing: 0.15em; text-transform: uppercase;
           color: #ffffff; text-decoration: none;
           transition: color 0.3s, transform 0.3s;
           display: inline-block;
-          opacity: 0.8;
+          opacity: 0.85;
         }
-        .footer-link-v1:hover { color: #ffffff; opacity: 1; transform: translateY(-2px); }
+        .footer-link-v1:hover { color: #C79A67; opacity: 1; transform: translateY(-2px); }
         .footer-brand-v1 p {
           font-size: 0.85rem; line-height: 1.6;
-          color: rgba(255, 255, 255, 0.7);
+          color: #999B98;
           max-width: 320px; 
           margin-top: 0;
         }
@@ -60,14 +61,14 @@ const Footer = () => {
           flex-wrap: wrap;
           gap: 20px;
           padding-top: 30px;
-          border-top: 1px solid rgba(255,255,255,0.1);
+          border-top: 1px solid rgba(255,255,255,0.08);
         }
         .footer-bottom-v1 p {
           font-size: 0.6rem; letter-spacing: 0.2em;
-          text-transform: uppercase; color: rgba(255, 255, 255, 0.6);
+          text-transform: uppercase; color: #999B98;
         }
         .footer-logo-v1 {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
+          font-family: 'Monument', 'Inter', sans-serif;
           font-size: 1.8rem; letter-spacing: 0.25em; color: #ffffff;
           text-transform: uppercase; text-decoration: none; display: flex; align-items: center; gap: 10px;
         }

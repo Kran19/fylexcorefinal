@@ -150,8 +150,8 @@ const Header = () => {
         .header-right-item svg { width: 18px; height: 18px; stroke-width: 1.5; }
 
         .badge-v1 {
-          background: #008767;
-          color: #fff;
+          background: #C79A67;
+          color: #161413;
           font-size: 10px;
           font-weight: 700;
           min-width: 16px;
@@ -164,7 +164,7 @@ const Header = () => {
           position: absolute;
           top: -8px;
           right: -8px;
-          border: 1.5px solid #000;
+          border: 1.5px solid #161413;
           z-index: 5;
         }
         .header-right-item { position: relative; }
@@ -172,7 +172,7 @@ const Header = () => {
         .overlay-screen-v1 {
           position: fixed; top: 0; left: 0; width: 100%;
           z-index: 2500;
-          background: #000000;
+          background: #161413;
           display: flex;
           transform: translateY(-100%);
           transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1);

@@ -14,31 +14,24 @@
     /* Borders */
     --admin-border: #e4e8f0;
     --admin-border-light: #f1f4f9;
-    --admin-border-focus: rgba(99, 102, 241, 0.4);
-
-    /* Text */
-    --admin-text: #0e1726;
-    --admin-text-secondary: #4b5a7a;
-    --admin-text-muted: #8a96b0;
 
     /* Brand Colors */
-    --admin-primary: #4f46e5;
-    --admin-primary-light: #eef0ff;
-    --admin-primary-hover: #4338ca;
-    --admin-primary-glow: rgba(79, 70, 229, 0.22);
+    --admin-primary: #161413;
+    --admin-primary-light: #FFF6ED;
+    --admin-primary-hover: #C79A67;
+    --admin-primary-glow: rgba(199, 154, 103, 0.22);
 
     /* Semantic */
-    --admin-success: #059669;
-    --admin-success-light: #ecfdf5;
+    --admin-success: #C79A67;
+    --admin-success-light: #FFF6ED;
     --admin-danger: #dc2626;
     --admin-danger-light: #fef2f2;
-    --admin-warning: #d97706;
-    --admin-warning-light: #fffbeb;
-    --admin-info: #0284c7;
-    --admin-info-light: #e0f2fe;
+    --admin-warning: #82694A;
+    --admin-warning-light: #FFF6ED;
+    --admin-info: #82694A;
+    --admin-info-light: #FFF6ED;
 
     /* Sidebar */
-    --sidebar-bg: #0c1427;
     --sidebar-bg-deeper: #080e1c;
     --sidebar-border: rgba(255, 255, 255, 0.06);
     --sidebar-hover: rgba(255, 255, 255, 0.07);
