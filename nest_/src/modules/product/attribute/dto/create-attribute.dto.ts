@@ -3,12 +3,12 @@ import { Type } from 'class-transformer';
 
 export class CreateAttributeValueDto {
   @IsString()
-  @IsNotEmpty()
-  value: string;
+  @IsOptional()
+  value?: string;
 
   @IsString()
-  @IsNotEmpty()
-  label: string;
+  @IsOptional()
+  label?: string;
 
   @IsString()
   @IsOptional()
