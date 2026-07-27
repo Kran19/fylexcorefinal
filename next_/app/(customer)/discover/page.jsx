@@ -2299,52 +2299,116 @@ function DiscoverContent() {
           </section>
         )}
 
-        {/* ── UNIVERSAL SIGNATURE PACKAGING SHOWCASE (100% FULL-WIDTH) ── */}
+        {/* ── 100% FULL-WIDTH HORIZONTAL HERO BANNER FOR PACKAGING ── */}
         {product.productBoxes?.length > 0 && (() => {
           const mainBox = product.productBoxes[0];
           const boxImg = mainBox?.image;
+          const boxDesc = mainBox?.description || "Inspired by the travel cases from the 40's, simply sophisticated and refined, our packaging is crafted with attention to details to guarantee great robustness. It includes warranty and certificates papers, a micro-fiber cloth and a secondary strap.";
           return (
-            <section style={{ background: '#f5f5f3', padding: '80px 0 100px', width: '100%' }}>
-              <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 24px', width: '100%' }}>
+            <section style={{ 
+              width: '100%', 
+              background: '#f4f4f2', 
+              padding: '90px 0 110px', 
+              borderTop: '1px solid #e5e5e0', 
+              borderBottom: '1px solid #e5e5e0',
+              overflow: 'hidden'
+            }}>
+              <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '0 30px', width: '100%' }}>
                 {/* Section Header */}
-                <div style={{ marginBottom: '40px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#666', marginBottom: '12px' }}>Signature Packaging</p>
-                  <h2 style={{ fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                    {mainBox?.name || 'Exclusive Fylex Presentation Box'}
+                <div style={{ textAlign: 'center', marginBottom: '44px' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#666', marginBottom: '12px' }}>Included Packaging</p>
+                  <h2 style={{ fontSize: 'clamp(34px, 5vw, 60px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                    {mainBox?.name || 'Premium Boxes'}
                   </h2>
-                  <p style={{ fontSize: '15px', color: '#555', marginTop: '12px', maxWidth: '600px', margin: '12px auto 0', lineHeight: 1.6 }}>
-                    Every timepiece is delivered in our hand-crafted luxury presentation box, designed to preserve and protect your legacy.
-                  </p>
                 </div>
 
-                {/* 100% Width Universal Box Showcase */}
-                <div style={{ width: '100%', borderRadius: '16px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 20px 50px rgba(0,0,0,0.05)', border: '1px solid #eaeaea', position: 'relative' }}>
-                  {boxImg ? (
-                    <img
-                      src={boxImg}
-                      alt={mainBox?.name || 'Universal Packaging'}
-                      style={{
-                        width: '100%',
-                        height: 'auto',
-                        maxHeight: '680px',
-                        objectFit: 'contain',
-                        display: 'block',
-                        padding: '30px 20px',
-                        margin: '0 auto',
-                        transition: 'transform 0.8s ease'
-                      }}
-                    />
-                  ) : (
-                    <div style={{ padding: '120px 20px', textAlign: 'center', color: '#666' }}>
-                      <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>📦</span>
-                      <p style={{ fontSize: '14px', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>Universal Signature Packaging</p>
+                {/* 100% Width Horizontal Hero Showcase Banner */}
+                <div style={{
+                  width: '100%',
+                  background: '#ffffff',
+                  borderRadius: '24px',
+                  boxShadow: '0 25px 60px rgba(0,0,0,0.06)',
+                  border: '1px solid #eaeaea',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center'
+                }}>
+                  {/* Full Width Image Hero Section */}
+                  <div style={{ 
+                    width: '100%', 
+                    background: '#f9f9f8', 
+                    padding: '50px 20px', 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    borderBottom: '1px solid #f0f0ed'
+                  }}>
+                    {boxImg ? (
+                      <img
+                        src={boxImg}
+                        alt={mainBox?.name || 'Premium Box'}
+                        style={{
+                          width: '100%',
+                          maxWidth: '1200px',
+                          height: 'auto',
+                          maxHeight: '520px',
+                          objectFit: 'contain',
+                          display: 'block',
+                          filter: 'drop-shadow(0 20px 30px rgba(0,0,0,0.08))',
+                          transition: 'transform 0.8s ease'
+                        }}
+                      />
+                    ) : (
+                      <div style={{ padding: '100px 20px', textAlign: 'center', color: '#888' }}>
+                        <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>📦</span>
+                        <p style={{ fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>Universal Signature Packaging</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Horizontal Info Details Bar */}
+                  <div style={{ 
+                    width: '100%', 
+                    padding: '40px 50px', 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    gap: '24px',
+                    background: '#ffffff' 
+                  }}>
+                    <div style={{ flex: '1 1 500px', maxWidth: '850px' }}>
+                      <h3 style={{ fontSize: '24px', fontWeight: 400, fontFamily: 'Georgia, serif', color: '#111', marginBottom: '10px' }}>
+                        {mainBox?.name || 'Exclusive Fylex Presentation Box'}
+                      </h3>
+                      <p style={{ fontSize: '15px', color: '#555', lineHeight: 1.7, margin: 0 }}>
+                        {boxDesc}
+                      </p>
                     </div>
-                  )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <span style={{ 
+                        fontSize: '12px', 
+                        fontWeight: 700, 
+                        letterSpacing: '0.15em', 
+                        textTransform: 'uppercase', 
+                        color: '#006039', 
+                        background: '#e6f4ed', 
+                        padding: '12px 24px', 
+                        borderRadius: '999px',
+                        border: '1px solid #bce3d0'
+                      }}>
+                        ✓ Included with order
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
           );
         })()}
+      </div>
       </div>
 
       {/* ═══ ELEGANT LIGHT INFO MODAL ═══ */}
