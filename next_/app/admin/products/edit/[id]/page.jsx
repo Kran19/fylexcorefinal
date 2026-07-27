@@ -530,8 +530,8 @@ const EditProductPage = () => {
         });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (e, advanceToNext = false) => {
+        if (e) e.preventDefault();
         
         // Ensure current step is valid before saving
         if (!validateStep(activeTab)) return;
@@ -616,17 +616,15 @@ const EditProductPage = () => {
         const success = await updateRecord('products', productId, payload, api.updateProduct);
         setSubmitting(false);
         if (success) {
-            const tabs = ['basic', 'story', 'taxonomy', 'variants', 'theme'];
-            const currentIndex = tabs.indexOf(activeTab);
-            
-            if (currentIndex < tabs.length - 1) {
-                toast.success("Progress saved! Moving to next step...");
-                const nextTab = tabs[currentIndex + 1];
-                setActiveTab(nextTab);
-                router.push(`/admin/products/edit/${productId}?step=${nextTab}`, { scroll: false });
-            } else {
-                toast.success("Product fully updated and finalized!");
-                router.push('/admin/products');
+            toast.success("Product details saved successfully!");
+            if (advanceToNext) {
+                const tabs = ['basic', 'story', 'taxonomy', 'variants', 'theme'];
+                const currentIndex = tabs.indexOf(activeTab);
+                if (currentIndex < tabs.length - 1) {
+                    const nextTab = tabs[currentIndex + 1];
+                    setActiveTab(nextTab);
+                    router.push(`/admin/products/edit/${productId}?step=${nextTab}`, { scroll: false });
+                }
             }
         }
     };
@@ -634,16 +632,23 @@ const EditProductPage = () => {
     if (processing || loading.categories) return <Loader />;
 
     return (
-        <div className="!mx-auto !px-1 !py-1">
-            <div className="!mb-1 flex justify-between items-end">
+        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+            <div className="flex justify-between items-center mb-4">
                 <PageHeader title="Edit Product" />
+                <button
+                    type="button"
+                    onClick={() => router.push('/admin/products')}
+                    className="px-4 py-2 border border-slate-300 bg-white text-slate-700 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all flex items-center gap-2 shadow-xs"
+                >
+                    <i className="fas fa-arrow-left"></i> Back to Products
+                </button>
             </div>
 
-            <div className="!space-y-2">
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                    <div className="flex flex-col md:flex-row min-h-[600px]">
+            <div className="space-y-6">
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="flex flex-col md:flex-row min-h-[650px]">
                         {/* Sidebar Tabs */}
-                        <div className="w-full md:w-50 bg-gray-50 border-r border-gray-200 !px-2">
+                        <div className="w-full md:w-64 bg-slate-50/80 border-r border-slate-200 p-4 space-y-2 shrink-0">
                             {[
                                 { id: 'basic', label: 'Step 1: Basic Info', icon: 'fa-info-circle' },
                                 { id: 'story', label: 'Step 2: Story & Copy', icon: 'fa-align-left' },
@@ -659,10 +664,10 @@ const EditProductPage = () => {
                                         setActiveTab(tab.id);
                                         router.push(`/admin/products/edit/${productId}?step=${tab.id}`, { scroll: false });
                                     }}
-                                    className={`w-full flex items-center justify-between !px-2 !py-5 rounded-lg text-sm font-semibold transition-all ${
+                                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
                                         activeTab === tab.id
                                             ? 'bg-indigo-600 text-white shadow-md'
-                                            : 'text-gray-600 hover:bg-gray-100'
+                                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                                     }`}
                                 >
                                     <div className="flex items-center gap-3">
@@ -675,11 +680,11 @@ const EditProductPage = () => {
                         </div>
 
                         {/* Tab Content */}
-                        <div className="flex-1 !p-2">
+                        <div className="flex-1 p-6 md:p-8 space-y-8 min-w-0 bg-white">
                             {/* 1. Basic Information */}
                             {activeTab === 'basic' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                    <h3 className="text-xl font-bold text-gray-900 border-b !pb-2 !mb-2">Core Specifications</h3>
+                                    <h3 className="text-xl font-bold text-gray-900 border-b pb-4 mb-6">Core Specifications</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="md:col-span-2">
                                             <FormField label="Product Name *" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Fylex Chronograph X" required />
@@ -700,7 +705,7 @@ const EditProductPage = () => {
                                                 <FormField label="Inventory (Qty) *" name="qty" type="number" value={form.qty} onChange={handleChange} placeholder="0" required />
                                             </>
                                         )}
-                                        <div className="md:col-span-2 flex items-center gap-2 bg-indigo-50/50 !p-4 rounded-xl border border-indigo-100">
+                                        <div className="md:col-span-2 flex items-center gap-3 bg-indigo-50/60 p-5 rounded-2xl border border-indigo-100">
                                             <input 
                                                 type="checkbox" 
                                                 id="isFeatured" 
@@ -709,7 +714,7 @@ const EditProductPage = () => {
                                                 onChange={handleChange} 
                                                 className="w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                                             />
-                                            <label htmlFor="isFeatured" className="text-sm font-bold text-indigo-900 cursor-pointer">
+                                            <label htmlFor="isFeatured" className="text-sm font-bold text-indigo-950 cursor-pointer">
                                                 Featured Product (Show on Homepage)
                                             </label>
                                         </div>
@@ -720,12 +725,12 @@ const EditProductPage = () => {
                             {/* 2. Story & Copy */}
                             {activeTab === 'story' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                    <h3 className="text-xl font-bold text-gray-900 border-b !pb-2 !mb-2">Brand Storytelling</h3>
+                                    <h3 className="text-xl font-bold text-gray-900 border-b pb-4 mb-6">Brand Storytelling</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <FormField label="Marketing Tagline" name="tagline" value={form.tagline} onChange={handleChange} placeholder="e.g. A Legacy of Distinction" />
                                         <FormField label="Product Subtitle" name="subtitle" value={form.subtitle} onChange={handleChange} placeholder="e.g. Exceptional Timepieces" />
                                         <div className="md:col-span-2">
-                                            <FormField label="Short Description" name="shortDesc" type="textarea" value={form.shortDesc} onChange={handleChange} rows={1} />
+                                            <FormField label="Short Description" name="shortDesc" type="textarea" value={form.shortDesc} onChange={handleChange} rows={2} />
                                         </div>
                                         <div className="md:col-span-2">
                                             <FormField label="Model Stories" name="description" type="textarea" value={form.description} onChange={handleChange} rows={4} />
@@ -733,7 +738,6 @@ const EditProductPage = () => {
                                         <div className="md:col-span-2">
                                             <FormField label="Heritage Story" name="heritageText" type="textarea" value={form.heritageText} onChange={handleChange} rows={3} placeholder="The legacy behind this craftsmanship..." />
                                         </div>
-
                                     </div>
                                 </div>
                             )}
@@ -741,16 +745,16 @@ const EditProductPage = () => {
                             {/* 3. Taxonomy & Media */}
                             {activeTab === 'taxonomy' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                    <h3 className="text-xl font-bold text-gray-900 border-b !pb-2 !mb-2">Classification & Media</h3>
+                                    <h3 className="text-xl font-bold text-gray-900 border-b pb-4 mb-6">Classification & Media</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <FormField label="Main Category *" name="categoryId" type="select" value={form.categoryId} onChange={handleCategoryChange} options={[
                                             { value: '', label: 'Select Category' },
                                             ...categories.map(c => ({ value: c.id.toString(), label: c.name }))
                                         ]} required />
 
-                                        <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 !mb-2">Tags</label>
-                                            <div className=" flex flex-wrap gap-2 !px-3 bg-gray-50  border border-gray-200 !min-h-[50px]">
+                                        <div className="md:col-span-2 space-y-2">
+                                            <label className="block text-sm font-bold text-slate-800">Tags</label>
+                                            <div className="flex flex-wrap gap-2.5 p-4 bg-slate-50 border border-slate-200 rounded-xl min-h-[60px] items-center">
                                                 {tags.map(tag => (
                                                     <button
                                                         key={tag.id}
@@ -761,9 +765,9 @@ const EditProductPage = () => {
                                                                 ? prev.tagIds.filter(id => id !== tag.id.toString())
                                                                 : [...prev.tagIds, tag.id.toString()]
                                                         }))}
-                                                        className={`!px-3  rounded-lg text-xs font-medium transition-all ${form.tagIds.includes(tag.id.toString())
-                                                            ? 'bg-indigo-600 text-white'
-                                                            : 'bg-white text-gray-600 border border-gray-200 hover:border-indigo-400'
+                                                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${form.tagIds.includes(tag.id.toString())
+                                                            ? 'bg-indigo-600 text-white shadow-sm'
+                                                            : 'bg-white text-slate-700 border border-slate-200 hover:border-indigo-400 hover:bg-slate-50'
                                                             }`}
                                                     >
                                                         {tag.name}
@@ -773,7 +777,7 @@ const EditProductPage = () => {
                                         </div>
 
                                         {/* Belts Configuration */}
-                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4 hover:border-slate-300 transition-all">
                                             <div className="flex items-center gap-3">
                                                 <input 
                                                     type="checkbox" 
@@ -781,20 +785,20 @@ const EditProductPage = () => {
                                                     name="canSellBelts" 
                                                     checked={form.canSellBelts} 
                                                     onChange={handleChange}
-                                                    className="w-5 h-5 text-black border-gray-300 rounded focus:ring-black cursor-pointer"
+                                                    className="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
                                                 />
-                                                <label htmlFor="canSellBelts" className="text-sm font-bold text-gray-900 cursor-pointer">
+                                                <label htmlFor="canSellBelts" className="text-sm font-bold text-slate-900 cursor-pointer">
                                                     Allow customers to buy additional belts for this watch
                                                 </label>
                                             </div>
 
                                             {form.canSellBelts && (
-                                                <div className="pl-8 pt-4 border-t border-gray-50">
-                                                    <label className="block text-sm font-medium text-gray-700 !mb-2">Select Compatible Belts</label>
+                                                <div className="pt-4 border-t border-slate-100 space-y-3">
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Compatible Belts</label>
                                                     {belts.length === 0 ? (
-                                                        <p className="text-sm text-gray-500 italic">No belts found. Please create belts in the Belts section first.</p>
+                                                        <p className="text-sm text-slate-500 italic">No belts found. Please create belts in the Belts section first.</p>
                                                     ) : (
-                                                        <div className="flex flex-wrap gap-2">
+                                                        <div className="flex flex-wrap gap-2.5">
                                                             {belts.map(belt => (
                                                                 <button
                                                                     type="button"
@@ -807,9 +811,9 @@ const EditProductPage = () => {
                                                                                 : [...prev.beltIds, belt.id.toString()]
                                                                         }));
                                                                     }}
-                                                                    className={`!px-3 !py-1 rounded-lg text-xs font-medium transition-all ${form.beltIds.includes(belt.id.toString())
-                                                                        ? 'bg-black text-white shadow-md'
-                                                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${form.beltIds.includes(belt.id.toString())
+                                                                        ? 'bg-slate-900 text-white shadow-md'
+                                                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                                     }`}
                                                                 >
                                                                     {belt.name} (Rs. {belt.price})
@@ -822,7 +826,7 @@ const EditProductPage = () => {
                                         </div>
 
                                         {/* Boxes Configuration */}
-                                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4 hover:border-slate-300 transition-all">
                                             <div className="flex items-center gap-3">
                                                 <input 
                                                     type="checkbox" 
@@ -830,20 +834,20 @@ const EditProductPage = () => {
                                                     name="canShowBoxes" 
                                                     checked={form.canShowBoxes} 
                                                     onChange={handleChange}
-                                                    className="w-5 h-5 text-black border-gray-300 rounded focus:ring-black cursor-pointer"
+                                                    className="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
                                                 />
-                                                <label htmlFor="canShowBoxes" className="text-sm font-bold text-gray-900 cursor-pointer">
+                                                <label htmlFor="canShowBoxes" className="text-sm font-bold text-slate-900 cursor-pointer">
                                                     Show packaging boxes on the product page
                                                 </label>
                                             </div>
 
                                             {form.canShowBoxes && (
-                                                <div className="pl-8 pt-4 border-t border-gray-50">
-                                                    <label className="block text-sm font-medium text-gray-700 !mb-2">Select Display Boxes</label>
+                                                <div className="pt-4 border-t border-slate-100 space-y-3">
+                                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Select Display Boxes</label>
                                                     {boxes.length === 0 ? (
-                                                        <p className="text-sm text-gray-500 italic">No boxes found. Please create boxes in the Boxes section first.</p>
+                                                        <p className="text-sm text-slate-500 italic">No boxes found. Please create boxes in the Boxes section first.</p>
                                                     ) : (
-                                                        <div className="flex flex-wrap gap-2">
+                                                        <div className="flex flex-wrap gap-2.5">
                                                             {boxes.map(box => (
                                                                 <button
                                                                     type="button"
@@ -856,9 +860,9 @@ const EditProductPage = () => {
                                                                                 : [...prev.boxIds, box.id.toString()]
                                                                         }));
                                                                     }}
-                                                                    className={`!px-3 !py-1 rounded-lg text-xs font-medium transition-all ${form.boxIds.includes(box.id.toString())
-                                                                        ? 'bg-black text-white shadow-md'
-                                                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${form.boxIds.includes(box.id.toString())
+                                                                        ? 'bg-slate-900 text-white shadow-md'
+                                                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                                                                     }`}
                                                                 >
                                                                     {box.name}
@@ -1440,39 +1444,44 @@ const EditProductPage = () => {
                             <i className="fas fa-shield-alt text-indigo-500"></i>
                             All luxury details will be saved securely
                         </div>
-                        <div className="flex gap-4">
+                        <div className="flex items-center gap-3 flex-wrap">
                             <button
                                 type="button"
                                 onClick={() => {
                                     const tabs = ['basic', 'story', 'taxonomy', 'variants', 'theme'];
                                     const currentIndex = tabs.indexOf(activeTab);
-                                    if (currentIndex > 0) handleTabChange(tabs[currentIndex - 1]);
+                                    if (currentIndex > 0) {
+                                        const prevTab = tabs[currentIndex - 1];
+                                        setActiveTab(prevTab);
+                                        router.push(`/admin/products/edit/${productId}?step=${prevTab}`, { scroll: false });
+                                    }
                                 }}
-                                className={`!px-6 !py-3 border border-gray-300 rounded-lg text-gray-700 font-bold hover:bg-gray-50 transition-all ${activeTab === 'basic' ? 'invisible' : ''}`}
+                                className={`px-6 py-3 border border-slate-300 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-all shadow-xs ${activeTab === 'basic' ? 'invisible' : ''}`}
                             >
                                 <i className="fas fa-arrow-left mr-2"></i> Previous Step
                             </button>
                             
-                            {activeTab === 'theme' ? (
+                            <button
+                                type="button"
+                                onClick={(e) => handleSubmit(e, false)}
+                                disabled={submitting}
+                                className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-sm disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                            >
+                                {submitting ? <><i className="fas fa-spinner fa-spin"></i> Saving...</> : <><i className="fas fa-save"></i> Save Changes</>}
+                            </button>
+
+                            {activeTab !== 'theme' && (
                                 <button
                                     type="button"
-                                    onClick={handleSubmit}
+                                    onClick={(e) => handleSubmit(e, true)}
                                     disabled={submitting}
-                                    className="!px-8 !py-4 bg-indigo-600 text-white rounded-lg font-bold text-sm transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
+                                    className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-md disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                                 >
-                                    {submitting ? <><i className="fas fa-spinner fa-spin"></i> Processing...</> : <><i className="fas fa-check-circle"></i> Save & Activate Product</>}
-                                </button>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={handleSubmit}
-                                    disabled={submitting}
-                                    className="!px-8 !py-4 bg-gray-900 text-white rounded-lg font-bold text-sm hover:bg-gray-800 transition-all shadow-md disabled:opacity-50 flex items-center gap-2"
-                                >
-                                    {submitting ? <><i className="fas fa-spinner fa-spin"></i> Processing...</> : <>Save & Continue to Next Step <i className="fas fa-arrow-right ml-2"></i></>}
+                                    Save & Next Step <i className="fas fa-arrow-right ml-1"></i>
                                 </button>
                             )}
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
