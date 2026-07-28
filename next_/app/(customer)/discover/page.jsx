@@ -406,20 +406,22 @@ function DiscoverContent() {
     });
   }
 
-  if (matchingVariant) {
-    const vDisplay = getDisplayData(product, matchingVariant);
-    product.currentVariantId = matchingVariant.id.toString();
+  const activeVariant = matchingVariant || (product.variants || []).find(v => v.isPrimary) || (product.variants || [])[0];
+
+  if (activeVariant) {
+    const vDisplay = getDisplayData(product, activeVariant);
+    product.currentVariantId = activeVariant.id.toString();
     product.variantName = vDisplay.subtitle;
     product.price = vDisplay.price;
     product.formattedPrice = vDisplay.formattedPrice;
     
-    // Always resolve primary image
-    const primaryImg = resolveProductImage(product, matchingVariant) || resolveProductImage(product);
+    // Always resolve primary image for active variant
+    const primaryImg = resolveProductImage(product, activeVariant) || resolveProductImage(product);
     product.heroImage = primaryImg;
     product.image = primaryImg;
     product.heroBgImage = vDisplay.heroBgImage;
 
-    const vGallery = (matchingVariant.variantImages || [])
+    const vGallery = (activeVariant.variantImages || [])
       .filter(vi => vi.type === 'GALLERY' || vi.type === 'gallery')
       .map(vi => {
         const m = vi.media;
@@ -427,10 +429,6 @@ function DiscoverContent() {
         return getFileUrl(p);
       })
       .filter(Boolean);
-
-    const productMainGallery = (product.productMedia?.length > 0)
-      ? product.productMedia.filter(m => m.type === 'GALLERY').map(m => getFileUrl(m.media?.url || m.media?.filePath || (m.media?.fileName ? `/uploads/${m.media.fileName}` : ''))).filter(Boolean)
-      : (product.images || []).map(img => getFileUrl(typeof img === 'string' ? img : (img.url || img.filePath)));
 
     if (vGallery.length > 0) {
       product.galleryImages = vGallery;
