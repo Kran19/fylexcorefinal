@@ -284,19 +284,19 @@ const EditProductPage = () => {
                     // Hero Image: Prioritize MAIN media from ProductMedia table
                     heroImage: (p.productMedia?.find(pm => pm.type === 'MAIN'))
                         ? { 
-                            id: p.productMedia.find(pm => pm.type === 'MAIN').mediaId.toString(),
-                            url: p.productMedia.find(pm => pm.type === 'MAIN').media?.url || (p.productMedia.find(pm => pm.type === 'MAIN').media?.fileName ? `/uploads/${p.productMedia.find(pm => pm.type === 'MAIN').media.fileName}` : '')
+                            id: p.productMedia.find(pm => pm.type === 'MAIN').mediaId?.toString(),
+                            url: p.productMedia.find(pm => pm.type === 'MAIN').media?.filePath || p.productMedia.find(pm => pm.type === 'MAIN').media?.url || p.productMedia.find(pm => pm.type === 'MAIN').media?.path || (p.productMedia.find(pm => pm.type === 'MAIN').media?.fileName ? `uploads/${p.productMedia.find(pm => pm.type === 'MAIN').media.fileName}` : '')
                           }
-                        : (p.heroImage ? { url: p.heroImage.startsWith('http') || p.heroImage.startsWith('/') ? p.heroImage : `/uploads/${p.heroImage}` } : null),
+                        : (p.heroImage ? { url: typeof p.heroImage === 'string' ? p.heroImage : (p.heroImage.url || p.heroImage.filePath || p.heroImage.fileName) } : null),
                     // Gallery: Only include GALLERY media from ProductMedia table
                     gallery: (p.productMedia?.length > 0) 
                         ? p.productMedia.filter(pm => pm.type === 'GALLERY').map(pm => ({ 
-                            id: pm.mediaId.toString(), 
-                            url: pm.media?.url || (pm.media?.fileName ? `/uploads/${pm.media.fileName}` : '')
-                        })) 
+                            id: pm.mediaId?.toString(), 
+                            url: pm.media?.filePath || pm.media?.url || pm.media?.path || (pm.media?.fileName ? `uploads/${pm.media.fileName}` : '')
+                        })).filter(g => g.url) 
                         : (p.images || []).filter(img => img !== p.heroImage).map((img, idx) => ({
                             id: `img-${idx}`,
-                            url: img.startsWith('http') || img.startsWith('/') ? img : `/uploads/${img}`
+                            url: typeof img === 'string' ? img : (img?.url || img?.filePath || img?.fileName)
                         })),
                     tagIds: p.tags?.map(t => t.tagId.toString()) || [],
                     specifications: p.specifications?.reduce((acc, s) => {
@@ -675,15 +675,24 @@ const EditProductPage = () => {
                                         setActiveTab(tab.id);
                                         router.push(`/admin/products/edit/${productId}?step=${tab.id}`, { scroll: false });
                                     }}
-                                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                                    className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-xs font-bold transition-all text-left whitespace-normal ${
                                         activeTab === tab.id
                                             ? 'bg-indigo-600 text-white shadow-md'
                                             : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
                                     }`}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <i className={`fas ${tab.icon} w-5 text-center text-sm`}></i>
-                                        <span>{tab.label}</span>
+                                    <div className="flex items-start gap-3 w-full">
+                                        <i className={`fas ${tab.icon} w-5 text-center text-sm mt-0.5 shrink-0`}></i>
+                                        <div className="flex flex-col text-left leading-tight">
+                                            {tab.id === 'theme' ? (
+                                                <>
+                                                    <span className="font-extrabold text-[11px]">Step 5:</span>
+                                                    <span className="opacity-95 font-semibold text-[11.5px] mt-0.5">Visual Theme &amp; Live Preview</span>
+                                                </>
+                                            ) : (
+                                                <span>{tab.label}</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </button>
                                 );
@@ -1185,17 +1194,19 @@ const EditProductPage = () => {
                                                                     if (clientLabel && adminValue && clientLabel.trim().toLowerCase() !== adminValue.trim().toLowerCase()) {
                                                                         displayName = `${clientLabel} (${adminValue})`;
                                                                     }
+                                                                    const isSelected = selectedAttributeValues[attr.id.toString()]?.some(id => id.toString() === val.id.toString());
                                                                     return (
                                                                         <button
                                                                             key={val.id}
                                                                             type="button"
                                                                             onClick={() => toggleAttributeValue(attr.id, val.id)}
-                                                                            className={`!px-4 !py-2 rounded-lg text-xs font-bold transition-all border ${selectedAttributeValues[attr.id.toString()]?.includes(val.id.toString())
-                                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                                                                                : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-400'
+                                                                            className={`!px-4 !py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5 ${isSelected
+                                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-300 ring-offset-1 font-extrabold'
+                                                                                : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-400 hover:bg-slate-50'
                                                                                 }`}
                                                                         >
-                                                                            {displayName}
+                                                                            {isSelected && <i className="fas fa-check text-[10px] text-white"></i>}
+                                                                            <span>{displayName}</span>
                                                                         </button>
                                                                     );
                                                                 })}
@@ -1603,124 +1614,82 @@ const EditProductPage = () => {
                                                                 className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
                                                             />
                                                         </div>
-                                                        <p className="text-xs opacity-75">{opt.desc}</p>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* REAL-TIME LIVE INTERACTIVE PREVIEW */}
-                                    <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-4 shadow-xl border border-slate-800">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Live Storefront Preview</span>
-                                            </div>
-
-                                            {/* Variant Preview Switcher */}
-                                            {variants.length > 0 && (
-                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                    <span className="text-[11px] text-slate-400 font-semibold mr-1">Preview Variant:</span>
-                                                    {variants.map((v, idx) => {
-                                                        const vId = v.id.toString();
-                                                        const activePrevId = previewVariantId || variants[0]?.id?.toString();
-                                                        const isPrevActive = activePrevId === vId;
-                                                        return (
-                                                            <button
-                                                                key={vId}
-                                                                type="button"
-                                                                onClick={() => setPreviewVariantId(vId)}
-                                                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                                                                    isPrevActive
-                                                                        ? 'bg-emerald-500 text-slate-950 shadow-xs'
-                                                                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                                                    isSelected 
+                                                                        ? 'bg-indigo-50/90 border-indigo-600 text-indigo-950 shadow-sm' 
+                                                                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
                                                                 }`}
                                                             >
-                                                                {v.name || `Var #${idx + 1}`}
-                                                            </button>
+                                                                <div className="flex items-center justify-between mb-1.5">
+                                                                    <span className="font-bold text-sm">{opt.title}</span>
+                                                                    <input 
+                                                                        type="radio" 
+                                                                        name="configuredImageCount" 
+                                                                        checked={isSelected}
+                                                                        onChange={() => {
+                                                                            if (selectedThemeVariantId === 'all') {
+                                                                                setForm(prev => ({ ...prev, configuredImageCount: opt.count }));
+                                                                                const newCounts = {};
+                                                                                variants.forEach(v => { newCounts[v.id.toString()] = opt.count; });
+                                                                                setVariantImageCounts(newCounts);
+                                                                            } else {
+                                                                                setVariantImageCounts(prev => ({
+                                                                                    ...prev,
+                                                                                    [selectedThemeVariantId]: opt.count
+                                                                                }));
+                                                                            }
+                                                                        }}
+                                                                        className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
+                                                                    />
+                                                                </div>
+                                                                <p className="text-xs opacity-75">{opt.desc}</p>
+                                                            </div>
                                                         );
                                                     })}
                                                 </div>
-                                            )}
-                                        </div>
+                                            </div>
 
-                                        {/* Live Card */}
-                                        <div className="bg-white text-slate-900 rounded-xl p-8 flex flex-col items-center text-center space-y-5 relative overflow-hidden shadow-inner">
-                                            {(() => {
-                                                const activePrevId = previewVariantId || variants[0]?.id?.toString();
-                                                const activeVariant = variants.find(v => v.id.toString() === activePrevId) || variants[0];
-                                                const activeCount = (activeVariant && variantImageCounts[activeVariant.id.toString()]) || Number(form.configuredImageCount) || 3;
-
-                                                // Clean image helper
-                                                const getCleanUrl = (img) => {
-                                                    if (!img) return null;
-                                                    if (typeof img === 'string') return getFileUrl(img);
-                                                    return getFileUrl(img.url || img.filePath || img.path || img.fileName || null);
-                                                };
-
-                                                const variantHero = getCleanUrl(activeVariant?.heroImage) || getCleanUrl(form.heroImage) || '/assets/fylex-watch-v2/36mm.png';
-                                                const variantGallery = (activeVariant?.gallery || []).map(getCleanUrl).filter(Boolean);
-                                                const formGallery = (form.gallery || []).map(getCleanUrl).filter(Boolean);
-
-                                                const allSampleImages = [
-                                                    variantHero,
-                                                    variantGallery[0] || formGallery[0] || '/assets/fylex-watch-v2/40mm.png',
-                                                    variantGallery[1] || formGallery[1] || '/assets/fylex-watch-v2/olive-green.png'
-                                                ].filter(Boolean);
-
-                                                const visibleImgs = allSampleImages.slice(0, activeCount);
-
-                                                return (
-                                                    <div className="w-full space-y-4">
-                                                        <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200 inline-block">
-                                                            ✓ Previewing: {activeVariant?.name || form.name || 'Default Config'} ({activeCount} {activeCount === 1 ? 'Image Mode' : 'Images Mode'})
-                                                        </div>
-                                                        
-                                                        <div>
-                                                            <h4 className="text-2xl md:text-3xl font-bold font-serif text-slate-900">
-                                                                {form.name || 'FYLEX Meridian'} {activeVariant?.name ? `(${activeVariant.name})` : ''}
-                                                            </h4>
-                                                            <p className="text-sm font-semibold text-slate-500 mt-1">
-                                                                ₹{Number(activeVariant?.price || form.price || 25000).toLocaleString()}
-                                                            </p>
-                                                        </div>
-
-                                                        {/* Dynamic Live Images Display */}
-                                                        <div className="w-full flex flex-col items-center justify-center gap-4 py-4 min-h-[220px]">
-                                                            <div className="w-full flex flex-col items-center gap-4">
-                                                                <div className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 p-4 shadow-md max-w-xs">
-                                                                    <img src={visibleImgs[0]} alt="Primary Watch" className="w-44 h-44 object-contain mx-auto" />
-                                                                    <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs">
-                                                                        PRIMARY WATCH IMAGE
-                                                                    </span>
-                                                                </div>
-
-                                                                {activeCount > 1 && visibleImgs.length > 1 && (
-                                                                    <div className="flex gap-3 justify-center items-center pt-2">
-                                                                        {visibleImgs.map((imgSrc, idx) => (
-                                                                            <div key={idx} className={`w-14 h-14 rounded-lg border-2 p-1 bg-slate-50 overflow-hidden ${idx === 0 ? 'border-indigo-600 shadow-sm' : 'border-slate-200 opacity-70'}`}>
-                                                                                <img src={imgSrc} alt={`Thumb ${idx}`} className="w-full h-full object-contain" />
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                                {activeCount === 1 && (
-                                                                    <p className="text-xs text-slate-400 font-medium italic">
-                                                                        Secondary thumbnails hidden (Single Primary Image Mode active for this variant)
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                            {/* REAL-TIME LIVE INTERACTIVE PREVIEW */}
+                                            <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-6 shadow-xl border border-slate-800">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                        <span className="text-xs font-bold uppercase tracking-widest text-slate-300">iPhone 14 Pro Max Live Preview</span>
                                                     </div>
-                                                );
-                                            })()}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+
+                                                    {/* Variant Preview Switcher */}
+                                                    {variants.length > 0 && (
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="text-[11px] text-slate-400 font-semibold mr-1">Preview Variant:</span>
+                                                            {variants.map((v, idx) => {
+                                                                const vId = v.id.toString();
+                                                                const activePrevId = previewVariantId || variants[0]?.id?.toString();
+                                                                const isPrevActive = activePrevId === vId;
+                                                                return (
+                                                                    <button
+                                                                        key={vId}
+                                                                        type="button"
+                                                                        onClick={() => setPreviewVariantId(vId)}
+                                                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                                                            isPrevActive
+                                                                                ? 'bg-emerald-500 text-slate-950 shadow-sm font-extrabold'
+                                                                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                                                        }`}
+                                                                    >
+                                                                        {v.name || `Var #${idx + 1}`}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* iPhone 14 Pro Max Device Mockup Wrapper */}
+                                                <div className="flex flex-col items-center justify-center py-4">
+                                                    {(() => {
+                                                        const activePrevId = previewVariantId || variants[0]?.id?.toString();
+                                                        const activeVariant = variants.find(v => v.id.toString() === activePrevId) || variants[0];
+                                                        
 
                     {/* Form Footer */}
                     <div className="bg-gray-50 border-t border-gray-200 !px-2 flex items-center justify-between">
