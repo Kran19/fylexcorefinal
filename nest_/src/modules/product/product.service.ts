@@ -386,9 +386,6 @@ export class ProductService {
 
     const skip = (page - 1) * limit;
 
-    console.log('getAllProducts filters:', filters);
-    console.log('getAllProducts where clause:', JSON.stringify(where, (key, value) => typeof value === 'number' ? value.toString() : value));
-
     const [total, products] = await Promise.all([
       this.prisma.product.count({ where }),
       this.prisma.product.findMany({

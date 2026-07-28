@@ -1,6 +1,5 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-
 import { signupApi, loginApi, loginOtpApi, fetchCurrentUserApi } from '@/lib/api';
 
 const AuthContext = createContext();
@@ -11,14 +10,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const clearSession = useCallback(() => {
-    console.log('[auth] clearing session');
     setUser(null);
     localStorage.removeItem('fylexx_user');
     localStorage.removeItem('fylexx_token');
   }, []);
 
   const persistSession = useCallback((token, userData) => {
-    console.log('[auth] persisting session', { email: userData?.email, userId: userData?.id });
     setUser(userData);
     localStorage.setItem('fylexx_user', JSON.stringify(userData));
     if (token) {
@@ -34,9 +31,7 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
 
-    console.log('[auth] verifying stored session');
     const result = await fetchCurrentUserApi();
-    console.log('[auth] verifySession response', result);
 
     if (!result?.success || !result?.data?.user) {
       clearSession();
@@ -59,7 +54,6 @@ export const AuthProvider = ({ children }) => {
 
     void bootstrap();
 
-    // Initialize or retrieve Guest ID
     let gid = localStorage.getItem('fylexx_guest_id');
     if (!gid) {
       gid = `gst_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
@@ -73,9 +67,7 @@ export const AuthProvider = ({ children }) => {
   }, [verifySession]);
 
   const login = async (credentials) => {
-    console.log('[auth] login request payload', { email: credentials?.email, passwordLength: credentials?.password?.length || 0 });
     const result = await loginApi(credentials);
-    console.log('[auth] login response', result);
 
     if (!result?.success) {
       clearSession();
@@ -93,9 +85,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginOtp = async (credentials) => {
-    console.log('[auth] login-otp request payload', { mobile: credentials?.mobile });
     const result = await loginOtpApi(credentials);
-    console.log('[auth] login-otp response', result);
 
     if (!result?.success) {
       clearSession();
@@ -116,9 +106,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signup = async (userData) => {
-    console.log('[auth] signup request payload', { email: userData?.email, mobile: userData?.mobile || null });
     const result = await signupApi(userData);
-    console.log('[auth] signup response', result);
 
     if (!result?.success) {
       throw new Error(result?.error || 'Something went wrong');

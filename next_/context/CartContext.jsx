@@ -18,7 +18,6 @@ export function CartProvider({ children }) {
   const userId = user?.id || guestId;
 
   const mapCartData = (data) => {
-    console.log('DEBUG: Cart Items Order from API:', data?.items?.map(i => i.id.toString()));
     const cartItems = data?.items || [];
     const mapped = cartItems.map(item => {
         if (item.belt) {

@@ -7,6 +7,12 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 
+// Fix BigInt JSON serialization globally across NestJS
+(BigInt.prototype as any).toJSON = function () {
+  const intVal = Number(this);
+  return Number.isSafeInteger(intVal) ? intVal : this.toString();
+};
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.setGlobalPrefix('api');
@@ -21,7 +27,7 @@ async function bootstrap() {
   
   // Enable CORS
   app.enableCors({
-    origin: true, // Use true to reflect origin instead of wildcard for credentials support
+    origin: true,
     credentials: true,
   });
 
