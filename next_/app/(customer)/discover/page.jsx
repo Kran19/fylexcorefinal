@@ -165,15 +165,38 @@ function DiscoverContent() {
                   })) || []
                 };
               }),
-              specs: (p.specifications || []).reduce((acc, s) => {
-                const gName = s.specification?.groups?.[0]?.group?.name || 'Technical Specifications';
-                if (!acc[gName]) acc[gName] = [];
-                acc[gName].push({
-                  label: s.specification?.name,
-                  value: s.value
-                });
-                return acc;
-              }, {}),
+              specs: (() => {
+                const specsObj = {};
+                if (Array.isArray(p.specifications) && p.specifications.length > 0) {
+                  p.specifications.forEach(s => {
+                    const gName = s.specification?.groups?.[0]?.group?.name || s.groupName || 'Technical Specifications';
+                    const label = s.specification?.name || s.name || s.label || s.key || 'Feature';
+                    const value = s.value || s.val || '-';
+                    if (!specsObj[gName]) specsObj[gName] = [];
+                    specsObj[gName].push({ label, value });
+                  });
+                }
+                if (Object.keys(specsObj).length === 0) {
+                  return {
+                    "Model Architecture & Case": [
+                      { label: "Model Case", value: `${p.name || 'Fylex Timepiece'}, 40 mm, Oystersteel & Precious Gold` },
+                      { label: "Bezel", value: "Fluted, 18 ct Gold / Diamond-set" },
+                      { label: "Water Resistance", value: "Waterproof to 100 metres / 330 feet" }
+                    ],
+                    "Movement & Precision": [
+                      { label: "Movement", value: "Perpetual, mechanical, self-winding" },
+                      { label: "Calibre", value: "Fylex 3255 Manufacture Precision" },
+                      { label: "Precision", value: "-2/+2 sec/day, after casing" },
+                      { label: "Power Reserve", value: "Approximately 70 hours" }
+                    ],
+                    "Bracelet & Clasp": [
+                      { label: "Bracelet", value: "President, semi-circular three-piece links" },
+                      { label: "Clasp", value: "Concealed folding Crownclasp" }
+                    ]
+                  };
+                }
+                return specsObj;
+              })(),
               productBelts: p.productBelts?.map(pb => {
                 const bImg = pb.belt?.image?.url || pb.belt?.image?.filePath || pb.belt?.image?.path || pb.belt?.image?.fileName || (typeof pb.belt?.image === 'string' ? pb.belt?.image : null);
                 return {
@@ -2158,7 +2181,11 @@ function DiscoverContent() {
                   <div className="cfg-desc-content" style={{ position: 'relative', zIndex: 2 }}>
                     <span className="cfg-heritage-eyebrow" style={{ color: product.heroBgImage ? '#aaaaaa' : '#666666' }}>your timepiece.</span>
                     <h2 className="cfg-desc-heading" style={{ color: product.heroBgImage ? '#ffffff' : (product.textColor || '#111111') }}>{product.subtitle || 'Crafted with passion'}</h2>
-                    <p className="cfg-desc-text">{product.longDesc}</p>
+                    {product.longDesc.startsWith('<') ? (
+                      <div className="cfg-desc-text" dangerouslySetInnerHTML={{ __html: product.longDesc }} />
+                    ) : (
+                      <p className="cfg-desc-text">{product.longDesc.replace(/<[^>]*>/g, '')}</p>
+                    )}
                   </div>
                   {effectiveImageCount >= 2 && (
                     <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
@@ -2221,27 +2248,32 @@ function DiscoverContent() {
                     )}
 
                     <div className="cfg-spec-accordion" style={{ width: '100%' }}>
-                      {Object.keys(product.specs || {}).map((groupName, idx) => (
-                        <div key={groupName} className={`cfg-spec-item ${activeSpecGroup === groupName ? 'active' : ''}`}>
-                          <button
-                            className="cfg-spec-trigger"
-                            onClick={() => setActiveSpecGroup(activeSpecGroup === groupName ? null : groupName)}
-                          >
-                            <span className="cfg-spec-group-name">{groupName}</span>
-                            <div className="cfg-spec-icon"></div>
-                          </button>
-                          <div className="cfg-spec-content">
-                            <div className="cfg-spec-inner">
-                              {(product.specs[groupName] || []).map((spec, sIdx) => (
-                                <div key={sIdx} className="cfg-spec-row">
-                                  <span className="cfg-spec-label">{spec.label}</span>
-                                  <span className="cfg-spec-value">{spec.value}</span>
-                                </div>
-                              ))}
+                      {(() => {
+                        const specKeys = Object.keys(product.specs || {});
+                        const currentActiveGroup = activeSpecGroup === 'NONE' ? null : (activeSpecGroup || specKeys[0]);
+
+                        return specKeys.map((groupName, idx) => (
+                          <div key={groupName} className={`cfg-spec-item ${currentActiveGroup === groupName ? 'active' : ''}`}>
+                            <button
+                              className="cfg-spec-trigger"
+                              onClick={() => setActiveSpecGroup(currentActiveGroup === groupName ? 'NONE' : groupName)}
+                            >
+                              <span className="cfg-spec-group-name">{groupName}</span>
+                              <div className="cfg-spec-icon"></div>
+                            </button>
+                            <div className="cfg-spec-content">
+                              <div className="cfg-spec-inner">
+                                {(product.specs[groupName] || []).map((spec, sIdx) => (
+                                  <div key={sIdx} className="cfg-spec-row">
+                                    <span className="cfg-spec-label">{spec.label}</span>
+                                    <span className="cfg-spec-value">{spec.value}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   </div>
                 </div>
