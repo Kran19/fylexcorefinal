@@ -66,6 +66,40 @@ export function getFileUrl(path) {
  * One source of truth for price, image, and configuration across the entire app.
  * Use this in Homepage, Discover, Wishlist, Shop, and Admin.
  */
+function formatSubtitle(targetVariant, product, fallbackVariant) {
+    const v = targetVariant || fallbackVariant;
+    
+    // 1. Try variantAttributes labels
+    if (v?.variantAttributes && Array.isArray(v.variantAttributes) && v.variantAttributes.length > 0) {
+        const labels = v.variantAttributes
+            .map(va => va.attributeValue?.label || va.attributeValue?.value || va.value)
+            .filter(Boolean);
+        if (labels.length > 0) {
+            return labels.join(' • ');
+        }
+    }
+
+    // 2. Try variant name (e.g., "Black blue, Black, Black")
+    if (v?.name && v.name.trim() && !v.name.toUpperCase().startsWith('MERIDIAN-')) {
+        return v.name.split(',').map(s => s.trim()).join(' • ');
+    }
+
+    // 3. Transform raw SKU string like "MERIDIAN-BLACK-BLUE-BLACK-BLACK" into meaningful information
+    const rawSku = v?.sku || product?.sku;
+    if (rawSku && typeof rawSku === 'string') {
+        const parts = rawSku.split('-').filter(Boolean);
+        if (parts.length > 1) {
+            const formattedParts = parts.map(p => {
+                return p.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            });
+            // First part is model line name (e.g. MERIDIAN), remaining are variant specifications
+            return formattedParts.join(' • ');
+        }
+    }
+
+    return product?.subtitle || product?.tagline || 'Exquisite Handcrafted Timepiece';
+}
+
 export function getDisplayData(product, variant = null) {
     if (!product) return { name: '', price: 0, image: '', isConfigurable: false };
 
@@ -84,10 +118,7 @@ export function getDisplayData(product, variant = null) {
         id: product.id?.toString(),
         variantId: targetVariant?.id?.toString(),
         name: product.name || product.title,
-        subtitle: (targetVariant?.variantAttributes || [])
-            .map(va => va.attributeValue?.label)
-            .filter(Boolean)
-            .join(', ') || product.subtitle || targetVariant?.sku || fallbackVariant?.sku,
+        subtitle: formatSubtitle(targetVariant, product, fallbackVariant),
         isConfigurable: isConfig,
         variant: targetVariant || fallbackVariant,
         price: Number(priceValue || 0),

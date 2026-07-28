@@ -153,7 +153,7 @@ function DiscoverContent() {
                 const vDisplay = getDisplayData(p, v);
                 return {
                   id: v.id.toString(),
-                  name: v.variantAttributes?.map(va => va.attributeValue?.label).join(', ') || v.sku,
+                  name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label).join(' • ') || v.name || v.sku,
                   img: vDisplay.image,
                   price: vDisplay.price,
                   formattedPrice: vDisplay.formattedPrice,
