@@ -1614,82 +1614,114 @@ const EditProductPage = () => {
                                                                 className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
                                                             />
                                                         </div>
-                                                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                                                                    isSelected 
-                                                                        ? 'bg-indigo-50/90 border-indigo-600 text-indigo-950 shadow-sm' 
-                                                                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                                                        <p className="text-xs opacity-75">{opt.desc}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* REAL-TIME LIVE INTERACTIVE PREVIEW */}
+                                    <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-6 shadow-xl border border-slate-800">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-300">iPhone 14 Pro Max Live Preview</span>
+                                            </div>
+
+                                            {/* Variant Preview Switcher */}
+                                            {variants.length > 0 && (
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="text-[11px] text-slate-400 font-semibold mr-1">Preview Variant:</span>
+                                                    {variants.map((v, idx) => {
+                                                        const vId = v.id.toString();
+                                                        const activePrevId = previewVariantId || variants[0]?.id?.toString();
+                                                        const isPrevActive = activePrevId === vId;
+                                                        return (
+                                                            <button
+                                                                key={vId}
+                                                                type="button"
+                                                                onClick={() => setPreviewVariantId(vId)}
+                                                                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                                                    isPrevActive
+                                                                        ? 'bg-emerald-500 text-slate-950 shadow-sm font-extrabold'
+                                                                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                                                                 }`}
                                                             >
-                                                                <div className="flex items-center justify-between mb-1.5">
-                                                                    <span className="font-bold text-sm">{opt.title}</span>
-                                                                    <input 
-                                                                        type="radio" 
-                                                                        name="configuredImageCount" 
-                                                                        checked={isSelected}
-                                                                        onChange={() => {
-                                                                            if (selectedThemeVariantId === 'all') {
-                                                                                setForm(prev => ({ ...prev, configuredImageCount: opt.count }));
-                                                                                const newCounts = {};
-                                                                                variants.forEach(v => { newCounts[v.id.toString()] = opt.count; });
-                                                                                setVariantImageCounts(newCounts);
-                                                                            } else {
-                                                                                setVariantImageCounts(prev => ({
-                                                                                    ...prev,
-                                                                                    [selectedThemeVariantId]: opt.count
-                                                                                }));
-                                                                            }
-                                                                        }}
-                                                                        className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
-                                                                    />
-                                                                </div>
-                                                                <p className="text-xs opacity-75">{opt.desc}</p>
-                                                            </div>
+                                                                {v.name || `Var #${idx + 1}`}
+                                                            </button>
                                                         );
                                                     })}
                                                 </div>
-                                            </div>
+                                            )}
+                                        </div>
 
-                                            {/* REAL-TIME LIVE INTERACTIVE PREVIEW */}
-                                            <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-6 shadow-xl border border-slate-800">
-                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                        <span className="text-xs font-bold uppercase tracking-widest text-slate-300">iPhone 14 Pro Max Live Preview</span>
-                                                    </div>
+                                        {/* iPhone 14 Pro Max Device Mockup Wrapper */}
+                                        <div className="flex flex-col items-center justify-center py-4">
+                                            {(() => {
+                                                const activePrevId = previewVariantId || variants[0]?.id?.toString();
+                                                const activeVariant = variants.find(v => v.id.toString() === activePrevId) || variants[0];
+                                                
+                                                // Dynamic Discover URL calculation
+                                                const params = new URLSearchParams();
+                                                params.set('watch', productId ? productId.toString() : '11');
+                                                if (activeVariant?.id) {
+                                                    params.set('variant', activeVariant.id.toString());
+                                                }
+                                                if (activeVariant?.variantAttributes && Array.isArray(activeVariant.variantAttributes)) {
+                                                    activeVariant.variantAttributes.forEach(va => {
+                                                        const attrKey = (va.attribute?.name || va.attributeValue?.attribute?.name || '').toLowerCase().trim();
+                                                        const attrVal = (va.attributeValue?.label || va.attributeValue?.value || va.value || '').trim();
+                                                        if (attrKey && attrVal) {
+                                                            params.set(attrKey, attrVal);
+                                                        }
+                                                    });
+                                                }
+                                                const discoverUrl = `/discover?${params.toString()}`;
 
-                                                    {/* Variant Preview Switcher */}
-                                                    {variants.length > 0 && (
-                                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                                            <span className="text-[11px] text-slate-400 font-semibold mr-1">Preview Variant:</span>
-                                                            {variants.map((v, idx) => {
-                                                                const vId = v.id.toString();
-                                                                const activePrevId = previewVariantId || variants[0]?.id?.toString();
-                                                                const isPrevActive = activePrevId === vId;
-                                                                return (
-                                                                    <button
-                                                                        key={vId}
-                                                                        type="button"
-                                                                        onClick={() => setPreviewVariantId(vId)}
-                                                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                                                                            isPrevActive
-                                                                                ? 'bg-emerald-500 text-slate-950 shadow-sm font-extrabold'
-                                                                                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                                                                        }`}
-                                                                    >
-                                                                        {v.name || `Var #${idx + 1}`}
-                                                                    </button>
-                                                                );
-                                                            })}
+                                                return (
+                                                    <div className="w-full flex flex-col items-center space-y-4">
+                                                        <div className="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-4 py-1.5 rounded-full border border-emerald-500/30 flex items-center gap-2">
+                                                            <i className="fas fa-mobile-alt"></i>
+                                                            <span>Previewing on iPhone 14 Pro Max: <code className="text-emerald-300 font-mono text-[11px]">{discoverUrl}</code></span>
                                                         </div>
-                                                    )}
-                                                </div>
 
-                                                {/* iPhone 14 Pro Max Device Mockup Wrapper */}
-                                                <div className="flex flex-col items-center justify-center py-4">
-                                                    {(() => {
-                                                        const activePrevId = previewVariantId || variants[0]?.id?.toString();
-                                                        const activeVariant = variants.find(v => v.id.toString() === activePrevId) || variants[0];
-                                                        
+                                                        {/* iPhone 14 Pro Max Frame Container */}
+                                                        <div className="relative my-2 transition-all duration-300 shadow-2xl shrink-0" style={{ width: '430px', height: '860px', borderRadius: '52px', border: '12px solid #0f172a', background: '#000000', overflow: 'hidden', boxSizing: 'border-box' }}>
+                                                            {/* Dynamic Island */}
+                                                            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-50 flex items-center justify-between px-3 shadow-xs pointer-events-none">
+                                                                <div className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-800"></div>
+                                                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-950"></div>
+                                                            </div>
+
+                                                            {/* iPhone Screen Header Bar */}
+                                                            <div className="absolute top-0 left-0 right-0 h-10 bg-slate-950/80 backdrop-blur-md z-40 flex items-center justify-between px-7 text-white text-[10px] font-bold pointer-events-none border-b border-white/5">
+                                                                <span>9:41</span>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <i className="fas fa-signal text-[9px]"></i>
+                                                                    <i className="fas fa-wifi text-[9px]"></i>
+                                                                    <i className="fas fa-battery-full text-[10px]"></i>
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Live Discover Storefront Iframe */}
+                                                            <iframe
+                                                                src={discoverUrl}
+                                                                className="w-full h-full border-none pt-8"
+                                                                style={{ borderRadius: '40px' }}
+                                                                title="iPhone 14 Pro Max Live Storefront Preview"
+                                                            />
+
+                                                            {/* Bottom Home Indicator Bar */}
+                                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/40 rounded-full z-50 pointer-events-none"></div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                     {/* Form Footer */}
                     <div className="bg-gray-50 border-t border-gray-200 !px-2 flex items-center justify-between">
