@@ -423,15 +423,31 @@ function DiscoverContent() {
       .filter(vi => vi.type === 'GALLERY' || vi.type === 'gallery')
       .map(vi => {
         const m = vi.media;
-        const p = m?.url || m?.path || (m?.fileName ? `/uploads/${m.fileName}` : '');
+        const p = m?.url || m?.filePath || m?.path || (m?.fileName ? `/uploads/${m.fileName}` : '');
         return getFileUrl(p);
       })
       .filter(Boolean);
 
-    if (vGallery.length > 0) {
+    const productMainGallery = (product.productMedia?.length > 0)
+      ? product.productMedia.filter(m => m.type === 'GALLERY').map(m => getFileUrl(m.media?.url || m.media?.filePath || (m.media?.fileName ? `/uploads/${m.media.fileName}` : ''))).filter(Boolean)
+      : (product.images || []).map(img => getFileUrl(typeof img === 'string' ? img : (img.url || img.filePath)));
+
+    if (vGallery.length >= 2) {
       product.galleryImages = vGallery;
+    } else if (vGallery.length === 1) {
+      product.galleryImages = [
+        vGallery[0],
+        productMainGallery[0] || '/assets/fylex-watch-v2/40mm.png',
+        productMainGallery[1] || '/assets/fylex-watch-v2/olive-green.png'
+      ];
+    } else if (productMainGallery.length > 0) {
+      product.galleryImages = productMainGallery;
     } else {
-      product.galleryImages = [vDisplay.image];
+      product.galleryImages = [
+        '/assets/fylex-watch-v2/40mm.png',
+        '/assets/fylex-watch-v2/olive-green.png',
+        primaryImg
+      ];
     }
   }
 
@@ -2189,7 +2205,7 @@ function DiscoverContent() {
                   </div>
                   {effectiveImageCount >= 2 && (
                     <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
-                      <img src={product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-desc-img" />
+                      <img src={product.galleryImages?.[0] || '/assets/fylex-watch-v2/40mm.png'} alt={product.title} className="cfg-desc-img" />
                     </div>
                   )}
                 </section>
@@ -2209,7 +2225,7 @@ function DiscoverContent() {
                   </div>
                   {effectiveImageCount >= 2 && (
                     <div className="cfg-desc-img-wrap">
-                      <img src={product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-desc-img" />
+                      <img src={product.galleryImages?.[0] || '/assets/fylex-watch-v2/40mm.png'} alt={product.title} className="cfg-desc-img" />
                     </div>
                   )}
                 </section>
@@ -2243,7 +2259,7 @@ function DiscoverContent() {
                   <div className="cfg-specs-grid" style={ effectiveImageCount < 3 ? { gridTemplateColumns: '1fr' } : {} }>
                     {effectiveImageCount >= 3 && (
                       <div className="cfg-specs-img-wrap">
-                        <img src={product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-specs-img" />
+                        <img src={product.galleryImages?.[1] || product.galleryImages?.[0] || '/assets/fylex-watch-v2/olive-green.png'} alt={product.title} className="cfg-specs-img" />
                       </div>
                     )}
 
