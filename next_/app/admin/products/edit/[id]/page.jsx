@@ -1727,10 +1727,11 @@ const EditProductPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+                    )}
 
                     {/* Form Footer */}
-                    <div className="bg-gray-50 border-t border-gray-200 !px-2 flex items-center justify-between">
+                    <div className="bg-gray-50 border-t border-gray-200 p-6 flex items-center justify-between">
                         <div className="text-sm text-gray-500 flex items-center gap-2 font-medium">
                             <i className="fas fa-shield-alt text-indigo-500"></i>
                             All luxury details will be saved securely
