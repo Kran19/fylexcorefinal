@@ -1185,6 +1185,18 @@ input:checked+.slider:before {
     border-right: none !important;
 }
 
+.admin-root .tabulator-header .tabulator-col:hover,
+.admin-root .tabulator-header .tabulator-col.tabulator-sortable:hover {
+    background: #1e293b !important;
+    color: #ffffff !important;
+}
+
+.admin-root .tabulator-header .tabulator-col:hover .tabulator-col-title,
+.admin-root .tabulator-header .tabulator-col.tabulator-sortable:hover .tabulator-col-title,
+.admin-root .tabulator-header .tabulator-col:hover .tabulator-col-content {
+    color: #ffffff !important;
+}
+
 .admin-root .tabulator-header .tabulator-col-content {
     padding: 12px 16px !important;
 }

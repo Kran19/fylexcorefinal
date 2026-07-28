@@ -2084,43 +2084,44 @@ function DiscoverContent() {
         </section>
 
 
-        {!hasConfig ? (
-          <section id="description" className="cfg-desc-section" style={{
-            background: product.bgColor || product.gradient || `
-              radial-gradient(circle at 10% 10%, rgba(${product.accentRgb}, 0.15) 0%, transparent 40%),
-              radial-gradient(circle at 90% 90%, rgba(${product.accentRgb}, 0.1) 0%, transparent 40%),
-              linear-gradient(135deg, #000000 0%, #050505 50%, #000000 100%)
-            `
-          }}>
-            <div className="cfg-mist-layer" style={{
-              background: `radial-gradient(circle at 70% 40%, rgba(${product.mistRgb}, 0.2) 0%, transparent 70%)`
-            }}></div>
-            <div className="cfg-desc-content" style={{ position: 'relative', zIndex: 2 }}>
-              <h2 className="cfg-desc-heading">Model Stories</h2>
-              <p className="cfg-desc-text">{product.longDesc}</p>
-            </div>
-            <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
-              <img src={product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-desc-img" />
-            </div>
-          </section>
-        ) : (
-          <section id="description" className="cfg-desc-section" style={{
-            background: '#000000'
-          }}>
-            <div className="cfg-mist-layer" style={{
-              background: `radial-gradient(circle at 70% 40%, rgba(255, 255, 255, 0.08) 0%, transparent 70%)`
-            }}></div>
-            <div className="cfg-desc-content" style={{ position: 'relative', zIndex: 2 }}>
-              <span className="cfg-heritage-eyebrow" style={{ color: '#aaaaaa', display: 'block', marginBottom: '15px' }}>your timepiece.</span>
-              <h2 className="cfg-desc-heading" style={{ color: '#ffffff' }}>A final combination ready to be worn.</h2>
-              <p className="cfg-desc-text" style={{ color: '#aaaaaa' }}>
-                Every Watch Begins With A Choice. Assembled By Us, Your Combination Ready To Be Worn.
-              </p>
-            </div>
-            <div className="cfg-desc-img-wrap">
-              <img src={product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-desc-img" />
-            </div>
-          </section>
+        {/* ── SECONDARY IMAGE SECTION ("your timepiece") ── */}
+        {(Number(product.configuredImageCount) || 3) >= 2 && (
+          product.longDesc ? (
+            <section id="description" className="cfg-desc-section" style={{
+              background: product.heroBgImage ? 'rgba(0,0,0,0.85)' : (product.bgColor || '#ffffff'),
+              color: product.textColor || '#111111'
+            }}>
+              <div className="cfg-mist-layer" style={{
+                background: `radial-gradient(circle at 70% 40%, ${product.accentColor || '#c4a35a'}22 0%, transparent 70%)`
+              }}></div>
+              <div className="cfg-desc-content" style={{ position: 'relative', zIndex: 2 }}>
+                <span className="cfg-heritage-eyebrow" style={{ color: product.heroBgImage ? '#aaaaaa' : '#666666' }}>your timepiece.</span>
+                <h2 className="cfg-desc-heading" style={{ color: product.heroBgImage ? '#ffffff' : (product.textColor || '#111111') }}>{product.subtitle || 'Crafted with passion'}</h2>
+                <p className="cfg-desc-text">{product.longDesc}</p>
+              </div>
+              <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
+                <img src={product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-desc-img" />
+              </div>
+            </section>
+          ) : (
+            <section id="description" className="cfg-desc-section" style={{
+              background: '#000000'
+            }}>
+              <div className="cfg-mist-layer" style={{
+                background: `radial-gradient(circle at 70% 40%, rgba(255, 255, 255, 0.08) 0%, transparent 70%)`
+              }}></div>
+              <div className="cfg-desc-content" style={{ position: 'relative', zIndex: 2 }}>
+                <span className="cfg-heritage-eyebrow" style={{ color: '#aaaaaa', display: 'block', marginBottom: '15px' }}>your timepiece.</span>
+                <h2 className="cfg-desc-heading" style={{ color: '#ffffff' }}>A final combination ready to be worn.</h2>
+                <p className="cfg-desc-text" style={{ color: '#aaaaaa' }}>
+                  Every Watch Begins With A Choice. Assembled By Us, Your Combination Ready To Be Worn.
+                </p>
+              </div>
+              <div className="cfg-desc-img-wrap">
+                <img src={product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-desc-img" />
+              </div>
+            </section>
+          )
         )}
 
         {product.videoUrl && (
@@ -2137,74 +2138,52 @@ function DiscoverContent() {
             </div>
           </section>
         )}
-        {/* ── TECHNICAL DETAILS SECTION ── */}
-        <section id="specs" className="cfg-specs-section">
-          <div className="cfg-specs-container">
-            <div className="cfg-specs-header">
-              <h2 className="cfg-specs-title">
-                More {product.title}
-                <span>technical details</span>
-              </h2>
-            </div>
 
-            <div className="cfg-specs-grid">
-              <div className="cfg-specs-img-wrap">
-                <img src={product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-specs-img" />
-              </div>
+        {/* ── TERTIARY IMAGE SECTION (TECHNICAL DETAILS & 3RD IMAGE) ── */}
+        {(Number(product.configuredImageCount) || 3) >= 3 && (
+          <>
+            <section id="specs" className="cfg-specs-section">
+              <div className="cfg-specs-container">
+                <div className="cfg-specs-header">
+                  <h2 className="cfg-specs-title">
+                    More {product.title}
+                    <span>technical details</span>
+                  </h2>
+                </div>
 
-              <div className="cfg-spec-accordion">
-                {Object.keys(product.specs || {}).map((groupName, idx) => (
-                  <div key={groupName} className={`cfg-spec-item ${activeSpecGroup === groupName ? 'active' : ''}`}>
-                    <button
-                      className="cfg-spec-trigger"
-                      onClick={() => setActiveSpecGroup(activeSpecGroup === groupName ? null : groupName)}
-                    >
-                      <span className="cfg-spec-group-name">{groupName}</span>
-                      <div className="cfg-spec-icon"></div>
-                    </button>
-                    <div className="cfg-spec-content">
-                      <div className="cfg-spec-inner">
-                        {(product.specs[groupName] || []).map((spec, sIdx) => (
-                          <div key={sIdx} className="cfg-spec-row">
-                            <span className="cfg-spec-label">{spec.label}</span>
-                            <span className="cfg-spec-value">{spec.value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                <div className="cfg-specs-grid">
+                  <div className="cfg-specs-img-wrap">
+                    <img src={product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-specs-img" />
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <section id="heritage" className="cfg-heritage-section">
-          <div className="cfg-heritage-left">
-            <span className="cfg-heritage-eyebrow">More than keeping time</span>
-            <h2 className="cfg-heritage-heading">Made around preference</h2>
-            <p className="cfg-heritage-text">{product.heritageText}</p>
-            <div className="cfg-sold-stats" onClick={() => openInfoModal(product)} style={{ marginTop: '30px' }}>
-              <span className="shimmer-sweep"></span>
-              <span className="stats-label" style={{ fontSize: '0.75rem', letterSpacing: '0.15em', marginBottom: '6px' }}>Configurations Sold</span>
-              <div className="cfg-see-variants">
-                <span>see variants</span>
-                <div className="cfg-info-icon">i</div>
+                  <div className="cfg-spec-accordion">
+                    {Object.keys(product.specs || {}).map((groupName, idx) => (
+                      <div key={groupName} className={`cfg-spec-item ${activeSpecGroup === groupName ? 'active' : ''}`}>
+                        <button
+                          className="cfg-spec-trigger"
+                          onClick={() => setActiveSpecGroup(activeSpecGroup === groupName ? null : groupName)}
+                        >
+                          <span className="cfg-spec-group-name">{groupName}</span>
+                          <div className="cfg-spec-icon"></div>
+                        </button>
+                        <div className="cfg-spec-content">
+                          <div className="cfg-spec-inner">
+                            {(product.specs[groupName] || []).map((spec, sIdx) => (
+                              <div key={sIdx} className="cfg-spec-row">
+                                <span className="cfg-spec-label">{spec.label}</span>
+                                <span className="cfg-spec-value">{spec.value}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="cfg-heritage-right">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', alignItems: 'flex-end', width: '100%' }}>
-              {product.galleryImages?.[2] && (
-                <img
-                  src={product.galleryImages[2]}
-                  alt="Heritage"
-                  style={{ width: '100%', filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.1))' }}
-                />
-              )}
-            </div>
-          </div>
-        </section>
+            </section>
+          </>
+        )}
 
         {/* ── COMPATIBLE BELTS SECTION (HORIZONTALLY SCROLLABLE) ── */}
         {product.productBelts?.length > 0 && (

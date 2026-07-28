@@ -143,10 +143,22 @@
     text-align: center;
 }
 
-/* ─── Header Hover ─── */
+/* ─── Header Hover Fix ─── */
+.tabulator .tabulator-header .tabulator-col:hover,
 .tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover {
-    background: #eef0f8 !important;
+    background: #1e293b !important;
+    color: #ffffff !important;
     cursor: pointer;
+}
+
+.tabulator .tabulator-header .tabulator-col:hover .tabulator-col-title,
+.tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover .tabulator-col-title,
+.tabulator .tabulator-header .tabulator-col:hover .tabulator-col-content {
+    color: #ffffff !important;
+}
+
+.tabulator .tabulator-header .tabulator-col:hover .tabulator-col-sorter {
+    color: #a1a1aa !important;
 }
 
 /* ─── Status Badges inside tables ─── */
