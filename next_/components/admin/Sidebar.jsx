@@ -170,10 +170,21 @@ const Sidebar = ({ mobileOpen, setMobileOpen, isExpanded, setIsExpanded }) => {
         className={`admin-sidebar ${isExpanded ? 'expanded' : ''} ${mobileOpen ? 'mobile-show' : ''}`}
         style={{ transition: 'width 0.3s ease, transform 0.3s ease' }}
       >
-        <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
-          <div className="sidebar-logo-icon" style={{ width: '220px', height: '80px', background: 'transparent', border: 'none', margin: '0 auto' }}>
-            <img src="/fylex.png" alt="Fylex" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'none' }} />
-          </div>
+        <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', padding: '16px 12px 14px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '8px' }}>
+          <Link href="/admin/dashboard" style={{ display: 'block', width: '100%', textAlign: 'center' }}>
+            <img 
+              src="/fylex.png" 
+              alt="FYLEX" 
+              style={{ 
+                maxHeight: '28px', 
+                width: 'auto', 
+                maxWidth: '130px', 
+                objectFit: 'contain', 
+                margin: '0 auto', 
+                display: 'block' 
+              }} 
+            />
+          </Link>
         </div>
 
         {/* Nav */}
@@ -203,14 +214,22 @@ const Sidebar = ({ mobileOpen, setMobileOpen, isExpanded, setIsExpanded }) => {
                     <i className={item.icon}></i>
                     <span className="nav-link-text" style={{ flex: 1 }}>{item.title}</span>
                     {isExpanded && (
-                      <i
-                        className="fas fa-chevron-down nav-link-text"
+                      <svg
+                        className="nav-link-text"
+                        width="10"
+                        height="6"
+                        viewBox="0 0 10 6"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
                         style={{
-                          fontSize: 10,
-                          transform: submenuOpen ? 'rotate(180deg)' : 'none',
-                          transition: 'transform 0.2s',
+                          transform: submenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                          opacity: 0.8,
+                          marginLeft: 'auto'
                         }}
-                      ></i>
+                      >
+                        <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     )}
                   </button>
                 ) : (
