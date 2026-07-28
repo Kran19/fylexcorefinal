@@ -2237,6 +2237,8 @@ function DiscoverContent() {
               </section>
             </>
           );
+        })()}
+
         {/* ── COMPATIBLE BELTS SECTION (DESKTOP AUTOMATIC HORIZONTAL PINNED SCROLL) ── */}
         {product.productBelts?.length > 0 && (
           <section 
