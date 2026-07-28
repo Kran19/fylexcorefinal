@@ -1369,14 +1369,8 @@ const EditProductPage = () => {
                                                                                  </div>
                                                                              </td>
                                                                              <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                                                                  <input 
-                                                                                      type="checkbox" 
-                                                                                      checked={Boolean(variant.isSoldConfiguration)} 
-                                                                                      onChange={(e) => updateVariantField(vIdx, 'isSoldConfiguration', e.target.checked)} 
-                                                                                      title="Mark as Sold Configuration on Storefront"
-                                                                                      style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#6366f1', verticalAlign: 'middle' }} 
-                                                                                  />
-                                                                              </td>
+                                                                                 <input type="checkbox" checked={variant.isSoldConfiguration || false} onChange={(e) => updateVariantField(vIdx, 'isSoldConfiguration', e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#4f46e5' }} />
+                                                                             </td>
                                                                              <td style={{ padding: '12px 16px' }}>
                                                                                  <input type="number" value={variant.fakeSoldCount || 0} onChange={(e) => updateVariantField(vIdx, 'fakeSoldCount', e.target.value)} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', outline: 'none' }} />
                                                                              </td>
@@ -1628,11 +1622,11 @@ const EditProductPage = () => {
                                     </div>
 
                                     {/* REAL-TIME LIVE INTERACTIVE PREVIEW */}
-                                    <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-6 shadow-xl border border-slate-800">
+                                    <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-4 shadow-xl border border-slate-800">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
                                             <div className="flex items-center gap-2">
                                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-300">iPhone 14 Pro Max Live Preview</span>
+                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Live Storefront Preview</span>
                                             </div>
 
                                             {/* Variant Preview Switcher */}
@@ -1648,9 +1642,9 @@ const EditProductPage = () => {
                                                                 key={vId}
                                                                 type="button"
                                                                 onClick={() => setPreviewVariantId(vId)}
-                                                                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
                                                                     isPrevActive
-                                                                        ? 'bg-emerald-500 text-slate-950 shadow-sm font-extrabold'
+                                                                        ? 'bg-emerald-500 text-slate-950 shadow-xs'
                                                                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                                                                 }`}
                                                             >
@@ -1661,77 +1655,78 @@ const EditProductPage = () => {
                                                 </div>
                                             )}
                                         </div>
+                                        
+                                         {/* iPhone 14 Pro Max Device Mockup Wrapper */}
+                                         <div className="flex flex-col items-center justify-center py-4">
+                                             {(() => {
+                                                 const activePrevId = previewVariantId || variants[0]?.id?.toString();
+                                                 const activeVariant = variants.find(v => v.id.toString() === activePrevId) || variants[0];
+                                                 
+                                                 // Dynamic Discover URL calculation
+                                                 const params = new URLSearchParams();
+                                                 params.set('watch', productId ? productId.toString() : '11');
+                                                 if (activeVariant?.id) {
+                                                     params.set('variant', activeVariant.id.toString());
+                                                 }
+                                                 if (activeVariant?.variantAttributes && Array.isArray(activeVariant.variantAttributes)) {
+                                                     activeVariant.variantAttributes.forEach(va => {
+                                                         const attrKey = (va.attribute?.name || va.attributeValue?.attribute?.name || '').toLowerCase().trim();
+                                                         const attrVal = (va.attributeValue?.label || va.attributeValue?.value || va.value || '').trim();
+                                                         if (attrKey && attrVal) {
+                                                             params.set(attrKey, attrVal);
+                                                         }
+                                                     });
+                                                 }
+                                                 const discoverUrl = `/discover?${params.toString()}`;
 
-                                        {/* iPhone 14 Pro Max Device Mockup Wrapper */}
-                                        <div className="flex flex-col items-center justify-center py-4">
-                                            {(() => {
-                                                const activePrevId = previewVariantId || variants[0]?.id?.toString();
-                                                const activeVariant = variants.find(v => v.id.toString() === activePrevId) || variants[0];
-                                                
-                                                // Dynamic Discover URL calculation
-                                                const params = new URLSearchParams();
-                                                params.set('watch', productId ? productId.toString() : '11');
-                                                if (activeVariant?.id) {
-                                                    params.set('variant', activeVariant.id.toString());
-                                                }
-                                                if (activeVariant?.variantAttributes && Array.isArray(activeVariant.variantAttributes)) {
-                                                    activeVariant.variantAttributes.forEach(va => {
-                                                        const attrKey = (va.attribute?.name || va.attributeValue?.attribute?.name || '').toLowerCase().trim();
-                                                        const attrVal = (va.attributeValue?.label || va.attributeValue?.value || va.value || '').trim();
-                                                        if (attrKey && attrVal) {
-                                                            params.set(attrKey, attrVal);
-                                                        }
-                                                    });
-                                                }
-                                                const discoverUrl = `/discover?${params.toString()}`;
+                                                 return (
+                                                     <div className="w-full flex flex-col items-center space-y-4">
+                                                         <div className="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-4 py-1.5 rounded-full border border-emerald-500/30 flex items-center gap-2">
+                                                             <i className="fas fa-mobile-alt"></i>
+                                                             <span>Previewing on iPhone 14 Pro Max: <code className="text-emerald-300 font-mono text-[11px]">{discoverUrl}</code></span>
+                                                         </div>
 
-                                                return (
-                                                    <div className="w-full flex flex-col items-center space-y-4">
-                                                        <div className="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-4 py-1.5 rounded-full border border-emerald-500/30 flex items-center gap-2">
-                                                            <i className="fas fa-mobile-alt"></i>
-                                                            <span>Previewing on iPhone 14 Pro Max: <code className="text-emerald-300 font-mono text-[11px]">{discoverUrl}</code></span>
-                                                        </div>
+                                                         {/* iPhone 14 Pro Max Frame Container */}
+                                                         <div className="relative my-2 transition-all duration-300 shadow-2xl shrink-0" style={{ width: '430px', height: '860px', borderRadius: '52px', border: '12px solid #0f172a', background: '#000000', overflow: 'hidden', boxSizing: 'border-box' }}>
+                                                             {/* Dynamic Island */}
+                                                             <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-50 flex items-center justify-between px-3 shadow-xs pointer-events-none">
+                                                                 <div className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-800"></div>
+                                                                 <div className="w-2.5 h-2.5 rounded-full bg-indigo-950"></div>
+                                                             </div>
 
-                                                        {/* iPhone 14 Pro Max Frame Container */}
-                                                        <div className="relative my-2 transition-all duration-300 shadow-2xl shrink-0" style={{ width: '430px', height: '860px', borderRadius: '52px', border: '12px solid #0f172a', background: '#000000', overflow: 'hidden', boxSizing: 'border-box' }}>
-                                                            {/* Dynamic Island */}
-                                                            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-7 bg-black rounded-full z-50 flex items-center justify-between px-3 shadow-xs pointer-events-none">
-                                                                <div className="w-3.5 h-3.5 rounded-full bg-slate-950 border border-slate-800"></div>
-                                                                <div className="w-2.5 h-2.5 rounded-full bg-indigo-950"></div>
-                                                            </div>
+                                                             {/* iPhone Screen Header Bar */}
+                                                             <div className="absolute top-0 left-0 right-0 h-10 bg-slate-950/80 backdrop-blur-md z-40 flex items-center justify-between px-7 text-white text-[10px] font-bold pointer-events-none border-b border-white/5">
+                                                                 <span>9:41</span>
+                                                                 <div className="flex items-center gap-1.5">
+                                                                     <i className="fas fa-signal text-[9px]"></i>
+                                                                     <i className="fas fa-wifi text-[9px]"></i>
+                                                                     <i className="fas fa-battery-full text-[10px]"></i>
+                                                                 </div>
+                                                             </div>
 
-                                                            {/* iPhone Screen Header Bar */}
-                                                            <div className="absolute top-0 left-0 right-0 h-10 bg-slate-950/80 backdrop-blur-md z-40 flex items-center justify-between px-7 text-white text-[10px] font-bold pointer-events-none border-b border-white/5">
-                                                                <span>9:41</span>
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <i className="fas fa-signal text-[9px]"></i>
-                                                                    <i className="fas fa-wifi text-[9px]"></i>
-                                                                    <i className="fas fa-battery-full text-[10px]"></i>
-                                                                </div>
-                                                            </div>
+                                                             {/* Live Discover Storefront Iframe */}
+                                                             <iframe
+                                                                 src={discoverUrl}
+                                                                 className="w-full h-full border-none pt-8"
+                                                                 style={{ borderRadius: '40px' }}
+                                                                 title="iPhone 14 Pro Max Live Storefront Preview"
+                                                             />
 
-                                                            {/* Live Discover Storefront Iframe */}
-                                                            <iframe
-                                                                src={discoverUrl}
-                                                                className="w-full h-full border-none pt-8"
-                                                                style={{ borderRadius: '40px' }}
-                                                                title="iPhone 14 Pro Max Live Storefront Preview"
-                                                            />
-
-                                                            {/* Bottom Home Indicator Bar */}
-                                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/40 rounded-full z-50 pointer-events-none"></div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })()}
-                                        </div>
+                                                             {/* Bottom Home Indicator Bar */}
+                                                             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/40 rounded-full z-50 pointer-events-none"></div>
+                                                         </div>
+                                                     </div>
+                                                 );
+                                             })()}
+                                         </div>
                                     </div>
                                 </div>
                             )}
                         </div>
+                    </div>
 
                     {/* Form Footer */}
-                    <div className="bg-gray-50 border-t border-gray-200 p-6 flex items-center justify-between">
+                    <div className="bg-gray-50 border-t border-gray-200 !px-2 flex items-center justify-between">
                         <div className="text-sm text-gray-500 flex items-center gap-2 font-medium">
                             <i className="fas fa-shield-alt text-indigo-500"></i>
                             All luxury details will be saved securely
@@ -1926,10 +1921,8 @@ const EditProductPage = () => {
                     </div>
                 </div>
             )}
-            </div>
         </div>
-    </div>
-);
+    );
 };
 
 export default EditProductPage;
