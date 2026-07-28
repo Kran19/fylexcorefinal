@@ -2184,8 +2184,6 @@ function DiscoverContent() {
             </div>
           </div>
         </section>
-          </>
-        )}
 
         {/* ── COMPATIBLE BELTS SECTION (HORIZONTALLY SCROLLABLE) ── */}
         {product.productBelts?.length > 0 && (
