@@ -78,10 +78,19 @@ const navItems = [
     path: '/admin/users',
   },
   {
-    key: 'media',
-    title: 'Media',
-    icon: 'fas fa-images',
-    path: '/admin/media',
+    key: 'speed-booster',
+    title: 'Speed Booster',
+    icon: 'fas fa-bolt',
+    path: '/admin/media/optimization-center',
+    submenu: [
+      { title: 'Media Library', path: '/admin/media' },
+      { title: 'Optimization Center', path: '/admin/media/optimization-center' },
+      { title: 'Image Optimization', path: '/admin/media/image-optimization' },
+      { title: 'Video Optimization', path: '/admin/media/video-optimization' },
+      { title: 'Storage Analytics', path: '/admin/media/storage-analytics' },
+      { title: 'Optimization History', path: '/admin/media/optimization-history' },
+      { title: 'Deleted Assets', path: '/admin/media/deleted-assets' },
+    ],
   },
   {
     key: 'cms',

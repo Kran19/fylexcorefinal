@@ -400,11 +400,62 @@ model Media {
   beltImages       Belt[]           @relation("BeltImage")
   boxImages        Box[]            @relation("BoxImage")
 
+  serveMode        String?                  @default("auto") @map("serve_mode")
+  primaryVariantId Int?                     @map("primary_variant_id")
+  isOptimized      Boolean                  @default(false) @map("is_optimized")
+  optimizationSavedBytes BigInt             @default(0) @map("optimization_saved_bytes")
+
+  variants         MediaVariant[]
+  logs             MediaOptimizationLog[]
+
   @@index([disk], map: "media_disk_index")
   @@index([mimeType], map: "media_mime_type_index")
   @@index([fileType], map: "media_file_type_index")
   @@index([uploadedBy], map: "media_uploaded_by_index")
   @@map("media")
+}
+
+model MediaVariant {
+  id               Int       @id @default(autoincrement())
+  mediaId          Int       @map("media_id")
+  format           String    // "webp" | "avif" | "jpeg" | "png" | "mp4"
+  preset           String    @default("balanced") // "lossless" | "balanced" | "max_compression" | "custom"
+  quality          Int       @default(80) // 1 - 100
+  width            Int?
+  height           Int?
+  filePath         String    @map("file_path")
+  fileSize         BigInt    @map("file_size")
+  compressionRatio Float     @default(0) @map("compression_ratio")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  media            Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([mediaId], map: "media_variants_media_id_index")
+  @@index([format], map: "media_variants_format_index")
+  @@map("media_variants")
+}
+
+model MediaOptimizationLog {
+  id               Int       @id @default(autoincrement())
+  mediaId          Int       @map("media_id")
+  adminId          Int?      @map("admin_id")
+  originalSize     BigInt    @map("original_size")
+  optimizedSize    BigInt    @map("optimized_size")
+  bytesSaved       BigInt    @map("bytes_saved")
+  compressionRatio Float     @default(0) @map("compression_ratio")
+  algorithm        String    @default("sharp") // "sharp_webp" | "sharp_avif" | "ffmpeg_h264"
+  qualitySetting   String    @default("balanced")
+  durationMs       Int       @default(0) @map("duration_ms")
+  status           String    @default("success") // "success" | "failed" | "rolled_back"
+  errorMessage     String?   @map("error_message")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  media            Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([mediaId], map: "media_optimization_logs_media_id_index")
+  @@index([status], map: "media_optimization_logs_status_index")
+  @@map("media_optimization_logs")
 }
 
 model SeoMetadata {
