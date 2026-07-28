@@ -696,10 +696,20 @@ export class ProductService {
         tagIds, 
         variants,
         gallery,
+        configuredImageCount,
         ...rest 
       } = dto as any;
 
       const prismaData: any = { ...rest };
+
+      if (configuredImageCount !== undefined) {
+        let currentTheme: any = {};
+        try {
+          currentTheme = prismaData.theme ? JSON.parse(prismaData.theme) : {};
+        } catch (e) {}
+        currentTheme.configuredImageCount = Number(configuredImageCount);
+        prismaData.theme = JSON.stringify(currentTheme);
+      }
 
       if (isActive !== undefined) {
         prismaData.status = isActive ? 'active' : 'inactive';

@@ -68,10 +68,18 @@ async function request(method, path, body = null, options = {}) {
     
     // Response Standardization
     if (!response.ok) {
+        let rawError = result.message || result.error || `API Error: ${response.statusText}`;
+        if (Array.isArray(rawError)) {
+          rawError = rawError.join(', ');
+        }
+        let cleanError = String(rawError);
+        if (cleanError.includes('should not exist')) {
+          cleanError = 'Invalid or unrecognized form input detected. Please verify form details.';
+        }
         return {
             success: false,
             data: null,
-            error: result.message || result.error || `API Error: ${response.statusText}`
+            error: cleanError
         };
     }
 

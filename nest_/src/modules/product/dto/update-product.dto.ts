@@ -87,9 +87,10 @@ export class UpdateProductDto {
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
-  isBestseller?: boolean;
-
-
+  @IsOptional()
+  @Transform(({ value }) => value ? Number(value) : undefined)
+  @IsNumber()
+  configuredImageCount?: number;
 
   @IsOptional()
   brandId?: number | string;
