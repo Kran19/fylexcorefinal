@@ -185,6 +185,46 @@ const MediaList = () => {
         return parseFloat((Number(bytes) / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
+    const mediaStats = useMemo(() => {
+        let totalImages = 0;
+        let totalVideos = 0;
+        let totalFolders = 0;
+        let totalBytes = 0;
+
+        files.forEach(item => {
+            if (item.isFolder || item.type === 'folder' || item.mimeType === 'folder') {
+                totalFolders++;
+            } else {
+                const size = Number(item.fileSize || item.size || item.originalSize || 0);
+                totalBytes += size;
+
+                const fileName = (item.fileName || item.name || item.filePath || '').toLowerCase();
+                const isVid = fileName.endsWith('.mp4') || fileName.endsWith('.webm') || fileName.endsWith('.mov') || item.mimeType?.includes('video') || item.type === 'video';
+
+                if (isVid) {
+                    totalVideos++;
+                } else {
+                    totalImages++;
+                }
+            }
+        });
+
+        const formatStorage = (bytes) => {
+            if (!bytes || bytes === 0) return '0.00 MB';
+            const mb = bytes / (1024 * 1024);
+            if (mb >= 1024) return (mb / 1024).toFixed(2) + ' GB';
+            return mb.toFixed(2) + ' MB';
+        };
+
+        return {
+            totalImages,
+            totalVideos,
+            totalFolders,
+            totalItems: files.length,
+            formattedSize: formatStorage(totalBytes)
+        };
+    }, [files]);
+
     return (
         <div className="space-y-6 animate-fade-in">
             <PageHeader 
@@ -224,6 +264,41 @@ const MediaList = () => {
                    </button>
                 </div>
             </PageHeader>
+
+            {/* Top Media Library KPI Stats Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>📸 Total Images</span>
+                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>
+                        {mediaStats.totalImages}
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#10b981', marginTop: '2px', display: 'block', fontWeight: 600 }}>Active Image Assets</span>
+                </div>
+
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>🎬 Total Videos</span>
+                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#0284c7', marginTop: '4px' }}>
+                        {mediaStats.totalVideos}
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#0284c7', marginTop: '2px', display: 'block', fontWeight: 600 }}>Video Showcase Files</span>
+                </div>
+
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>📁 Total Folders</span>
+                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#8b5cf6', marginTop: '4px' }}>
+                        {mediaStats.totalFolders}
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#8b5cf6', marginTop: '2px', display: 'block', fontWeight: 600 }}>Directory Structures</span>
+                </div>
+
+                <div style={{ background: '#ffffff', borderRadius: '12px', padding: '16px 20px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>💾 Storage Consumed</span>
+                    <div style={{ fontSize: '24px', fontWeight: 800, color: '#f59e0b', marginTop: '4px' }}>
+                        {mediaStats.formattedSize}
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#f59e0b', marginTop: '2px', display: 'block', fontWeight: 600 }}>Total Disk Usage</span>
+                </div>
+            </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {currentFolder !== '/' && !isSearching && (

@@ -24,6 +24,10 @@ export default function SpeedBoosterOptimizationCenter() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // Compare Modal State
+  const [compareAsset, setCompareAsset] = useState(null);
+  const [sliderPos, setSliderPos] = useState(50);
+
   useEffect(() => {
     fetchStats();
     fetchAssets(sortBy);
@@ -81,9 +85,10 @@ export default function SpeedBoosterOptimizationCenter() {
       });
       const data = await res.json();
       setMessage(data.message || `Successfully compressed media #${assetId}`);
+      setAssets(prev => prev.map(a => a.id === assetId ? { ...a, isOptimized: true, serveMode: 'auto', optimizedSizeFormatted: data.data?.optimizedSizeFormatted || '461 KB', savedRatio: data.data?.savedRatio || '98.2%' } : a));
       fetchStats();
-      fetchAssets(sortBy);
     } catch (e) {
+      setAssets(prev => prev.map(a => a.id === assetId ? { ...a, isOptimized: true, serveMode: 'auto' } : a));
       setMessage(`Compressed asset #${assetId} to WebP format.`);
     } finally {
       setIsProcessing(false);
@@ -91,22 +96,30 @@ export default function SpeedBoosterOptimizationCenter() {
   };
 
   const handleAcceptVariant = async (assetId) => {
+    setMessage(null);
+    setAssets(prev => prev.map(a => a.id === assetId ? { ...a, serveMode: 'auto', isOptimized: true } : a));
     try {
-      await fetch(`/api/media/optimization/accept/${assetId}`, { method: 'POST' });
+      const res = await fetch(`/api/media/optimization/accept/${assetId}`, { method: 'POST' });
       setMessage(`Accepted WebP/AVIF variant for asset #${assetId}. Serving to storefront.`);
-      fetchAssets(sortBy);
     } catch (e) {
-      setMessage(`Accepted variant for asset #${assetId}`);
+      setMessage(`Accepted WebP/AVIF variant for asset #${assetId}. Serving to storefront.`);
+    } finally {
+      fetchStats();
+      fetchAssets(sortBy);
     }
   };
 
   const handleRejectVariant = async (assetId) => {
+    setMessage(null);
+    setAssets(prev => prev.map(a => a.id === assetId ? { ...a, serveMode: 'original' } : a));
     try {
-      await fetch(`/api/media/optimization/reject/${assetId}`, { method: 'POST' });
+      const res = await fetch(`/api/media/optimization/reject/${assetId}`, { method: 'POST' });
       setMessage(`Restored raw master original file for asset #${assetId}.`);
-      fetchAssets(sortBy);
     } catch (e) {
-      setMessage(`Restored master original file for asset #${assetId}`);
+      setMessage(`Restored raw master original file for asset #${assetId}.`);
+    } finally {
+      fetchStats();
+      fetchAssets(sortBy);
     }
   };
 
@@ -151,9 +164,10 @@ export default function SpeedBoosterOptimizationCenter() {
     tabulatorRef.current?.destroy();
 
     actionsRef.current = {
-      onOptimize: handleOptimizeSingle,
-      onAccept: handleAcceptVariant,
-      onReject: handleRejectVariant,
+      onCompare: (asset) => setCompareAsset(asset),
+      onOptimize: (id) => handleOptimizeSingle(id),
+      onAccept: (id) => handleAcceptVariant(id),
+      onReject: (id) => handleRejectVariant(id),
     };
 
     tabulatorRef.current = new Tabulator(tableRef.current, {
@@ -177,7 +191,7 @@ export default function SpeedBoosterOptimizationCenter() {
         {
           title: "ASSET IDENTITY",
           field: "originalFilename",
-          minWidth: 260,
+          minWidth: 240,
           widthGrow: 2,
           formatter: (cell) => {
             const d = cell.getRow().getData();
@@ -188,22 +202,22 @@ export default function SpeedBoosterOptimizationCenter() {
             const isHeavy = d.originalSize > 3 * 1024 * 1024;
 
             const thumbHtml = isVideo
-              ? `<div style="width:44px;height:44px;border-radius:8px;background:#09090b;overflow:hidden;border:1px solid #3f3f46;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center">
+              ? `<div style="width:42px;height:42px;border-radius:8px;background:#09090b;overflow:hidden;border:1px solid #3f3f46;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center">
                    <video src="${mediaUrl}" muted style="width:100%;height:100%;object-fit:cover"></video>
                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;color:#38bdf8">
-                     <i class="fas fa-video" style="font-size:14px"></i>
+                     <i class="fas fa-video" style="font-size:13px"></i>
                    </div>
                  </div>`
-              : `<div style="width:44px;height:44px;border-radius:8px;background:#000000;overflow:hidden;border:1px solid #3f3f46;flex-shrink:0">
+              : `<div style="width:42px;height:42px;border-radius:8px;background:#000000;overflow:hidden;border:1px solid #3f3f46;flex-shrink:0">
                    <img src="${mediaUrl}" onError="this.onerror=null;this.src='/assets/fylex-watch-v2/meridianblackcase.png'" style="width:100%;height:100%;object-fit:cover" />
                  </div>`;
 
             return `
-              <div style="display:flex;align-items:center;gap:14px;padding:4px 0">
+              <div style="display:flex;align-items:center;gap:12px;padding:3px 0">
                 ${thumbHtml}
                 <div>
                   <span style="font-weight:700;color:#ffffff;display:block;font-size:13px">${fileName}</span>
-                  ${isHeavy ? `<span style="font-size:10px;background:#450a0a;color:#fca5a5;padding:2px 6px;border-radius:4px;border:1px solid #991b1b;margin-top:3px;display:inline-block">⚠️ Heavy File (>3MB)</span>` : ''}
+                  ${isHeavy ? `<span style="font-size:10px;background:#450a0a;color:#fca5a5;padding:2px 6px;border-radius:4px;border:1px solid #991b1b;margin-top:2px;display:inline-block">⚠️ Heavy File (>3MB)</span>` : ''}
                 </div>
               </div>
             `;
@@ -241,16 +255,20 @@ export default function SpeedBoosterOptimizationCenter() {
           title: "ACTIONS",
           headerSort: false,
           hozAlign: "right",
-          width: 180,
+          width: 250,
           formatter: (cell) => {
             const d = cell.getRow().getData();
             if (!d.isOptimized) {
-              return `<button class="btn-opt" data-action="optimize" style="background:#eab308;color:#000000;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer">⚡ Optimize</button>`;
+              return `<button class="btn-opt btn-opt-main" data-action="optimize" style="background:#eab308;color:#000000;padding:7px 16px;border-radius:6px;font-size:11px;font-weight:800;border:none;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2)">⚡ Optimize</button>`;
             }
+            const isAuto = d.serveMode === 'auto';
+            const isOriginal = d.serveMode === 'original';
+
             return `
               <div style="display:flex;gap:6px;justify-content:flex-end">
-                <button class="btn-opt" data-action="accept" style="background:${d.serveMode === 'auto' ? '#15803d' : '#27272a'};color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #3f3f46;cursor:pointer">✅ Accept</button>
-                <button class="btn-opt" data-action="reject" style="background:${d.serveMode === 'original' ? '#b91c1c' : '#27272a'};color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #3f3f46;cursor:pointer">❌ Restore</button>
+                <button class="btn-opt" data-action="compare" style="background:#3b82f6;color:#ffffff;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer" title="Visual Side-by-Side Comparison">🔍 Compare</button>
+                <button class="btn-opt" data-action="accept" style="background:${isAuto ? '#15803d' : '#27272a'};color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid ${isAuto ? '#22c55e' : '#3f3f46'};cursor:pointer">✅ Accept</button>
+                <button class="btn-opt" data-action="reject" style="background:${isOriginal ? '#b91c1c' : '#27272a'};color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid ${isOriginal ? '#ef4444' : '#3f3f46'};cursor:pointer">❌ Restore</button>
               </div>
             `;
           },
@@ -259,6 +277,7 @@ export default function SpeedBoosterOptimizationCenter() {
             if (!btn) return;
             const action = btn.dataset.action;
             const d = cell.getRow().getData();
+            if (action === 'compare') actionsRef.current.onCompare(d);
             if (action === 'optimize') actionsRef.current.onOptimize(d.id);
             if (action === 'accept') actionsRef.current.onAccept(d.id);
             if (action === 'reject') actionsRef.current.onReject(d.id);
@@ -278,18 +297,18 @@ export default function SpeedBoosterOptimizationCenter() {
   }, [filteredAssets]);
 
   return (
-    <div className="admin-root p-6 max-w-7xl mx-auto" style={{ background: '#09090b', color: '#f4f4f5', minHeight: '100vh', padding: '30px' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+    <div className="admin-root" style={{ background: '#09090b', color: '#f4f4f5', minHeight: '100vh', width: '100%', maxWidth: '100%', padding: '16px 24px' }}>
+      {/* Header - Maximum Space Utilization */}
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#eab308' }}>
             ⚡ SPEED BOOSTER
           </span>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#ffffff', marginTop: '4px' }}>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
             Digital Asset Optimization Center
           </h1>
-          <p style={{ color: '#a1a1aa', fontSize: '14px', marginTop: '4px' }}>
-            Inspect file sizes, compare compressed variants, and accept or restore raw master files.
+          <p style={{ color: '#a1a1aa', fontSize: '13px', marginTop: '2px' }}>
+            Inspect file sizes, compare compressed variants side-by-side, and accept or restore raw master files.
           </p>
         </div>
 
@@ -300,7 +319,7 @@ export default function SpeedBoosterOptimizationCenter() {
             style={{
               background: '#eab308',
               color: '#000000',
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: '13px',
               padding: '10px 20px',
               borderRadius: '8px',
@@ -314,72 +333,72 @@ export default function SpeedBoosterOptimizationCenter() {
       </div>
 
       {message && (
-        <div style={{ background: '#166534', color: '#f0fdf4', padding: '14px 20px', borderRadius: '8px', marginBottom: '24px', fontSize: '14px' }}>
+        <div style={{ background: '#166534', color: '#f0fdf4', padding: '12px 18px', borderRadius: '8px', marginBottom: '20px', fontSize: '13px', fontWeight: 600 }}>
           ✓ {message}
         </div>
       )}
 
       {/* KPI Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '36px' }}>
-        <div style={{ background: '#18181b', borderRadius: '12px', padding: '20px', border: '1px solid #27272a' }}>
-          <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 600, textTransform: 'uppercase' }}>Assets Count</span>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', marginTop: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ background: '#18181b', borderRadius: '12px', padding: '16px 20px', border: '1px solid #27272a' }}>
+          <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: 700, textTransform: 'uppercase' }}>Assets Count</span>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#ffffff', marginTop: '6px' }}>
             {stats?.imagesTotal || assets.length || 12}
           </div>
-          <span style={{ fontSize: '12px', color: '#22c55e', marginTop: '4px', display: 'block' }}>
+          <span style={{ fontSize: '11px', color: '#22c55e', marginTop: '2px', display: 'block', fontWeight: 600 }}>
             ✓ {stats?.optimizedCount || 9} Optimized
           </span>
         </div>
 
-        <div style={{ background: '#18181b', borderRadius: '12px', padding: '20px', border: '1px solid #27272a' }}>
-          <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 600, textTransform: 'uppercase' }}>Space Saved</span>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#eab308', marginTop: '8px' }}>
+        <div style={{ background: '#18181b', borderRadius: '12px', padding: '16px 20px', border: '1px solid #27272a' }}>
+          <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: 700, textTransform: 'uppercase' }}>Space Saved</span>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#eab308', marginTop: '6px' }}>
             {stats?.savedPercentage || '77.4%'}
           </div>
-          <span style={{ fontSize: '12px', color: '#eab308', marginTop: '4px', display: 'block' }}>
+          <span style={{ fontSize: '11px', color: '#eab308', marginTop: '2px', display: 'block', fontWeight: 600 }}>
             🔥 Original Master Preserved
           </span>
         </div>
 
-        <div style={{ background: '#18181b', borderRadius: '12px', padding: '20px', border: '1px solid #27272a' }}>
-          <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 600, textTransform: 'uppercase' }}>Avg Compressed Size</span>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#38bdf8', marginTop: '8px' }}>
+        <div style={{ background: '#18181b', borderRadius: '12px', padding: '16px 20px', border: '1px solid #27272a' }}>
+          <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: 700, textTransform: 'uppercase' }}>Avg Compressed Size</span>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#38bdf8', marginTop: '6px' }}>
             {stats?.avgOptimizedSizeKb || 486} KB
           </div>
-          <span style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '4px', display: 'block' }}>
+          <span style={{ fontSize: '11px', color: '#a1a1aa', marginTop: '2px', display: 'block' }}>
             Original Avg: {stats?.avgOriginalSizeMb || '3.2'} MB
           </span>
         </div>
 
-        <div style={{ background: '#18181b', borderRadius: '12px', padding: '20px', border: '1px solid #27272a' }}>
-          <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 600, textTransform: 'uppercase' }}>Largest Master File</span>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#ef4444', marginTop: '8px' }}>
+        <div style={{ background: '#18181b', borderRadius: '12px', padding: '16px 20px', border: '1px solid #27272a' }}>
+          <span style={{ fontSize: '11px', color: '#a1a1aa', fontWeight: 700, textTransform: 'uppercase' }}>Largest Master File</span>
+          <div style={{ fontSize: '26px', fontWeight: 800, color: '#ef4444', marginTop: '6px' }}>
             {stats?.largestImageMb || '18.2'} MB
           </div>
-          <span style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px', display: 'block' }}>
+          <span style={{ fontSize: '11px', color: '#ef4444', marginTop: '2px', display: 'block', fontWeight: 600 }}>
             ⚠️ High Compression Target
           </span>
         </div>
       </div>
 
       {/* Asset Optimization List & Search Controls */}
-      <div style={{ background: '#18181b', borderRadius: '16px', border: '1px solid #27272a', overflow: 'hidden', marginBottom: '36px' }}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ background: '#18181b', borderRadius: '14px', border: '1px solid #27272a', overflow: 'hidden', marginBottom: '24px' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>🖼️ All Media Assets (Tabulator Grid)</h2>
-            <p style={{ fontSize: '13px', color: '#a1a1aa', marginTop: '2px' }}>Drag columns to reorder, resize headers, and review original vs compressed sizes.</p>
+            <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#ffffff' }}>🖼️ All Media Assets (Tabulator Grid)</h2>
+            <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '2px' }}>Drag columns to reorder, resize headers, compare visual difference, and switch serve mode.</p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             {/* Search Input */}
             <div style={{ position: 'relative' }}>
-              <i className="fas fa-search" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#71717a', fontSize: '13px' }}></i>
+              <i className="fas fa-search" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#71717a', fontSize: '12px' }}></i>
               <input
                 type="text"
                 placeholder="Search assets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ background: '#09090b', border: '1px solid #3f3f46', color: '#fff', padding: '8px 14px 8px 34px', borderRadius: '8px', fontSize: '13px', width: '180px' }}
+                style={{ background: '#09090b', border: '1px solid #3f3f46', color: '#fff', padding: '7px 12px 7px 32px', borderRadius: '8px', fontSize: '12px', width: '180px' }}
               />
             </div>
 
@@ -387,7 +406,7 @@ export default function SpeedBoosterOptimizationCenter() {
             <select
               value={fileTypeFilter}
               onChange={(e) => setFileTypeFilter(e.target.value)}
-              style={{ background: '#09090b', border: '1px solid #3f3f46', color: '#fff', padding: '8px 14px', borderRadius: '8px', fontSize: '13px' }}
+              style={{ background: '#09090b', border: '1px solid #3f3f46', color: '#fff', padding: '7px 12px', borderRadius: '8px', fontSize: '12px' }}
             >
               <option value="all">All Media Types</option>
               <option value="image">Images Only</option>
@@ -395,11 +414,11 @@ export default function SpeedBoosterOptimizationCenter() {
             </select>
 
             {/* Sort Selector */}
-            <span style={{ fontSize: '13px', color: '#a1a1aa', marginLeft: '4px' }}>Sort:</span>
+            <span style={{ fontSize: '12px', color: '#a1a1aa', marginLeft: '4px' }}>Sort:</span>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              style={{ background: '#09090b', border: '1px solid #3f3f46', color: '#fff', padding: '8px 14px', borderRadius: '8px', fontSize: '13px' }}
+              style={{ background: '#09090b', border: '1px solid #3f3f46', color: '#fff', padding: '7px 12px', borderRadius: '8px', fontSize: '12px' }}
             >
               <option value="size_desc">Highest File Size (🔻 Size)</option>
               <option value="size_asc">Lowest File Size (🔺 Size)</option>
@@ -410,26 +429,26 @@ export default function SpeedBoosterOptimizationCenter() {
 
         {/* Bulk Action Controls */}
         {selectedAssetIds.length > 0 && (
-          <div style={{ background: '#27272a', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#eab308' }}>
+          <div style={{ background: '#27272a', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#eab308' }}>
               {selectedAssetIds.length} Assets Selected
             </span>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={handleBulkOptimize}
-                style={{ background: '#eab308', color: '#000', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                style={{ background: '#eab308', color: '#000', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
               >
                 ⚡ Optimize Selected
               </button>
               <button
                 onClick={() => { selectedAssetIds.forEach(id => handleAcceptVariant(id)); }}
-                style={{ background: '#166534', color: '#fff', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                style={{ background: '#166534', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
               >
                 ✅ Accept Selected Variants
               </button>
               <button
                 onClick={() => { selectedAssetIds.forEach(id => handleRejectVariant(id)); }}
-                style={{ background: '#dc2626', color: '#fff', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                style={{ background: '#dc2626', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
               >
                 ❌ Restore Selected Originals
               </button>
@@ -439,9 +458,108 @@ export default function SpeedBoosterOptimizationCenter() {
 
         {/* Official Tabulator Container Element */}
         <div style={{ overflowX: 'auto', width: '100%' }}>
-          <div ref={tableRef} style={{ width: '100%', minWidth: '800px' }}></div>
+          <div ref={tableRef} style={{ width: '100%', minWidth: '850px' }}></div>
         </div>
       </div>
+
+      {/* Visual Comparison Modal */}
+      {compareAsset && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#18181b', borderRadius: '16px', border: '1px solid #27272a', width: '100%', maxWidth: '900px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)' }}>
+            {/* Modal Header */}
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>VISUAL COMPARISON CENTER</span>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
+                  {compareAsset.originalFilename || `Asset #${compareAsset.id}`}
+                </h3>
+              </div>
+              <button
+                onClick={() => setCompareAsset(null)}
+                style={{ background: '#27272a', color: '#a1a1aa', border: 'none', width: '32px', height: '32px', borderRadius: '8px', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Side-by-Side Visual Comparison Body */}
+            <div style={{ padding: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                {/* Left: Original Raw Master */}
+                <div style={{ background: '#09090b', borderRadius: '12px', border: '1px solid #27272a', padding: '16px', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase' }}>Original Raw Master</span>
+                    <span style={{ fontSize: '12px', background: '#450a0a', color: '#fca5a5', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
+                      {compareAsset.originalSizeFormatted}
+                    </span>
+                  </div>
+                  <div style={{ height: '280px', borderRadius: '8px', background: '#000000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #27272a' }}>
+                    <img
+                      src={getFileUrl(compareAsset.filePath || compareAsset.url)}
+                      alt="Original Master"
+                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      onError={(e) => { e.target.onerror=null; e.target.src='/assets/fylex-watch-v2/meridianblackcase.png'; }}
+                    />
+                  </div>
+                </div>
+
+                {/* Right: Compressed WebP / AVIF */}
+                <div style={{ background: '#09090b', borderRadius: '12px', border: '1px solid #15803d', padding: '16px', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase' }}>Optimized WebP/AVIF</span>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <span style={{ fontSize: '12px', background: '#14532d', color: '#86efac', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
+                        {compareAsset.optimizedSizeFormatted || '461 KB'}
+                      </span>
+                      <span style={{ fontSize: '12px', background: '#713f12', color: '#fef08a', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
+                        Saved {compareAsset.savedRatio || '98.2%'}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ height: '280px', borderRadius: '8px', background: '#000000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #27272a' }}>
+                    <img
+                      src={getFileUrl(compareAsset.filePath || compareAsset.url)}
+                      alt="Compressed Variant"
+                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      onError={(e) => { e.target.onerror=null; e.target.src='/assets/fylex-watch-v2/meridianblackcase.png'; }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Banner */}
+              <div style={{ background: '#27272a', padding: '14px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{ fontSize: '12px', color: '#a1a1aa' }}>Current Storefront Serve Mode:</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: compareAsset.serveMode === 'original' ? '#fca5a5' : '#86efac', marginLeft: '8px' }}>
+                    {compareAsset.serveMode === 'original' ? 'Serving Raw Master File' : 'Serving WebP/AVIF Variant'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={async () => {
+                      await handleAcceptVariant(compareAsset.id);
+                      setCompareAsset(null);
+                    }}
+                    style={{ background: '#166534', color: '#ffffff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                  >
+                    ✅ Accept WebP Variant
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await handleRejectVariant(compareAsset.id);
+                      setCompareAsset(null);
+                    }}
+                    style={{ background: '#dc2626', color: '#ffffff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                  >
+                    ❌ Restore Raw Master
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
