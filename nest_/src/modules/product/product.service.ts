@@ -640,13 +640,32 @@ export class ProductService {
       _count: { rating: true },
     });
 
+    let configuredImageCount = 3;
+    try {
+      if (product.theme) {
+        const parsed = JSON.parse(product.theme);
+        if (parsed.configuredImageCount !== undefined) {
+          configuredImageCount = Number(parsed.configuredImageCount) || 3;
+        }
+      }
+      if ((product as any).pageThemes && Array.isArray((product as any).pageThemes)) {
+        (product as any).pageThemes.forEach((pt: any) => {
+          const ptData = typeof pt.themeJson === 'string' ? JSON.parse(pt.themeJson) : pt.themeJson;
+          if (ptData && ptData.configuredImageCount !== undefined) {
+            configuredImageCount = Number(ptData.configuredImageCount) || 3;
+          }
+        });
+      }
+    } catch (e) {}
+
     return {
       ...product,
+      configuredImageCount,
       images: this.parseJson(product.images),
       isActive: product.status === 'active' || product.status === '1',
       averageRating: stats._avg.rating || 0,
       reviewCount: stats._count.rating || 0,
-      soldCount: (product as any).orderItems?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0,
+      soldCount: (product as any).orderItems?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0,
     };
   }
 

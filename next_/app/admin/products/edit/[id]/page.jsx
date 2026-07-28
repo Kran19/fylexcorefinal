@@ -56,7 +56,8 @@ const EditProductPage = () => {
         canSellBelts: false,
         beltIds: [],
         canShowBoxes: false,
-        boxIds: []
+        boxIds: [],
+        configuredImageCount: 3
     });
 
     const [categoryDetails, setCategoryDetails] = useState(null);
@@ -272,6 +273,7 @@ const EditProductPage = () => {
                     videoUrl: p.videoUrl || '',
                     discoverHeroBgImage: p.discoverHeroBgImage || '',
                     isFeatured: p.isFeatured || false,
+                    configuredImageCount: Number(parsedTheme.configuredImageCount) || Number(p.configuredImageCount) || 3,
                     ...parsedTheme,
                     // Hero Image: Prioritize MAIN media from ProductMedia table
                     heroImage: (p.productMedia?.find(pm => pm.type === 'MAIN'))
@@ -552,6 +554,7 @@ const EditProductPage = () => {
         } = form;
         
         const themeJson = JSON.stringify({
+            configuredImageCount: Number(form.configuredImageCount) || 3,
             discoverBg: form.discoverBg || form.bgColor || '#ffffff',
             discoverTextColor: form.discoverTextColor || form.textColor || '#1a1a1a',
             discoverAccentColor: form.discoverAccentColor || form.accentColor || '#c4a35a',
@@ -565,6 +568,7 @@ const EditProductPage = () => {
         });
         const payload = {
             ...formData,
+            configuredImageCount: Number(form.configuredImageCount) || 3,
             theme: themeJson,
             bgColor: form.discoverBg || form.bgColor || '#ffffff',
             textColor: form.discoverTextColor || form.textColor || '#1a1a1a',
@@ -1446,6 +1450,130 @@ const EditProductPage = () => {
                                             </p>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* 5. Visual Theme & Live Preview Tab */}
+                            {activeTab === 'theme' && (
+                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                    <div className="border-b pb-4 flex items-center justify-between flex-wrap gap-4">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-gray-900">Step 5: Visual Theme &amp; Live Preview</h3>
+                                            <p className="text-xs text-gray-500 mt-1">Configure storefront layout settings &amp; preview final configured watch display in real time.</p>
+                                        </div>
+                                        <span className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100 flex items-center gap-2">
+                                            <i className="fas fa-eye text-xs"></i> Real-Time Live Preview
+                                        </span>
+                                    </div>
+
+                                    {/* Configured Product Image Display Count Setting */}
+                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-4 shadow-xs">
+                                        <div>
+                                            <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                                <i className="fas fa-images text-indigo-600"></i> Configured Product Image Display Count
+                                            </h4>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                Choose how many images are displayed when a customer views or configures this watch on the storefront.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                                            {[
+                                                { count: 1, title: 'Single Primary Image (1)', desc: 'Show only 1 main watch image on final configured view' },
+                                                { count: 2, title: '2 Images', desc: 'Show primary main image + 1 secondary thumbnail' },
+                                                { count: 3, title: '3 Images (Default)', desc: 'Show all 3 gallery watch images & thumbnails' }
+                                            ].map(opt => {
+                                                const isSelected = (Number(form.configuredImageCount) || 3) === opt.count;
+                                                return (
+                                                    <div 
+                                                        key={opt.count}
+                                                        onClick={() => setForm(prev => ({ ...prev, configuredImageCount: opt.count }))}
+                                                        className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                                            isSelected 
+                                                                ? 'bg-indigo-50/90 border-indigo-600 text-indigo-950 shadow-sm' 
+                                                                : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center justify-between mb-1.5">
+                                                            <span className="font-bold text-sm">{opt.title}</span>
+                                                            <input 
+                                                                type="radio" 
+                                                                name="configuredImageCount" 
+                                                                checked={isSelected}
+                                                                onChange={() => setForm(prev => ({ ...prev, configuredImageCount: opt.count }))}
+                                                                className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
+                                                            />
+                                                        </div>
+                                                        <p className="text-xs opacity-75">{opt.desc}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* REAL-TIME LIVE INTERACTIVE PREVIEW */}
+                                    <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-4 shadow-xl border border-slate-800">
+                                        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Live Storefront Preview</span>
+                                            </div>
+                                            <span className="text-xs text-indigo-400 font-bold bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/50">
+                                                {(Number(form.configuredImageCount) || 3) === 1 ? 'Displaying Single Primary Image Only (1)' : `Displaying ${form.configuredImageCount || 3} Images`}
+                                            </span>
+                                        </div>
+
+                                        <div className="bg-white text-slate-900 rounded-xl p-8 flex flex-col items-center text-center space-y-5 relative overflow-hidden shadow-inner">
+                                            <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
+                                                ✓ Configured View Preview Mode ({form.configuredImageCount || 3} {(Number(form.configuredImageCount) || 3) === 1 ? 'Image' : 'Images'})
+                                            </div>
+                                            
+                                            <div>
+                                                <h4 className="text-2xl md:text-3xl font-bold font-serif text-slate-900">{form.name || 'FYLEX Chronograph X'}</h4>
+                                                <p className="text-sm font-semibold text-slate-500 mt-1">₹{(Number(form.price) || 25000).toLocaleString()}</p>
+                                            </div>
+
+                                            {/* Dynamic Live Images Display */}
+                                            <div className="w-full flex flex-col items-center justify-center gap-4 py-4 min-h-[220px]">
+                                                {(() => {
+                                                    const count = Number(form.configuredImageCount) || 3;
+                                                    const sampleImages = [
+                                                        form.heroImage?.url || form.heroImage || (variants[0]?.heroImage?.url || variants[0]?.heroImage) || '/assets/fylex-watch-v2/36mm.png',
+                                                        form.gallery?.[0]?.url || form.gallery?.[0] || '/assets/fylex-watch-v2/40mm.png',
+                                                        form.gallery?.[1]?.url || form.gallery?.[1] || '/assets/fylex-watch-v2/olive-green.png'
+                                                    ].map(getFileUrl).filter(Boolean);
+
+                                                    const visibleImgs = sampleImages.slice(0, count);
+
+                                                    return (
+                                                        <div className="w-full flex flex-col items-center gap-4">
+                                                            <div className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 p-4 shadow-md max-w-xs">
+                                                                <img src={visibleImgs[0]} alt="Primary Watch" className="w-44 h-44 object-contain mx-auto" />
+                                                                <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                                                                    PRIMARY WATCH IMAGE
+                                                                </span>
+                                                            </div>
+
+                                                            {count > 1 && visibleImgs.length > 1 && (
+                                                                <div className="flex gap-3 justify-center items-center pt-2">
+                                                                    {visibleImgs.map((imgSrc, idx) => (
+                                                                        <div key={idx} className={`w-14 h-14 rounded-lg border-2 p-1 bg-slate-50 overflow-hidden ${idx === 0 ? 'border-indigo-600 shadow-sm' : 'border-slate-200 opacity-70'}`}>
+                                                                            <img src={imgSrc} alt={`Thumb ${idx}`} className="w-full h-full object-contain" />
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            {count === 1 && (
+                                                                <p className="text-xs text-slate-400 font-medium italic">
+                                                                    Secondary thumbnails hidden (Single Primary Image Mode active)
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

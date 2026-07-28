@@ -2337,6 +2337,14 @@ function DiscoverContent() {
           if (!cleanDesc) {
             cleanDesc = defaultParagraph;
           }
+
+          // Ensure box name/title is a clean title and not the long description paragraph
+          const rawBoxName = mainBox?.name?.trim() || '';
+          const isLongName = rawBoxName.length >= 50 || rawBoxName.toLowerCase().includes('inspired by');
+          const displayBoxName = (!isLongName && rawBoxName && rawBoxName !== cleanDesc)
+            ? rawBoxName
+            : 'Universal Signature Packaging';
+
           return (
             <section style={{ 
               width: '100%', 
@@ -2358,7 +2366,7 @@ function DiscoverContent() {
                 {boxImg ? (
                   <img
                     src={boxImg}
-                    alt={mainBox?.name || 'Premium Box'}
+                    alt={displayBoxName}
                     style={{
                       width: '100%',
                       height: 'auto',
@@ -2391,7 +2399,7 @@ function DiscoverContent() {
                       Included Packaging
                     </p>
                     <h3 style={{ fontSize: '26px', fontWeight: 400, fontFamily: 'Georgia, serif', color: '#111', marginBottom: '12px' }}>
-                      {mainBox?.name || 'Universal Signature Packaging'}
+                      {displayBoxName}
                     </h3>
                     <p style={{ fontSize: '15px', color: '#555', lineHeight: 1.7, margin: 0 }}>
                       {cleanDesc}
