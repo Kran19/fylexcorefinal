@@ -16,6 +16,12 @@ import { useWishlist } from '@/context/WishlistContext';
 import { useDesignSystem } from '@/context/DesignSystemContext';
 import { getFileUrl, resolveProductImage, getDisplayData, getPageTheme } from '@/lib/utils';
 import localProductsData from '../../../data/productsData';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 function DiscoverContent() {
   const searchParams = useSearchParams();
@@ -38,6 +44,45 @@ function DiscoverContent() {
   const [addedBelts, setAddedBelts] = useState({});
   const lastScrollY = useRef(0);
   const heroRef = useRef(null);
+  const strapsSectionRef = useRef(null);
+  const strapsTrackRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading) return;
+    if (window.innerWidth <= 768) return; // Desktop only
+
+    const section = strapsSectionRef.current;
+    const track = strapsTrackRef.current;
+    if (!section || !track) return;
+
+    const timer = setTimeout(() => {
+      const getScrollAmount = () => {
+        return track.scrollWidth - window.innerWidth + 120;
+      };
+
+      const scrollAmount = getScrollAmount();
+      if (scrollAmount <= 0) return;
+
+      const ctx = gsap.context(() => {
+        gsap.to(track, {
+          x: () => -getScrollAmount(),
+          ease: 'none',
+          scrollTrigger: {
+            trigger: section,
+            pin: true,
+            scrub: 1,
+            start: 'top top',
+            end: () => `+=${getScrollAmount() + 400}`,
+            invalidateOnRefresh: true,
+          }
+        });
+      }, section);
+
+      return () => ctx.revert();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [loading, productsData, watchId]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -2185,10 +2230,24 @@ function DiscoverContent() {
           </div>
         </section>
 
-        {/* ── COMPATIBLE BELTS SECTION (HORIZONTALLY SCROLLABLE) ── */}
+        {/* ── COMPATIBLE BELTS SECTION (DESKTOP AUTOMATIC HORIZONTAL PINNED SCROLL) ── */}
         {product.productBelts?.length > 0 && (
-          <section style={{ background: '#f5f5f3', padding: '80px 0 100px', width: '100%', overflow: 'hidden' }}>
-            <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 30px', width: '100%' }}>
+          <section 
+            ref={strapsSectionRef}
+            className="cfg-belts-pinned-section"
+            style={{ 
+              background: '#f5f5f3', 
+              width: '100%', 
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '100vh',
+              padding: '60px 0'
+            }}
+          >
+            <div style={{ width: '100%', maxWidth: '1600px', margin: '0 auto', padding: '0 40px' }}>
               {/* Header */}
               <div style={{ marginBottom: '36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
@@ -2198,22 +2257,22 @@ function DiscoverContent() {
                   </h2>
                 </div>
                 <div style={{ fontSize: '12px', fontWeight: 600, color: '#666', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>Scroll horizontally</span> →
+                  <span>Scroll down to explore all straps</span> →
                 </div>
               </div>
 
-              {/* Horizontally Scrollable Row */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '24px', 
-                overflowX: 'auto', 
-                paddingBottom: '24px',
-                paddingTop: '8px',
-                scrollSnapType: 'x mandatory',
-                scrollbarWidth: 'thin',
-                msOverflowStyle: 'none',
-                WebkitOverflowScrolling: 'touch'
-              }}>
+              {/* Horizontally Pinned Track Container */}
+              <div 
+                ref={strapsTrackRef}
+                className="cfg-belts-track-row"
+                style={{ 
+                  display: 'flex', 
+                  gap: '28px', 
+                  willChange: 'transform',
+                  paddingBottom: '24px',
+                  paddingTop: '8px'
+                }}
+              >
                 {product.productBelts.map(belt => (
                   <div key={belt.id} className="group" style={{ 
                     flex: '0 0 280px', 

@@ -124,6 +124,20 @@ h2, h3, h4, h5, h6, .title, .sub-heading, .hd-v2, .section-title {
   opacity: .7;
 }
 
+/* ── Compatible Straps Pinned Horizontal Scroll on Desktop ── */
+@media (max-width: 768px) {
+  .cfg-belts-pinned-section {
+    min-height: auto !important;
+    padding: 40px 0 !important;
+  }
+  .cfg-belts-track-row {
+    overflow-x: auto !important;
+    transform: none !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
 /* V2 Colors/Classes (maintained for Shop/Customize) */
 .lbl-v2 {
   font-size: 11px;
