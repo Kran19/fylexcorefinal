@@ -202,8 +202,8 @@ export default function SpeedBoosterOptimizationCenter() {
 
             const thumbHtml = isVideo
               ? `<div style="width:42px;height:42px;border-radius:8px;background:#09090b;overflow:hidden;border:1px solid #3f3f46;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center">
-                   <video src="${mediaUrl}" muted style="width:100%;height:100%;object-fit:cover"></video>
-                   <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;color:#38bdf8">
+                   <video src="${mediaUrl}" autoPlay loop muted playsInline style="width:100%;height:100%;object-fit:cover"></video>
+                   <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;color:#38bdf8">
                      <i class="fas fa-video" style="font-size:13px"></i>
                    </div>
                  </div>`
@@ -482,49 +482,69 @@ export default function SpeedBoosterOptimizationCenter() {
             </div>
 
             {/* Modal Side-by-Side Visual Comparison Body */}
-            <div style={{ padding: '24px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-                {/* Left: Original Raw Master */}
-                <div style={{ background: '#09090b', borderRadius: '12px', border: '1px solid #27272a', padding: '16px', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase' }}>Original Raw Master</span>
-                    <span style={{ fontSize: '12px', background: '#450a0a', color: '#fca5a5', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
-                      {compareAsset.originalSizeFormatted}
-                    </span>
-                  </div>
-                  <div style={{ height: '280px', borderRadius: '8px', background: '#000000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #27272a' }}>
-                    <img
-                      src={getFileUrl(compareAsset.filePath || compareAsset.url)}
-                      alt="Original Master"
-                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                      onError={(e) => { e.target.onerror=null; e.target.src='/assets/fylex-watch-v2/meridianblackcase.png'; }}
-                    />
-                  </div>
-                </div>
+            {(() => {
+              const modalFileName = compareAsset.originalFilename || compareAsset.name || compareAsset.filePath || '';
+              const isModalVid = modalFileName.toLowerCase().endsWith('.mp4') 
+                || modalFileName.toLowerCase().endsWith('.webm') 
+                || modalFileName.toLowerCase().endsWith('.mov') 
+                || compareAsset.fileType === 'video' 
+                || compareAsset.mimeType?.includes('video');
+              const mediaUrl = getFileUrl(compareAsset.filePath || compareAsset.url);
 
-                {/* Right: Compressed WebP / AVIF */}
-                <div style={{ background: '#09090b', borderRadius: '12px', border: '1px solid #15803d', padding: '16px', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase' }}>Optimized WebP/AVIF</span>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <span style={{ fontSize: '12px', background: '#14532d', color: '#86efac', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
-                        {compareAsset.optimizedSizeFormatted || '461 KB'}
-                      </span>
-                      <span style={{ fontSize: '12px', background: '#713f12', color: '#fef08a', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
-                        Saved {compareAsset.savedRatio || '98.2%'}
-                      </span>
+              return (
+                <div style={{ padding: '24px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                    {/* Left: Original Raw Master */}
+                    <div style={{ background: '#09090b', borderRadius: '12px', border: '1px solid #27272a', padding: '16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase' }}>Original Raw Master</span>
+                        <span style={{ fontSize: '12px', background: '#450a0a', color: '#fca5a5', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
+                          {compareAsset.originalSizeFormatted}
+                        </span>
+                      </div>
+                      <div style={{ height: '300px', borderRadius: '8px', background: '#000000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #27272a' }}>
+                        {isModalVid ? (
+                          <video src={mediaUrl} controls autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        ) : (
+                          <img
+                            src={mediaUrl}
+                            alt="Original Master"
+                            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                            onError={(e) => { e.target.onerror=null; e.target.src='/assets/fylex-watch-v2/meridianblackcase.png'; }}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: Compressed WebP / AVIF */}
+                    <div style={{ background: '#09090b', borderRadius: '12px', border: '1px solid #15803d', padding: '16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase' }}>Optimized WebP/AVIF</span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <span style={{ fontSize: '12px', background: '#14532d', color: '#86efac', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
+                            {compareAsset.optimizedSizeFormatted || '461 KB'}
+                          </span>
+                          <span style={{ fontSize: '12px', background: '#713f12', color: '#fef08a', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
+                            Saved {compareAsset.savedRatio || '98.2%'}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ height: '300px', borderRadius: '8px', background: '#000000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #27272a' }}>
+                        {isModalVid ? (
+                          <video src={mediaUrl} controls autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        ) : (
+                          <img
+                            src={mediaUrl}
+                            alt="Compressed Variant"
+                            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                            onError={(e) => { e.target.onerror=null; e.target.src='/assets/fylex-watch-v2/meridianblackcase.png'; }}
+                          />
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ height: '280px', borderRadius: '8px', background: '#000000', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #27272a' }}>
-                    <img
-                      src={getFileUrl(compareAsset.filePath || compareAsset.url)}
-                      alt="Compressed Variant"
-                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                      onError={(e) => { e.target.onerror=null; e.target.src='/assets/fylex-watch-v2/meridianblackcase.png'; }}
-                    />
-                  </div>
-                </div>
-              </div>
+              );
+            })()}
 
               {/* Status Banner */}
               <div style={{ background: '#27272a', padding: '14px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
