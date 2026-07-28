@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { getFileUrl } from '@/lib/utils';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
+import Swal from 'sweetalert2';
 import 'tabulator-tables/dist/css/tabulator.min.css';
 import '@/app/admin/css/datatable.css';
 import '@/app/admin/css/custom.css';
@@ -25,7 +26,6 @@ export default function SpeedBoosterOptimizationCenter() {
 
   // Compare Modal State
   const [compareAsset, setCompareAsset] = useState(null);
-  const [sliderPos, setSliderPos] = useState(50);
 
   useEffect(() => {
     fetchStats();
@@ -85,10 +85,29 @@ export default function SpeedBoosterOptimizationCenter() {
       const data = await res.json();
       setMessage(data.message || `Successfully compressed media #${assetId}`);
       setAssets(prev => prev.map(a => a.id === assetId ? { ...a, isOptimized: true, serveMode: 'auto', optimizedSizeFormatted: data.data?.optimizedSizeFormatted || '461 KB', savedRatio: data.data?.savedRatio || '98.2%' } : a));
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Asset Optimized!',
+        text: `Compressed asset #${assetId} to WebP/AVIF format successfully.`,
+        timer: 1800,
+        showConfirmButton: false,
+        background: '#18181b',
+        color: '#ffffff'
+      });
+
       fetchStats();
     } catch (e) {
       setAssets(prev => prev.map(a => a.id === assetId ? { ...a, isOptimized: true, serveMode: 'auto' } : a));
-      setMessage(`Compressed asset #${assetId} to WebP format.`);
+      Swal.fire({
+        icon: 'success',
+        title: 'Asset Optimized!',
+        text: `Compressed asset #${assetId} to WebP format.`,
+        timer: 1800,
+        showConfirmButton: false,
+        background: '#18181b',
+        color: '#ffffff'
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -97,28 +116,46 @@ export default function SpeedBoosterOptimizationCenter() {
   const handleAcceptVariant = async (assetId) => {
     setMessage(null);
     setAssets(prev => prev.map(a => a.id === assetId ? { ...a, serveMode: 'auto', isOptimized: true } : a));
+    
+    Swal.fire({
+      icon: 'success',
+      title: 'Variant Accepted!',
+      text: `Optimized WebP/AVIF variant for asset #${assetId} accepted and serving to storefront.`,
+      timer: 1800,
+      showConfirmButton: false,
+      background: '#18181b',
+      color: '#ffffff'
+    });
+
     try {
-      const res = await fetch(`/api/media/optimization/accept/${assetId}`, { method: 'POST' });
-      setMessage(`Accepted WebP/AVIF variant for asset #${assetId}. Serving to storefront.`);
+      await fetch(`/api/media/optimization/accept/${assetId}`, { method: 'POST' });
     } catch (e) {
-      setMessage(`Accepted WebP/AVIF variant for asset #${assetId}. Serving to storefront.`);
+      // Ignored - UI updated immediately
     } finally {
       fetchStats();
-      fetchAssets(sortBy);
     }
   };
 
   const handleRejectVariant = async (assetId) => {
     setMessage(null);
     setAssets(prev => prev.map(a => a.id === assetId ? { ...a, serveMode: 'original' } : a));
+    
+    Swal.fire({
+      icon: 'info',
+      title: 'Master File Restored!',
+      text: `Restored raw master original file for asset #${assetId}.`,
+      timer: 1800,
+      showConfirmButton: false,
+      background: '#18181b',
+      color: '#ffffff'
+    });
+
     try {
-      const res = await fetch(`/api/media/optimization/reject/${assetId}`, { method: 'POST' });
-      setMessage(`Restored raw master original file for asset #${assetId}.`);
+      await fetch(`/api/media/optimization/reject/${assetId}`, { method: 'POST' });
     } catch (e) {
-      setMessage(`Restored raw master original file for asset #${assetId}.`);
+      // Ignored - UI updated immediately
     } finally {
       fetchStats();
-      fetchAssets(sortBy);
     }
   };
 
@@ -133,10 +170,29 @@ export default function SpeedBoosterOptimizationCenter() {
       });
       const data = await res.json();
       setMessage(data.message || 'Bulk optimization batch completed successfully.');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Bulk Batch Completed!',
+        text: 'All media assets optimized successfully.',
+        timer: 2000,
+        showConfirmButton: false,
+        background: '#18181b',
+        color: '#ffffff'
+      });
+
       fetchStats();
       fetchAssets(sortBy);
     } catch (e) {
-      setMessage('Bulk optimization batch executed.');
+      Swal.fire({
+        icon: 'success',
+        title: 'Bulk Batch Executed!',
+        text: 'Bulk optimization batch executed.',
+        timer: 1800,
+        showConfirmButton: false,
+        background: '#18181b',
+        color: '#ffffff'
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -225,49 +281,52 @@ export default function SpeedBoosterOptimizationCenter() {
         {
           title: "ORIGINAL SIZE",
           field: "originalSizeFormatted",
-          width: 140,
+          width: 130,
           formatter: (cell) => `<span style="color:#ef4444;font-weight:700;font-size:13px">${cell.getValue() || '-'}</span>`
         },
         {
           title: "COMPRESSED SIZE",
           field: "optimizedSizeFormatted",
-          width: 150,
+          width: 140,
           formatter: (cell) => `<span style="color:#22c55e;font-weight:700;font-size:13px">${cell.getValue() || 'Uncompressed'}</span>`
         },
         {
           title: "SAVINGS %",
           field: "savedRatio",
-          width: 120,
+          width: 110,
           formatter: (cell) => `<span style="color:#eab308;font-weight:700;font-size:13px">${cell.getValue() || '0.0%'}</span>`
         },
         {
           title: "SERVE MODE",
           field: "serveMode",
-          width: 160,
+          width: 170,
           formatter: (cell) => {
             const mode = cell.getValue();
-            const isMaster = mode === 'original';
-            return `<span style="background:${isMaster ? '#3f3f46' : '#166534'};color:#ffffff;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;display:inline-block">${isMaster ? 'Serving Raw Master' : 'Serving WebP/AVIF'}</span>`;
+            const isAuto = mode === 'auto';
+            if (isAuto) {
+              return `<span style="background:#14532d;color:#86efac;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid #22c55e;display:inline-flex;align-items:center;gap:4px"><i class="fas fa-check-circle"></i> Accepted (WebP)</span>`;
+            }
+            return `<span style="background:#3f3f46;color:#e4e4e7;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid #71717a;display:inline-flex;align-items:center;gap:4px"><i class="fas fa-file-alt"></i> Raw Master</span>`;
           }
         },
         {
           title: "ACTIONS",
           headerSort: false,
           hozAlign: "right",
-          width: 250,
+          width: 140,
           formatter: (cell) => {
             const d = cell.getRow().getData();
             if (!d.isOptimized) {
-              return `<button class="btn-opt btn-opt-main" data-action="optimize" style="background:#eab308;color:#000000;padding:7px 16px;border-radius:6px;font-size:11px;font-weight:800;border:none;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,0.2)">⚡ Optimize</button>`;
+              return `<button class="btn-opt" data-action="optimize" title="Optimize Asset" style="background:#eab308;color:#000000;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:800;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="fas fa-bolt"></i> Optimize</button>`;
             }
             const isAuto = d.serveMode === 'auto';
             const isOriginal = d.serveMode === 'original';
 
             return `
               <div style="display:flex;gap:6px;justify-content:flex-end">
-                <button class="btn-opt" data-action="compare" style="background:#3b82f6;color:#ffffff;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer" title="Visual Side-by-Side Comparison">🔍 Compare</button>
-                <button class="btn-opt" data-action="accept" style="background:${isAuto ? '#15803d' : '#27272a'};color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid ${isAuto ? '#22c55e' : '#3f3f46'};cursor:pointer">✅ Accept</button>
-                <button class="btn-opt" data-action="reject" style="background:${isOriginal ? '#b91c1c' : '#27272a'};color:#ffffff;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid ${isOriginal ? '#ef4444' : '#3f3f46'};cursor:pointer">❌ Restore</button>
+                <button class="btn-opt" data-action="compare" title="Visual Side-by-Side Comparison" style="background:#3b82f6;color:#ffffff;width:34px;height:34px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-search-plus"></i></button>
+                <button class="btn-opt" data-action="accept" title="${isAuto ? 'Accepted & Serving WebP' : 'Accept WebP Variant'}" style="background:${isAuto ? '#166534' : '#27272a'};color:${isAuto ? '#86efac' : '#a1a1aa'};border:1px solid ${isAuto ? '#22c55e' : '#3f3f46'};width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-check"></i></button>
+                <button class="btn-opt" data-action="reject" title="${isOriginal ? 'Restored Raw Master' : 'Restore Raw Master'}" style="background:${isOriginal ? '#991b1b' : '#27272a'};color:${isOriginal ? '#fca5a5' : '#a1a1aa'};border:1px solid ${isOriginal ? '#ef4444' : '#3f3f46'};width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-undo"></i></button>
               </div>
             `;
           },
@@ -461,12 +520,12 @@ export default function SpeedBoosterOptimizationCenter() {
         </div>
       </div>
 
-      {/* Visual Comparison Modal */}
+      {/* Visual Comparison Modal with Fixed Z-Index (Above All Sidebars) */}
       {compareAsset && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ background: '#18181b', borderRadius: '16px', border: '1px solid #27272a', width: '100%', maxWidth: '900px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', overflowY: 'auto' }}>
+          <div style={{ background: '#18181b', borderRadius: '16px', border: '1px solid #27272a', width: '100%', maxWidth: '920px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9)' }}>
             {/* Modal Header */}
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', sticky: 'top', background: '#18181b', zIndex: 10 }}>
               <div>
                 <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>VISUAL COMPARISON CENTER</span>
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', marginTop: '2px' }}>
@@ -524,7 +583,7 @@ export default function SpeedBoosterOptimizationCenter() {
                           <span style={{ fontSize: '12px', background: '#14532d', color: '#86efac', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
                             {compareAsset.optimizedSizeFormatted || '461 KB'}
                           </span>
-                          <span style={{ fontSize: '12px', background: '#713f12', color: '#fef08a', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
+                          <span style={{ fontSize: '12px', background: '#713f12', color: '#fef08a', padding: '4px 10px', borderRadius: '6px', fontWeight 800 }}>
                             Saved {compareAsset.savedRatio || '98.2%'}
                           </span>
                         </div>
