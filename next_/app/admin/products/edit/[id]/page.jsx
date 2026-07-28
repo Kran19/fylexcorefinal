@@ -1823,40 +1823,56 @@ const EditProductPage = () => {
                                 </div>
                             )}
 
-                            {/* Variant Gallery Preview & Reorder */}
-                            {variants[variantImageModal.index]?.gallery?.length > 0 && (
-                                <div className="!mb-2">
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest !mb-3 block">Display Order</label>
-                                    <div className="flex gap-2.5 overflow-x-auto pb-4 scrollbar-thin">
-                                        {variants[variantImageModal.index].gallery.map((img, gIdx) => (
-                                            <div key={gIdx} className="relative flex-none !w-16 !h-16 rounded-xl border border-gray-200 overflow-hidden group/item shadow-sm">
-                                                <img src={getFileUrl(img.url)} className="w-full h-full object-cover" />
-                                                <div className="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover/item:opacity-100 transition-all flex flex-col items-center justify-center gap-1.5">
-                                                    <div className="flex gap-1.5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => moveVariantGalleryImage(variantImageModal.index, gIdx, -1)}
-                                                            disabled={gIdx === 0}
-                                                            className="!w-5 !h-5 bg-white rounded-lg flex items-center justify-center text-indigo-600 disabled:opacity-30 hover:bg-indigo-50 cursor-pointer shadow-sm"
-                                                        ><i className="fas fa-chevron-left text-[8px]"></i></button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeVariantImage(variantImageModal.index, img.id)}
-                                                            className="!w-5 !h-5 bg-red-500 rounded-lg flex items-center justify-center text-white hover:bg-red-600 cursor-pointer shadow-sm"
-                                                        ><i className="fas fa-trash-alt text-[8px]"></i></button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => moveVariantGalleryImage(variantImageModal.index, gIdx, 1)}
-                                                            disabled={gIdx === variants[variantImageModal.index].gallery.length - 1}
-                                                            className="!w-5 !h-5 bg-white rounded-lg flex items-center justify-center text-indigo-600 disabled:opacity-30 hover:bg-indigo-50 cursor-pointer shadow-sm"
-                                                        ><i className="fas fa-chevron-right text-[8px]"></i></button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                             {/* Variant Gallery Preview & Section Order */}
+                             {variants[variantImageModal.index]?.gallery?.length > 0 && (
+                                 <div className="!mb-4 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                                     <div className="flex items-center justify-between !mb-2.5">
+                                         <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-widest block">Section Image Positions</label>
+                                         <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Use ← → to assign 1st, 2nd & 3rd images</span>
+                                     </div>
+                                     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                                         {variants[variantImageModal.index].gallery.map((img, gIdx) => {
+                                             let slotBadge = `Gallery #${gIdx + 1}`;
+                                             let slotColor = 'bg-slate-700';
+                                             if (gIdx === 0) { slotBadge = '2nd: Story'; slotColor = 'bg-amber-600'; }
+                                             else if (gIdx === 1) { slotBadge = '3rd: Specs'; slotColor = 'bg-indigo-600'; }
+
+                                             return (
+                                                 <div key={gIdx} className="relative flex-none w-20 h-20 rounded-xl border-2 border-slate-300 overflow-hidden group/item shadow-sm bg-white">
+                                                     <img src={getFileUrl(img.url)} className="w-full h-full object-cover" />
+                                                     <div className={`absolute top-1 left-1 ${slotColor} text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-sm z-10 pointer-events-none`}>
+                                                         {slotBadge}
+                                                     </div>
+                                                     <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover/item:opacity-100 transition-all flex flex-col items-center justify-center gap-1.5 z-20">
+                                                         <div className="flex gap-1.5">
+                                                             <button
+                                                                 type="button"
+                                                                 onClick={() => moveVariantGalleryImage(variantImageModal.index, gIdx, -1)}
+                                                                 disabled={gIdx === 0}
+                                                                 className="!w-6 !h-6 bg-white rounded-lg flex items-center justify-center text-indigo-600 disabled:opacity-30 hover:bg-indigo-50 cursor-pointer shadow-sm"
+                                                                 title="Move Left"
+                                                             ><i className="fas fa-chevron-left text-[9px]"></i></button>
+                                                             <button
+                                                                 type="button"
+                                                                 onClick={() => removeVariantImage(variantImageModal.index, img.id)}
+                                                                 className="!w-6 !h-6 bg-red-500 rounded-lg flex items-center justify-center text-white hover:bg-red-600 cursor-pointer shadow-sm"
+                                                                 title="Remove Image"
+                                                             ><i className="fas fa-trash-alt text-[9px]"></i></button>
+                                                             <button
+                                                                 type="button"
+                                                                 onClick={() => moveVariantGalleryImage(variantImageModal.index, gIdx, 1)}
+                                                                 disabled={gIdx === variants[variantImageModal.index].gallery.length - 1}
+                                                                 className="!w-6 !h-6 bg-white rounded-lg flex items-center justify-center text-indigo-600 disabled:opacity-30 hover:bg-indigo-50 cursor-pointer shadow-sm"
+                                                                 title="Move Right"
+                                                             ><i className="fas fa-chevron-right text-[9px]"></i></button>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                             );
+                                         })}
+                                     </div>
+                                 </div>
+                             )}
 
                             <button
                                 type="button"
@@ -1870,8 +1886,8 @@ const EditProductPage = () => {
                                     <i className="fas fa-star text-lg"></i>
                                 </div>
                                 <div className="text-left">
-                                    <div className="font-bold text-gray-900">Primary Image</div>
-                                    <div className="text-xs text-gray-500">Main image for this variant</div>
+                                    <div className="font-bold text-gray-900">1st Image (Primary Hero Watch)</div>
+                                    <div className="text-xs text-gray-500">Main watch image displayed at top hero view</div>
                                 </div>
                             </button>
 
@@ -1887,8 +1903,8 @@ const EditProductPage = () => {
                                     <i className="fas fa-images text-lg"></i>
                                 </div>
                                 <div className="text-left">
-                                    <div className="font-bold text-gray-900">Add to Gallery</div>
-                                    <div className="text-xs text-gray-500">Upload lifestyle or angle shots</div>
+                                    <div className="font-bold text-gray-900">Add 2nd & 3rd Section Images</div>
+                                    <div className="text-xs text-gray-500">Upload shots for "your timepiece" & "technical details" sections</div>
                                 </div>
                             </button>
 
@@ -1905,7 +1921,7 @@ const EditProductPage = () => {
                                 </div>
                                 <div className="text-left">
                                     <div className="font-bold text-gray-900">Variant Hero Background</div>
-                                    <div className="text-xs text-gray-500">Specific backdrop for this variant</div>
+                                    <div className="text-xs text-gray-500">Specific luxury backdrop for this variant</div>
                                 </div>
                             </button>
                         </div>
