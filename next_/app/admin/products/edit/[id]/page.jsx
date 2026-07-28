@@ -72,6 +72,9 @@ const EditProductPage = () => {
     const [pickerTarget, setPickerTarget] = useState(null); // 'primary' | 'gallery' | {variantIndex, type}
     const [variantImageModal, setVariantImageModal] = useState(null); // { index, name }
     const [pageThemeTab, setPageThemeTab] = useState('discover');
+    const [variantImageCounts, setVariantImageCounts] = useState({});
+    const [selectedThemeVariantId, setSelectedThemeVariantId] = useState('all');
+    const [previewVariantId, setPreviewVariantId] = useState(null);
 
     const [isInitialized, setIsInitialized] = useState(false);
 
@@ -219,6 +222,9 @@ const EditProductPage = () => {
                 if (p.theme) {
                     try {
                         parsedTheme = JSON.parse(p.theme);
+                        if (parsedTheme.variantImageCounts) {
+                            setVariantImageCounts(parsedTheme.variantImageCounts);
+                        }
                     } catch (e) {
                         console.error("Failed to parse theme JSON:", e);
                     }
@@ -555,6 +561,7 @@ const EditProductPage = () => {
         
         const themeJson = JSON.stringify({
             configuredImageCount: Number(form.configuredImageCount) || 3,
+            variantImageCounts: variantImageCounts,
             discoverBg: form.discoverBg || form.bgColor || '#ffffff',
             discoverTextColor: form.discoverTextColor || form.textColor || '#1a1a1a',
             discoverAccentColor: form.discoverAccentColor || form.accentColor || '#c4a35a',
@@ -1459,35 +1466,115 @@ const EditProductPage = () => {
                                     <div className="border-b pb-4 flex items-center justify-between flex-wrap gap-4">
                                         <div>
                                             <h3 className="text-xl font-bold text-gray-900">Step 5: Visual Theme &amp; Live Preview</h3>
-                                            <p className="text-xs text-gray-500 mt-1">Configure storefront layout settings &amp; preview final configured watch display in real time.</p>
+                                            <p className="text-xs text-gray-500 mt-1">Configure storefront layout settings &amp; preview final configured watch display per variant in real time.</p>
                                         </div>
                                         <span className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-100 flex items-center gap-2">
-                                            <i className="fas fa-eye text-xs"></i> Real-Time Live Preview
+                                            <i className="fas fa-eye text-xs"></i> Variant Live Preview Active
                                         </span>
                                     </div>
 
                                     {/* Configured Product Image Display Count Setting */}
-                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-4 shadow-xs">
-                                        <div>
-                                            <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                                                <i className="fas fa-images text-indigo-600"></i> Configured Product Image Display Count
-                                            </h4>
-                                            <p className="text-xs text-slate-500 mt-1">
-                                                Choose how many images are displayed when a customer views or configures this watch on the storefront.
-                                            </p>
+                                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 space-y-6 shadow-xs">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                                            <div>
+                                                <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                                                    <i className="fas fa-images text-indigo-600"></i> Configured Product Image Display Count
+                                                </h4>
+                                                <p className="text-xs text-slate-500 mt-1">
+                                                    Select count (1, 2, or 3 images) for a specific variant or apply globally across all variants.
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const globalCount = Number(form.configuredImageCount) || 3;
+                                                    const newCounts = {};
+                                                    variants.forEach(v => { newCounts[v.id.toString()] = globalCount; });
+                                                    setVariantImageCounts(newCounts);
+                                                    toast.success(`Applied ${globalCount} Image(s) display setting to all ${variants.length} variants!`);
+                                                }}
+                                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 self-start md:self-auto cursor-pointer"
+                                            >
+                                                <i className="fas fa-bolt"></i> Apply Setting To All Variants
+                                            </button>
                                         </div>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                                        {/* Variant Selector Sub-Bar */}
+                                        {variants.length > 0 && (
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                                                    Select Variant To Configure ({variants.length} Total Variants)
+                                                </label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedThemeVariantId('all')}
+                                                        className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                                                            selectedThemeVariantId === 'all'
+                                                                ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                                                                : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                                                        }`}
+                                                    >
+                                                        🌐 All Variants (Global Default)
+                                                    </button>
+                                                    {variants.map((v, idx) => {
+                                                        const vId = v.id.toString();
+                                                        const vCount = variantImageCounts[vId] || Number(form.configuredImageCount) || 3;
+                                                        const isSelected = selectedThemeVariantId === vId;
+                                                        return (
+                                                            <button
+                                                                key={vId}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedThemeVariantId(vId);
+                                                                    setPreviewVariantId(vId);
+                                                                }}
+                                                                className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-2 ${
+                                                                    isSelected
+                                                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                                                        : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                                                                }`}
+                                                            >
+                                                                <span>{v.name || `Variant #${idx + 1}`}</span>
+                                                                <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-extrabold ${isSelected ? 'bg-indigo-800 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                                                                    {vCount} Img
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Display Count Option Cards */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
                                             {[
                                                 { count: 1, title: 'Single Primary Image (1)', desc: 'Show only 1 main watch image on final configured view' },
                                                 { count: 2, title: '2 Images', desc: 'Show primary main image + 1 secondary thumbnail' },
                                                 { count: 3, title: '3 Images (Default)', desc: 'Show all 3 gallery watch images & thumbnails' }
                                             ].map(opt => {
-                                                const isSelected = (Number(form.configuredImageCount) || 3) === opt.count;
+                                                const currentCount = selectedThemeVariantId === 'all'
+                                                    ? (Number(form.configuredImageCount) || 3)
+                                                    : (variantImageCounts[selectedThemeVariantId] || Number(form.configuredImageCount) || 3);
+                                                const isSelected = currentCount === opt.count;
+
                                                 return (
                                                     <div 
                                                         key={opt.count}
-                                                        onClick={() => setForm(prev => ({ ...prev, configuredImageCount: opt.count }))}
+                                                        onClick={() => {
+                                                            if (selectedThemeVariantId === 'all') {
+                                                                setForm(prev => ({ ...prev, configuredImageCount: opt.count }));
+                                                                const newCounts = {};
+                                                                variants.forEach(v => { newCounts[v.id.toString()] = opt.count; });
+                                                                setVariantImageCounts(newCounts);
+                                                            } else {
+                                                                setVariantImageCounts(prev => ({
+                                                                    ...prev,
+                                                                    [selectedThemeVariantId]: opt.count
+                                                                }));
+                                                            }
+                                                        }}
                                                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
                                                             isSelected 
                                                                 ? 'bg-indigo-50/90 border-indigo-600 text-indigo-950 shadow-sm' 
@@ -1500,7 +1587,19 @@ const EditProductPage = () => {
                                                                 type="radio" 
                                                                 name="configuredImageCount" 
                                                                 checked={isSelected}
-                                                                onChange={() => setForm(prev => ({ ...prev, configuredImageCount: opt.count }))}
+                                                                onChange={() => {
+                                                                    if (selectedThemeVariantId === 'all') {
+                                                                        setForm(prev => ({ ...prev, configuredImageCount: opt.count }));
+                                                                        const newCounts = {};
+                                                                        variants.forEach(v => { newCounts[v.id.toString()] = opt.count; });
+                                                                        setVariantImageCounts(newCounts);
+                                                                    } else {
+                                                                        setVariantImageCounts(prev => ({
+                                                                            ...prev,
+                                                                            [selectedThemeVariantId]: opt.count
+                                                                        }));
+                                                                    }
+                                                                }}
                                                                 className="w-4 h-4 text-indigo-600 accent-indigo-600 cursor-pointer"
                                                             />
                                                         </div>
@@ -1513,65 +1612,109 @@ const EditProductPage = () => {
 
                                     {/* REAL-TIME LIVE INTERACTIVE PREVIEW */}
                                     <div className="bg-slate-950 rounded-2xl p-6 text-white space-y-4 shadow-xl border border-slate-800">
-                                        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
                                             <div className="flex items-center gap-2">
                                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                                 <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Live Storefront Preview</span>
                                             </div>
-                                            <span className="text-xs text-indigo-400 font-bold bg-indigo-950/60 px-3 py-1 rounded-full border border-indigo-800/50">
-                                                {(Number(form.configuredImageCount) || 3) === 1 ? 'Displaying Single Primary Image Only (1)' : `Displaying ${form.configuredImageCount || 3} Images`}
-                                            </span>
+
+                                            {/* Variant Preview Switcher */}
+                                            {variants.length > 0 && (
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="text-[11px] text-slate-400 font-semibold mr-1">Preview Variant:</span>
+                                                    {variants.map((v, idx) => {
+                                                        const vId = v.id.toString();
+                                                        const activePrevId = previewVariantId || variants[0]?.id?.toString();
+                                                        const isPrevActive = activePrevId === vId;
+                                                        return (
+                                                            <button
+                                                                key={vId}
+                                                                type="button"
+                                                                onClick={() => setPreviewVariantId(vId)}
+                                                                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                                                    isPrevActive
+                                                                        ? 'bg-emerald-500 text-slate-950 shadow-xs'
+                                                                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                                                }`}
+                                                            >
+                                                                {v.name || `Var #${idx + 1}`}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
 
+                                        {/* Live Card */}
                                         <div className="bg-white text-slate-900 rounded-xl p-8 flex flex-col items-center text-center space-y-5 relative overflow-hidden shadow-inner">
-                                            <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200">
-                                                ✓ Configured View Preview Mode ({form.configuredImageCount || 3} {(Number(form.configuredImageCount) || 3) === 1 ? 'Image' : 'Images'})
-                                            </div>
-                                            
-                                            <div>
-                                                <h4 className="text-2xl md:text-3xl font-bold font-serif text-slate-900">{form.name || 'FYLEX Chronograph X'}</h4>
-                                                <p className="text-sm font-semibold text-slate-500 mt-1">₹{(Number(form.price) || 25000).toLocaleString()}</p>
-                                            </div>
+                                            {(() => {
+                                                const activePrevId = previewVariantId || variants[0]?.id?.toString();
+                                                const activeVariant = variants.find(v => v.id.toString() === activePrevId) || variants[0];
+                                                const activeCount = (activeVariant && variantImageCounts[activeVariant.id.toString()]) || Number(form.configuredImageCount) || 3;
 
-                                            {/* Dynamic Live Images Display */}
-                                            <div className="w-full flex flex-col items-center justify-center gap-4 py-4 min-h-[220px]">
-                                                {(() => {
-                                                    const count = Number(form.configuredImageCount) || 3;
-                                                    const sampleImages = [
-                                                        form.heroImage?.url || form.heroImage || (variants[0]?.heroImage?.url || variants[0]?.heroImage) || '/assets/fylex-watch-v2/36mm.png',
-                                                        form.gallery?.[0]?.url || form.gallery?.[0] || '/assets/fylex-watch-v2/40mm.png',
-                                                        form.gallery?.[1]?.url || form.gallery?.[1] || '/assets/fylex-watch-v2/olive-green.png'
-                                                    ].map(getFileUrl).filter(Boolean);
+                                                // Clean image helper
+                                                const getCleanUrl = (img) => {
+                                                    if (!img) return null;
+                                                    if (typeof img === 'string') return getFileUrl(img);
+                                                    return getFileUrl(img.url || img.filePath || img.path || img.fileName || null);
+                                                };
 
-                                                    const visibleImgs = sampleImages.slice(0, count);
+                                                const variantHero = getCleanUrl(activeVariant?.heroImage) || getCleanUrl(form.heroImage) || '/assets/fylex-watch-v2/36mm.png';
+                                                const variantGallery = (activeVariant?.gallery || []).map(getCleanUrl).filter(Boolean);
+                                                const formGallery = (form.gallery || []).map(getCleanUrl).filter(Boolean);
 
-                                                    return (
-                                                        <div className="w-full flex flex-col items-center gap-4">
-                                                            <div className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 p-4 shadow-md max-w-xs">
-                                                                <img src={visibleImgs[0]} alt="Primary Watch" className="w-44 h-44 object-contain mx-auto" />
-                                                                <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs">
-                                                                    PRIMARY WATCH IMAGE
-                                                                </span>
-                                                            </div>
+                                                const allSampleImages = [
+                                                    variantHero,
+                                                    variantGallery[0] || formGallery[0] || '/assets/fylex-watch-v2/40mm.png',
+                                                    variantGallery[1] || formGallery[1] || '/assets/fylex-watch-v2/olive-green.png'
+                                                ].filter(Boolean);
 
-                                                            {count > 1 && visibleImgs.length > 1 && (
-                                                                <div className="flex gap-3 justify-center items-center pt-2">
-                                                                    {visibleImgs.map((imgSrc, idx) => (
-                                                                        <div key={idx} className={`w-14 h-14 rounded-lg border-2 p-1 bg-slate-50 overflow-hidden ${idx === 0 ? 'border-indigo-600 shadow-sm' : 'border-slate-200 opacity-70'}`}>
-                                                                            <img src={imgSrc} alt={`Thumb ${idx}`} className="w-full h-full object-contain" />
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                            {count === 1 && (
-                                                                <p className="text-xs text-slate-400 font-medium italic">
-                                                                    Secondary thumbnails hidden (Single Primary Image Mode active)
-                                                                </p>
-                                                            )}
+                                                const visibleImgs = allSampleImages.slice(0, activeCount);
+
+                                                return (
+                                                    <div className="w-full space-y-4">
+                                                        <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-3.5 py-1 rounded-full border border-emerald-200 inline-block">
+                                                            ✓ Previewing: {activeVariant?.name || form.name || 'Default Config'} ({activeCount} {activeCount === 1 ? 'Image Mode' : 'Images Mode'})
                                                         </div>
-                                                    );
-                                                })()}
-                                            </div>
+                                                        
+                                                        <div>
+                                                            <h4 className="text-2xl md:text-3xl font-bold font-serif text-slate-900">
+                                                                {form.name || 'FYLEX Meridian'} {activeVariant?.name ? `(${activeVariant.name})` : ''}
+                                                            </h4>
+                                                            <p className="text-sm font-semibold text-slate-500 mt-1">
+                                                                ₹{Number(activeVariant?.price || form.price || 25000).toLocaleString()}
+                                                            </p>
+                                                        </div>
+
+                                                        {/* Dynamic Live Images Display */}
+                                                        <div className="w-full flex flex-col items-center justify-center gap-4 py-4 min-h-[220px]">
+                                                            <div className="w-full flex flex-col items-center gap-4">
+                                                                <div className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 p-4 shadow-md max-w-xs">
+                                                                    <img src={visibleImgs[0]} alt="Primary Watch" className="w-44 h-44 object-contain mx-auto" />
+                                                                    <span className="absolute top-2 left-2 bg-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-xs">
+                                                                        PRIMARY WATCH IMAGE
+                                                                    </span>
+                                                                </div>
+
+                                                                {activeCount > 1 && visibleImgs.length > 1 && (
+                                                                    <div className="flex gap-3 justify-center items-center pt-2">
+                                                                        {visibleImgs.map((imgSrc, idx) => (
+                                                                            <div key={idx} className={`w-14 h-14 rounded-lg border-2 p-1 bg-slate-50 overflow-hidden ${idx === 0 ? 'border-indigo-600 shadow-sm' : 'border-slate-200 opacity-70'}`}>
+                                                                                <img src={imgSrc} alt={`Thumb ${idx}`} className="w-full h-full object-contain" />
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                {activeCount === 1 && (
+                                                                    <p className="text-xs text-slate-400 font-medium italic">
+                                                                        Secondary thumbnails hidden (Single Primary Image Mode active for this variant)
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 </div>
