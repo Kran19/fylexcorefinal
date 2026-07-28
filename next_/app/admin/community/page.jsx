@@ -8,14 +8,7 @@ import AdminModal from '@/components/admin/AdminModal';
 import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import PageHeader from '@/components/admin/ui/PageHeader';
 import { useToast } from '@/context/ToastContext';
-
-const getFileUrl = (path) => {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  const root = base.replace(/\/api$/, '');
-  return `${root}/${path.replace(/^\//, '')}`;
-};
+import { getFileUrl } from '@/lib/utils';
 
 const CommunityPage = () => {
   const toast = useToast();
@@ -64,7 +57,6 @@ const CommunityPage = () => {
 
     let imagePath = formData.image;
 
-    // Upload file if a new one was selected
     if (imageFile) {
       const fd = new FormData();
       fd.append('file', imageFile);
@@ -233,114 +225,117 @@ const CommunityPage = () => {
                 gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
                 gap: 20
               }}>
-                {images.map((img) => (
-                  <div key={img.id} style={{
-                    position: 'relative', borderRadius: 14, overflow: 'hidden',
-                    border: '1px solid #e5e7eb', background: '#f9fafb',
-                    transition: 'all 0.3s ease',
-                    opacity: img.isActive ? 1 : 0.55,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.10)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
-                  >
-                    {/* Image */}
-                    <div style={{ position: 'relative', paddingTop: '100%', background: '#eee' }}>
-                      <img
-                        src={getFileUrl(img.image)}
-                        alt={img.title || 'Community'}
-                        style={{
-                          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                          objectFit: 'cover'
+                {images.map((img) => {
+                  const resolvedUrl = getFileUrl(img.image);
+
+                  return (
+                    <div key={img.id} style={{
+                      position: 'relative', borderRadius: 14, overflow: 'hidden',
+                      border: '1px solid #e5e7eb', background: '#f9fafb',
+                      transition: 'all 0.3s ease',
+                      opacity: img.isActive ? 1 : 0.55,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.10)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
+                    >
+                      {/* Image */}
+                      <div style={{ position: 'relative', paddingTop: '100%', background: '#18181b' }}>
+                        <img
+                          src={resolvedUrl}
+                          alt={img.title || 'Community'}
+                          style={{
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+
+                        {/* Overlay actions */}
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)',
+                          opacity: 0, transition: 'opacity 0.25s', display: 'flex',
+                          alignItems: 'flex-end', justifyContent: 'center',
+                          padding: '0 12px 14px', gap: 8
                         }}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
+                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '0'}
+                        >
+                          <button
+                            onClick={() => handleEdit(img)}
+                            style={{
+                              padding: '7px 14px', background: 'rgba(255,255,255,0.95)',
+                              border: 'none', borderRadius: 8, cursor: 'pointer',
+                              fontSize: 12, fontWeight: 600, color: '#111',
+                              display: 'flex', alignItems: 'center', gap: 6,
+                              backdropFilter: 'blur(8px)'
+                            }}
+                          >
+                            <i className="fas fa-edit"></i> Edit
+                          </button>
+                          <button
+                            onClick={() => toggleStatus(img)}
+                            style={{
+                              padding: '7px 14px',
+                              background: img.isActive ? 'rgba(245,158,11,0.9)' : 'rgba(16,185,129,0.9)',
+                              border: 'none', borderRadius: 8, cursor: 'pointer',
+                              fontSize: 12, fontWeight: 600, color: '#fff',
+                              display: 'flex', alignItems: 'center', gap: 6
+                            }}
+                          >
+                            <i className={`fas fa-eye${img.isActive ? '-slash' : ''}`}></i>
+                            {img.isActive ? 'Hide' : 'Show'}
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(img)}
+                            style={{
+                              padding: '7px 14px', background: 'rgba(239,68,68,0.9)',
+                              border: 'none', borderRadius: 8, cursor: 'pointer',
+                              fontSize: 12, fontWeight: 600, color: '#fff',
+                              display: 'flex', alignItems: 'center', gap: 6
+                            }}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        </div>
 
-                      {/* Overlay actions */}
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)',
-                        opacity: 0, transition: 'opacity 0.25s', display: 'flex',
-                        alignItems: 'flex-end', justifyContent: 'center',
-                        padding: '0 12px 14px', gap: 8
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                      onMouseLeave={e => e.currentTarget.style.opacity = '0'}
-                      >
-                        <button
-                          onClick={() => handleEdit(img)}
-                          style={{
-                            padding: '7px 14px', background: 'rgba(255,255,255,0.95)',
-                            border: 'none', borderRadius: 8, cursor: 'pointer',
-                            fontSize: 12, fontWeight: 600, color: '#111',
-                            display: 'flex', alignItems: 'center', gap: 6,
-                            backdropFilter: 'blur(8px)'
-                          }}
-                        >
-                          <i className="fas fa-edit"></i> Edit
-                        </button>
-                        <button
-                          onClick={() => toggleStatus(img)}
-                          style={{
-                            padding: '7px 14px',
-                            background: img.isActive ? 'rgba(245,158,11,0.9)' : 'rgba(16,185,129,0.9)',
-                            border: 'none', borderRadius: 8, cursor: 'pointer',
-                            fontSize: 12, fontWeight: 600, color: '#fff',
-                            display: 'flex', alignItems: 'center', gap: 6
-                          }}
-                        >
-                          <i className={`fas fa-eye${img.isActive ? '-slash' : ''}`}></i>
-                          {img.isActive ? 'Hide' : 'Show'}
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(img)}
-                          style={{
-                            padding: '7px 14px', background: 'rgba(239,68,68,0.9)',
-                            border: 'none', borderRadius: 8, cursor: 'pointer',
-                            fontSize: 12, fontWeight: 600, color: '#fff',
-                            display: 'flex', alignItems: 'center', gap: 6
-                          }}
-                        >
-                          <i className="fas fa-trash-alt"></i>
-                        </button>
+                        {/* Status badge */}
+                        <div style={{
+                          position: 'absolute', top: 10, right: 10,
+                          padding: '3px 10px', borderRadius: 20,
+                          background: img.isActive ? 'rgba(16,185,129,0.9)' : 'rgba(107,114,128,0.9)',
+                          color: '#fff', fontSize: 10, fontWeight: 700,
+                          textTransform: 'uppercase', letterSpacing: '0.05em',
+                          backdropFilter: 'blur(4px)'
+                        }}>
+                          {img.isActive ? 'Active' : 'Hidden'}
+                        </div>
+
+                        {/* Sort order badge */}
+                        <div style={{
+                          position: 'absolute', top: 10, left: 10,
+                          width: 28, height: 28, borderRadius: 8,
+                          background: 'rgba(0,0,0,0.5)', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 700, backdropFilter: 'blur(4px)'
+                        }}>
+                          {img.sortOrder ?? 0}
+                        </div>
                       </div>
 
-                      {/* Status badge */}
-                      <div style={{
-                        position: 'absolute', top: 10, right: 10,
-                        padding: '3px 10px', borderRadius: 20,
-                        background: img.isActive ? 'rgba(16,185,129,0.9)' : 'rgba(107,114,128,0.9)',
-                        color: '#fff', fontSize: 10, fontWeight: 700,
-                        textTransform: 'uppercase', letterSpacing: '0.05em',
-                        backdropFilter: 'blur(4px)'
-                      }}>
-                        {img.isActive ? 'Active' : 'Hidden'}
-                      </div>
-
-                      {/* Sort order badge */}
-                      <div style={{
-                        position: 'absolute', top: 10, left: 10,
-                        width: 28, height: 28, borderRadius: 8,
-                        background: 'rgba(0,0,0,0.5)', color: '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 700, backdropFilter: 'blur(4px)'
-                      }}>
-                        {img.sortOrder ?? 0}
-                      </div>
+                      {/* Title bar */}
+                      {img.title && (
+                        <div style={{
+                          padding: '10px 14px', borderTop: '1px solid #f3f4f6',
+                          fontSize: 13, fontWeight: 600, color: '#374151',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                        }}>
+                          {img.title}
+                        </div>
+                      )}
                     </div>
-
-                    {/* Title bar */}
-                    {img.title && (
-                      <div style={{
-                        padding: '10px 14px', borderTop: '1px solid #f3f4f6',
-                        fontSize: 13, fontWeight: 600, color: '#374151',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                      }}>
-                        {img.title}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
 
                 {/* Add new card */}
                 <div
@@ -348,145 +343,160 @@ const CommunityPage = () => {
                   style={{
                     borderRadius: 14, border: '2px dashed #d1d5db',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    minHeight: 220, cursor: 'pointer', transition: 'all 0.25s',
-                    background: '#fafbfc', color: '#9ca3af'
+                    minHeight: 220, cursor: 'pointer', background: '#fafafa',
+                    transition: 'all 0.2s', color: '#9ca3af'
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.color = '#6366f1'; e.currentTarget.style.background = '#eef2ff'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = '#fafbfc'; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.color = '#6366f1'; e.currentTarget.style.background = '#f5f3ff'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = '#fafafa'; }}
                 >
-                  <i className="fas fa-plus-circle" style={{ fontSize: 32, marginBottom: 10, transition: 'inherit' }}></i>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: '#e0e7ff', color: '#6366f1',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18, marginBottom: 8
+                  }}>
+                    <i className="fas fa-plus"></i>
+                  </div>
                   <span style={{ fontSize: 13, fontWeight: 600 }}>Add Image</span>
                 </div>
               </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Upload / Edit Modal */}
-      <AdminModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={formData.id ? "Edit Community Image" : "Add Community Image"}
-        maxWidth={560}
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? <i className="fas fa-spinner fa-spin mr-2"></i> : <i className="fas fa-save mr-2"></i>}
-              {formData.id ? 'Update Image' : 'Add Image'}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {/* Image Upload / Preview */}
-          <div className="form-group">
-            <label>Image</label>
-            <div style={{
-              border: '2px dashed #e5e7eb', borderRadius: 14, padding: 20,
-              textAlign: 'center', background: '#fafbfc', position: 'relative',
-              transition: 'all 0.25s', cursor: 'pointer', minHeight: 180,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-            }}
-            onClick={() => document.getElementById('community-image-input')?.click()}
-            onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = '#eef2ff'; }}
-            onDragLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = '#fafbfc'; }}
-            onDrop={e => {
-              e.preventDefault();
-              e.currentTarget.style.borderColor = '#e5e7eb';
-              e.currentTarget.style.background = '#fafbfc';
-              const file = e.dataTransfer.files?.[0];
-              if (file && file.type.startsWith('image/')) {
-                setImageFile(file);
-                const reader = new FileReader();
-                reader.onload = (ev) => setImagePreview(ev.target.result);
-                reader.readAsDataURL(file);
-              }
-            }}
-            >
-              {imagePreview ? (
-                <div style={{ position: 'relative', width: '100%' }}>
+        {/* Modal Create/Edit */}
+        <AdminModal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={formData.id ? 'Edit Community Image' : 'Add Community Image'}
+          maxWidth="max-w-lg"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Image Upload/Preview */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Image *
+              </label>
+              <div style={{
+                position: 'relative', width: '100%', height: 200,
+                borderRadius: 12, border: '2px dashed #d1d5db',
+                overflow: 'hidden', background: '#f9fafb',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                {(imagePreview || formData.image) ? (
                   <img
-                    src={imagePreview}
+                    src={imagePreview || getFileUrl(formData.image)}
                     alt="Preview"
-                    style={{ maxHeight: 200, maxWidth: '100%', borderRadius: 10, objectFit: 'contain', margin: '0 auto', display: 'block' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                  <div style={{
-                    marginTop: 12, fontSize: 12, color: '#6b7280'
-                  }}>
-                    <i className="fas fa-sync-alt" style={{ marginRight: 6 }}></i>
-                    Click or drag to replace
+                ) : (
+                  <div style={{ textAlign: 'center', color: '#9ca3af' }}>
+                    <i className="fas fa-cloud-upload-alt" style={{ fontSize: 32, marginBottom: 8 }}></i>
+                    <p style={{ fontSize: 13, fontWeight: 500 }}>Click to upload an image</p>
                   </div>
-                </div>
-              ) : (
-                <>
-                  <i className="fas fa-cloud-upload-alt" style={{ fontSize: 36, color: '#d1d5db', marginBottom: 12 }}></i>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: '#6b7280', margin: 0 }}>
-                    Drop image here or click to browse
-                  </p>
-                  <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>
-                    JPG, PNG, WebP — max 10MB
-                  </p>
-                </>
-              )}
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  style={{
+                    position: 'absolute', inset: 0, opacity: 0,
+                    cursor: 'pointer', width: '100%', height: '100%'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Title */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Title / Caption
+              </label>
               <input
-                id="community-image-input"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
+                type="text"
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                placeholder="e.g. #FylexTimepiece in Tokyo"
+                style={{
+                  width: '100%', padding: '10px 14px', borderRadius: 8,
+                  border: '1px solid #d1d5db', fontSize: 14, outline: 'none'
+                }}
               />
             </div>
-          </div>
 
-          <div className="form-group">
-            <label>Title <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
-            <input
-              type="text"
-              className="form-control"
-              value={formData.title}
-              onChange={e => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g. Precision Craftsmanship"
-            />
-          </div>
+            {/* Sort Order & Active Toggle */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                  Sort Order
+                </label>
+                <input
+                  type="number"
+                  value={formData.sortOrder}
+                  onChange={e => setFormData({ ...formData, sortOrder: e.target.value })}
+                  style={{
+                    width: '100%', padding: '10px 14px', borderRadius: 8,
+                    border: '1px solid #d1d5db', fontSize: 14, outline: 'none'
+                  }}
+                />
+              </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <div className="form-group">
-              <label>Sort Order</label>
-              <input
-                type="number"
-                className="form-control"
-                value={formData.sortOrder}
-                onChange={e => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-                min={0}
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                  Visibility
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.isActive}
+                    onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1' }}
+                  />
+                  <span style={{ fontSize: 14, color: '#374151', fontWeight: 500 }}>Active (Visible)</span>
+                </label>
+              </div>
             </div>
-            <div className="form-group">
-              <label>Status</label>
-              <select
-                className="form-control"
-                value={formData.isActive?.toString()}
-                onChange={e => setFormData({ ...formData, isActive: e.target.value === 'true' })}
+
+            {/* Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                style={{
+                  padding: '10px 20px', background: '#f3f4f6', color: '#374151',
+                  border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer'
+                }}
               >
-                <option value="true">Active</option>
-                <option value="false">Hidden</option>
-              </select>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                style={{
+                  padding: '10px 24px', background: '#6366f1', color: '#fff',
+                  border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                  opacity: saving ? 0.7 : 1
+                }}
+              >
+                {saving ? 'Saving...' : (formData.id ? 'Update Image' : 'Add Image')}
+              </button>
             </div>
           </div>
-        </div>
-      </AdminModal>
+        </AdminModal>
 
-      {/* Delete Confirmation */}
-      <ConfirmModal
-        isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
-        title="Delete Image"
-        message={`Are you sure you want to remove this community image${deleteTarget?.title ? ` "${deleteTarget.title}"` : ''}?`}
-        loading={deleting}
-        danger
-      />
+        {/* Delete Confirmation */}
+        <ConfirmModal
+          isOpen={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDelete}
+          title="Delete Image"
+          message={`Are you sure you want to delete this community image? This action cannot be undone.`}
+          confirmLabel="Delete"
+          isDanger
+          loading={deleting}
+        />
+      </div>
     </div>
   );
 };
