@@ -2208,37 +2208,35 @@ function DiscoverContent() {
                         <img src={product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-specs-img" />
                       </div>
                     )}
-            </>
-          );
-        })()}
 
-              <div className="cfg-spec-accordion" style={{ width: '100%' }}>
-                {Object.keys(product.specs || {}).map((groupName, idx) => (
-                  <div key={groupName} className={`cfg-spec-item ${activeSpecGroup === groupName ? 'active' : ''}`}>
-                    <button
-                      className="cfg-spec-trigger"
-                      onClick={() => setActiveSpecGroup(activeSpecGroup === groupName ? null : groupName)}
-                    >
-                      <span className="cfg-spec-group-name">{groupName}</span>
-                      <div className="cfg-spec-icon"></div>
-                    </button>
-                    <div className="cfg-spec-content">
-                      <div className="cfg-spec-inner">
-                        {(product.specs[groupName] || []).map((spec, sIdx) => (
-                          <div key={sIdx} className="cfg-spec-row">
-                            <span className="cfg-spec-label">{spec.label}</span>
-                            <span className="cfg-spec-value">{spec.value}</span>
+                    <div className="cfg-spec-accordion" style={{ width: '100%' }}>
+                      {Object.keys(product.specs || {}).map((groupName, idx) => (
+                        <div key={groupName} className={`cfg-spec-item ${activeSpecGroup === groupName ? 'active' : ''}`}>
+                          <button
+                            className="cfg-spec-trigger"
+                            onClick={() => setActiveSpecGroup(activeSpecGroup === groupName ? null : groupName)}
+                          >
+                            <span className="cfg-spec-group-name">{groupName}</span>
+                            <div className="cfg-spec-icon"></div>
+                          </button>
+                          <div className="cfg-spec-content">
+                            <div className="cfg-spec-inner">
+                              {(product.specs[groupName] || []).map((spec, sIdx) => (
+                                <div key={sIdx} className="cfg-spec-row">
+                                  <span className="cfg-spec-label">{spec.label}</span>
+                                  <span className="cfg-spec-value">{spec.value}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
+                </div>
+              </section>
+            </>
+          );
         {/* ── COMPATIBLE BELTS SECTION (DESKTOP AUTOMATIC HORIZONTAL PINNED SCROLL) ── */}
         {product.productBelts?.length > 0 && (
           <section 
