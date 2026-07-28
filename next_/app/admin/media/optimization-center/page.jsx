@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { getFileUrl } from '@/lib/utils';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
-import 'tabulator-tables/dist/css/tabulator_dark.min.css';
 import '@/app/admin/css/datatable.css';
 import '@/app/admin/css/custom.css';
 
