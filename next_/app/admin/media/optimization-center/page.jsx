@@ -543,39 +543,39 @@ export default function SpeedBoosterOptimizationCenter() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Status Banner */}
+                  <div style={{ background: '#27272a', padding: '14px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#a1a1aa' }}>Current Storefront Serve Mode:</span>
+                      <span style={{ fontSize: '13px', fontWeight: 800, color: compareAsset.serveMode === 'original' ? '#fca5a5' : '#86efac', marginLeft: '8px' }}>
+                        {compareAsset.serveMode === 'original' ? 'Serving Raw Master File' : 'Serving WebP/AVIF Variant'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        onClick={async () => {
+                          await handleAcceptVariant(compareAsset.id);
+                          setCompareAsset(null);
+                        }}
+                        style={{ background: '#166534', color: '#ffffff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                      >
+                        ✅ Accept WebP Variant
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await handleRejectVariant(compareAsset.id);
+                          setCompareAsset(null);
+                        }}
+                        style={{ background: '#dc2626', color: '#ffffff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
+                      >
+                        ❌ Restore Raw Master
+                      </button>
+                    </div>
+                  </div>
+                </div>
               );
             })()}
-
-              {/* Status Banner */}
-              <div style={{ background: '#27272a', padding: '14px 20px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#a1a1aa' }}>Current Storefront Serve Mode:</span>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: compareAsset.serveMode === 'original' ? '#fca5a5' : '#86efac', marginLeft: '8px' }}>
-                    {compareAsset.serveMode === 'original' ? 'Serving Raw Master File' : 'Serving WebP/AVIF Variant'}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    onClick={async () => {
-                      await handleAcceptVariant(compareAsset.id);
-                      setCompareAsset(null);
-                    }}
-                    style={{ background: '#166534', color: '#ffffff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
-                  >
-                    ✅ Accept WebP Variant
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await handleRejectVariant(compareAsset.id);
-                      setCompareAsset(null);
-                    }}
-                    style={{ background: '#dc2626', color: '#ffffff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 800, border: 'none', cursor: 'pointer' }}
-                  >
-                    ❌ Restore Raw Master
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}
