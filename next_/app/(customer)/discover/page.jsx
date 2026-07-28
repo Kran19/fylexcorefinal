@@ -2376,7 +2376,7 @@ function DiscoverContent() {
         {product.productBoxes?.length > 0 && (() => {
           const mainBox = product.productBoxes[0];
           const boxImg = mainBox?.image;
-          const defaultParagraph = "Inspired by the travel cases from the 40's, simply sophisticated and refined, our packaging is crafted with attention to details to guarantee great robustness. It includes warranty and certificates papers, a micro-fiber cloth and a secondary strap.";
+          const defaultParagraph = "Inspired by the travel cases from the 1940s, simply sophisticated and refined, our packaging is crafted with attention to details to guarantee great robustness. It includes warranty and certificates papers, a micro-fiber cloth and a secondary strap.";
           let rawDesc = mainBox?.description || defaultParagraph;
           const sentenceList = rawDesc.split(/(?<=[.?!])\s+/).filter(Boolean);
           const uniqueSentences = Array.from(new Set(sentenceList));
