@@ -1727,8 +1727,8 @@ const EditProductPage = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                    )}
+                            )}
+                        </div>
 
                     {/* Form Footer */}
                     <div className="bg-gray-50 border-t border-gray-200 p-6 flex items-center justify-between">
