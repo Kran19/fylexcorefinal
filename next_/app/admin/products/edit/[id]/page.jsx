@@ -1369,8 +1369,14 @@ const EditProductPage = () => {
                                                                                  </div>
                                                                              </td>
                                                                              <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                                                                 <input type="checkbox" checked={variant.isSoldConfiguration || false} onChange={(e) => updateVariantField(vIdx, 'isSoldConfiguration', e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#4f46e5' }} />
-                                                                             </td>
+                                                                                  <input 
+                                                                                      type="checkbox" 
+                                                                                      checked={Boolean(variant.isSoldConfiguration)} 
+                                                                                      onChange={(e) => updateVariantField(vIdx, 'isSoldConfiguration', e.target.checked)} 
+                                                                                      title="Mark as Sold Configuration on Storefront"
+                                                                                      style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#6366f1', verticalAlign: 'middle' }} 
+                                                                                  />
+                                                                              </td>
                                                                              <td style={{ padding: '12px 16px' }}>
                                                                                  <input type="number" value={variant.fakeSoldCount || 0} onChange={(e) => updateVariantField(vIdx, 'fakeSoldCount', e.target.value)} style={{ width: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 10px', fontSize: '12px', outline: 'none' }} />
                                                                              </td>
