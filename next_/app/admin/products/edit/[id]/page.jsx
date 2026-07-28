@@ -559,8 +559,12 @@ const EditProductPage = () => {
             ...formData 
         } = form;
         
+        const configuredImageNum = (form.configuredImageCount !== undefined && form.configuredImageCount !== null && form.configuredImageCount !== '')
+            ? Number(form.configuredImageCount)
+            : 3;
+
         const themeJson = JSON.stringify({
-            configuredImageCount: Number(form.configuredImageCount) || 3,
+            configuredImageCount: configuredImageNum,
             variantImageCounts: variantImageCounts,
             discoverBg: form.discoverBg || form.bgColor || '#ffffff',
             discoverTextColor: form.discoverTextColor || form.textColor || '#1a1a1a',
@@ -575,7 +579,7 @@ const EditProductPage = () => {
         });
         const payload = {
             ...formData,
-            configuredImageCount: Number(form.configuredImageCount) || 3,
+            configuredImageCount: configuredImageNum,
             theme: themeJson,
             bgColor: form.discoverBg || form.bgColor || '#ffffff',
             textColor: form.discoverTextColor || form.textColor || '#1a1a1a',

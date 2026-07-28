@@ -2131,8 +2131,19 @@ function DiscoverContent() {
 
         {/* ── SECONDARY SECTION ("your timepiece") ── */}
         {(() => {
-          const variantCounts = product.theme?.variantImageCounts || product.variantImageCounts || {};
-          const effectiveImageCount = Number(variantCounts[product.currentVariantId || product.variantId]) || Number(product.configuredImageCount) || 3;
+          let parsedTheme = {};
+          try {
+            parsedTheme = typeof product.theme === 'string' ? JSON.parse(product.theme) : (product.theme || {});
+          } catch (e) {}
+
+          const variantCounts = parsedTheme.variantImageCounts || product.theme?.variantImageCounts || product.variantImageCounts || {};
+          const activeVarId = (product.currentVariantId || product.variantId || '')?.toString();
+          const varCount = (activeVarId && variantCounts[activeVarId] !== undefined) ? Number(variantCounts[activeVarId]) : null;
+          const globalCount = (parsedTheme.configuredImageCount !== undefined) 
+            ? Number(parsedTheme.configuredImageCount) 
+            : (product.configuredImageCount !== undefined ? Number(product.configuredImageCount) : null);
+
+          const effectiveImageCount = varCount || globalCount || 3;
 
           return (
             <>
