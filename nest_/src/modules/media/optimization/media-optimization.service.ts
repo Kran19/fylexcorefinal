@@ -53,7 +53,6 @@ export class MediaOptimizationService {
       totalOriginalBytes += origSize;
       if (m.fileSize > largestSize) largestSize = m.fileSize;
 
-      // Check if file exists on disk
       if (m.filePath) {
         const fullPath = join(process.cwd(), m.filePath.replace(/^\//, ''));
         if (!fs.existsSync(fullPath)) {
@@ -61,7 +60,6 @@ export class MediaOptimizationService {
         }
       }
 
-      // Check unused
       const usageCount = Object.values(m._count || {}).reduce((a, b) => a + b, 0);
       if (usageCount === 0) {
         unusedCount++;
@@ -253,6 +251,7 @@ export class MediaOptimizationService {
       where: { id: media.id },
       data: {
         isOptimized: true,
+        serveMode: 'auto',
         optimizationSavedBytes: savedBytes,
         primaryVariantId: variant.id
       }
@@ -275,8 +274,7 @@ export class MediaOptimizationService {
    */
   async bulkOptimize(targetFormat: 'webp' | 'avif' = 'webp', quality: number = 80) {
     const allMedia = await this.prisma.media.findMany({
-      where: { fileType: 'image' },
-      take: 50
+      take: 100
     });
 
     let successCount = 0;
@@ -319,5 +317,74 @@ export class MediaOptimizationService {
       }
     });
     return { success: true, data: logs };
+  }
+
+  /**
+   * 7. Get All Media Assets with Size Sorting
+   */
+  async getOptimizationAssetsList(sortBy: string = 'size_desc') {
+    let orderBy: any = { fileSize: 'desc' };
+    if (sortBy === 'size_asc') orderBy = { fileSize: 'asc' };
+    if (sortBy === 'created_desc') orderBy = { createdAt: 'desc' };
+
+    const items = await this.prisma.media.findMany({
+      orderBy,
+      include: {
+        variants: true
+      }
+    });
+
+    const formatted = items.map(item => {
+      const origSize = Number(item.fileSize || 0);
+      const bestVariant = (item.variants && item.variants.length > 0)
+        ? item.variants.reduce((prev, curr) => (Number(curr.fileSize) < Number(prev.fileSize) ? curr : prev), item.variants[0])
+        : null;
+      
+      const optSize = bestVariant ? Number(bestVariant.fileSize) : origSize;
+      const savedBytes = origSize > optSize ? (origSize - optSize) : 0;
+      const savedRatio = origSize > 0 ? ((savedBytes / origSize) * 100).toFixed(1) : '0';
+
+      return {
+        id: item.id,
+        fileName: item.fileName,
+        originalFilename: item.originalFilename,
+        filePath: item.filePath,
+        fileType: item.fileType || 'image',
+        mimeType: item.mimeType,
+        originalSize: origSize,
+        originalSizeFormatted: (origSize / (1024 * 1024)).toFixed(2) + ' MB',
+        optimizedSize: optSize,
+        optimizedSizeFormatted: bestVariant ? (optSize / 1024).toFixed(0) + ' KB' : 'Uncompressed',
+        savedRatio: `${savedRatio}%`,
+        isOptimized: item.isOptimized || (item.variants && item.variants.length > 0),
+        serveMode: item.serveMode || 'auto',
+        bestVariant,
+        variants: item.variants || []
+      };
+    });
+
+    return { success: true, data: formatted };
+  }
+
+  /**
+   * 8. Accept Compressed Variant (Set as Primary Served File)
+   */
+  async acceptVariant(id: number) {
+    const media = await this.prisma.media.update({
+      where: { id: Number(id) },
+      data: { serveMode: 'auto', isOptimized: true }
+    });
+    return { success: true, message: `Accepted compressed variant for media #${id}.`, data: media };
+  }
+
+  /**
+   * 9. Reject / Restore Master Original File
+   */
+  async rejectVariant(id: number) {
+    const media = await this.prisma.media.update({
+      where: { id: Number(id) },
+      data: { serveMode: 'original', isOptimized: false }
+    });
+    return { success: true, message: `Restored raw master original file for media #${id}.`, data: media };
   }
 }

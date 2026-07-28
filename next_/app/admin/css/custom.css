@@ -231,8 +231,9 @@
     padding: 10px 12px;
     border-radius: 9px;
     color: var(--sidebar-text);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: normal !important;
     transition: all 0.18s ease;
     cursor: pointer;
     text-decoration: none;
@@ -284,6 +285,8 @@
 
 .admin-sidebar .nav-link-text {
     opacity: 0;
+    font-size: 13px !important;
+    font-weight: 500 !important;
     transition: opacity 0.2s;
 }
 
@@ -302,8 +305,9 @@
 .admin-sidebar .submenu a {
     display: block;
     padding: 6px 14px;
-    font-size: 12.5px;
-    color: #5a6b8c;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    color: #8fa0c4;
     text-decoration: none;
     border-radius: 7px;
     transition: all 0.15s;

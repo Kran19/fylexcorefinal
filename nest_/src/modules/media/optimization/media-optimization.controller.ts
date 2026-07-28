@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Put } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Put, Query } from '@nestjs/common';
 import { MediaOptimizationService } from './media-optimization.service';
 
 @Controller('media/optimization')
@@ -15,6 +15,11 @@ export class MediaOptimizationController {
     return this.service.getStorageAnalytics();
   }
 
+  @Get('list')
+  async getOptimizationAssetsList(@Query('sort') sort: string = 'size_desc') {
+    return this.service.getOptimizationAssetsList(sort);
+  }
+
   @Get('logs')
   async getOptimizationLogs() {
     return this.service.getOptimizationLogs();
@@ -28,6 +33,16 @@ export class MediaOptimizationController {
     @Body('preset') preset: string = 'balanced'
   ) {
     return this.service.optimizeMediaAsset(Number(id), format, quality, preset);
+  }
+
+  @Post('accept/:id')
+  async acceptVariant(@Param('id') id: string) {
+    return this.service.acceptVariant(Number(id));
+  }
+
+  @Post('reject/:id')
+  async rejectVariant(@Param('id') id: string) {
+    return this.service.rejectVariant(Number(id));
   }
 
   @Post('bulk')

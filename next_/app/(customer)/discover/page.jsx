@@ -2471,6 +2471,8 @@ function DiscoverContent() {
                 </div>
               </div>
             </section>
+          );
+        })()}
       </div>
 
       {/* ═══ ELEGANT LIGHT INFO MODAL ═══ */}
