@@ -150,7 +150,49 @@ function ConfigureContent() {
 
   const getCompatibleOptions = (step) => {
     if (!step || !step.options) return [];
-    return step.options;
+    if (!variants || variants.length === 0) return step.options;
+
+    const currentStepIdx = stepsData.findIndex(s => s.id === step.id);
+
+    // Step 0 (First step, e.g. Case Color): ALWAYS show all options!
+    if (currentStepIdx <= 0) return step.options;
+
+    // Subsequent steps: Filter based ONLY on PREVIOUS steps' selections!
+    const prevSteps = stepsData.slice(0, currentStepIdx);
+    const prevSelections = {};
+    prevSteps.forEach(pStep => {
+      const selectedVal = userSelections[pStep.id];
+      if (selectedVal) {
+        prevSelections[normalizeAttrKey(pStep.id)] = selectedVal.toLowerCase().trim();
+      }
+    });
+
+    const currentNormKey = normalizeAttrKey(step.id);
+
+    const compatible = step.options.filter(opt => {
+      const optNormLabel = opt.name.toLowerCase().trim();
+      return variants.some(v => {
+        const vAttrs = v.variantAttributes || [];
+
+        const hasCurrentOpt = vAttrs.some(va => {
+          const attrKey = normalizeAttrKey(va.attributeValue?.attribute?.name);
+          const label = (va.attributeValue?.label || '').toLowerCase().trim();
+          return attrKey === currentNormKey && label === optNormLabel;
+        });
+
+        if (!hasCurrentOpt) return false;
+
+        return Object.entries(prevSelections).every(([pKey, pVal]) => {
+          return vAttrs.some(va => {
+            const attrKey = normalizeAttrKey(va.attributeValue?.attribute?.name);
+            const label = (va.attributeValue?.label || '').toLowerCase().trim();
+            return attrKey === pKey && label === pVal;
+          });
+        });
+      });
+    });
+
+    return compatible.length > 0 ? compatible : step.options;
   };
 
   const previewImgRef = useRef(null);
@@ -190,6 +232,18 @@ function ConfigureContent() {
   const resetToOverview = () => {
     setCurrentStep(-1);
     setViewMode('angles');
+  };
+
+  const updatePreviewImage = (src) => {
+    if (!src) return;
+    setPreviewSrc(src);
+    if (previewImgRef.current) {
+      gsap.fromTo(
+        previewImgRef.current,
+        { scale: 0.95, opacity: 0.7 },
+        { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' }
+      );
+    }
   };
 
   const handlePrevStep = () => {
@@ -287,10 +341,8 @@ function ConfigureContent() {
     return bestMatch;
   };
 
-  const handleOptClick = (idx, src) => {
-    setActiveOpt(idx);
+  const handleOptClick = (optName, src) => {
     const stepId = stepsData[currentStep]?.id;
-    const optName = stepsData[currentStep]?.options[idx]?.name;
     if (!stepId || !optName) return;
 
     // Explicit user choice for current step and carry-forward selections
@@ -487,7 +539,7 @@ function ConfigureContent() {
                         whiteSpace: 'nowrap',
                         marginRight: '16px'
                       }}
-                      onClick={() => handleOptClick(i, opt.img)}
+                      onClick={() => handleOptClick(opt.name, opt.img)}
                     >
                       {opt.name}
                     </span>
