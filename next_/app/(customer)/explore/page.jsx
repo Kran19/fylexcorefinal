@@ -2120,6 +2120,40 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
+                        >
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Far Right Vertical Nav */}
+          {isGeneralMode && (
+            <div className="cfg-vert-nav" style={{ zIndex: 10 }}>
+              {productsData.map((p, idx) => (
+                <div
+                  key={p.id}
+                  className={`cfg-nav-dash ${initialIndex === idx ? 'active' : ''}`}
+                  style={product.discoverHeroBgImage && initialIndex === idx ? { background: '#ffffff' } : product.discoverHeroBgImage ? { background: 'rgba(255,255,255,0.4)' } : {}}
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams);
+                    params.set('watch', p.id);
+                    router.push(`?${params.toString()}`, { scroll: false });
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* ── SECONDARY SECTION ("your timepiece") ── */}
+        {(() => {
+          let parsedTheme = {};
+          try {
             parsedTheme = typeof product.theme === 'string' ? JSON.parse(product.theme) : (product.theme || {});
           } catch (e) {}
 
