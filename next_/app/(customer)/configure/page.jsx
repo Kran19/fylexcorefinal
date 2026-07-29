@@ -512,7 +512,25 @@ function ConfigureContent() {
               ? product.galleryImages
               : (product.gallery || []).map(g => typeof g === 'string' ? g : getFileUrl(g?.url || g?.filePath || g?.fileName)).filter(Boolean);
 
-            const sideList = Array.from(new Set([previewSrc, ...rawGallery].filter(Boolean)));
+            const normalizeKey = (url) => {
+              if (!url) return '';
+              const full = getFileUrl(url);
+              return full.split('?')[0].split('/').pop() || full;
+            };
+
+            const seenKeys = new Set();
+            const sideList = [];
+
+            [previewSrc, ...rawGallery].forEach(img => {
+              if (!img) return;
+              const fullUrl = getFileUrl(img);
+              const key = normalizeKey(img);
+              if (key && !seenKeys.has(key)) {
+                seenKeys.add(key);
+                sideList.push(fullUrl);
+              }
+            });
+
             if (sideList.length <= 1) return null;
 
             return (
@@ -529,30 +547,31 @@ function ConfigureContent() {
                 }}
               >
                 {sideList.slice(0, 5).map((imgUrl, idx) => {
-                  const isActive = previewSrc === imgUrl;
+                  const isActive = previewSrc && normalizeKey(previewSrc) === normalizeKey(imgUrl);
                   return (
                     <div
                       key={idx}
                       onClick={() => updatePreviewImage(imgUrl)}
                       style={{
-                        width: '56px',
-                        height: '56px',
-                        borderRadius: '12px',
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '50%',
                         background: '#121212',
-                        border: isActive ? '2px solid #008767' : '1px solid rgba(255,255,255,0.18)',
-                        padding: '4px',
+                        border: isActive ? '2px solid #008767' : '1px solid rgba(255,255,255,0.2)',
+                        padding: '6px',
                         cursor: 'pointer',
                         transition: 'all 0.25s ease',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: isActive ? '0 0 14px rgba(0, 135, 103, 0.5)' : '0 4px 12px rgba(0,0,0,0.3)'
+                        boxShadow: isActive ? '0 0 14px rgba(0, 135, 103, 0.5)' : '0 4px 12px rgba(0,0,0,0.3)',
+                        overflow: 'hidden'
                       }}
                     >
                       <img
                         src={imgUrl}
                         alt={`Angle ${idx + 1}`}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }}
                       />
                     </div>
                   );
