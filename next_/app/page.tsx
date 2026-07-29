@@ -410,6 +410,14 @@ const Home = () => {
   const section2Banner = banners.find(b => b.type === 'home_s2' || b.position === 'home_s2' || b.position === 'Section 2');
   const section3Banner = banners.find(b => b.type === 'home_s3' || b.position === 'home_s3' || b.position === 'Section 3');
 
+  const s2Bg = (section2Banner?.image && typeof section2Banner.image === 'string' && section2Banner.image.trim() !== '')
+    ? getFileUrl(section2Banner.image)
+    : '/Rim.png';
+
+  const s3Bg = (section3Banner?.image && typeof section3Banner.image === 'string' && section3Banner.image.trim() !== '')
+    ? getFileUrl(section3Banner.image)
+    : '/Watch_1.png';
+
   return (
     <div className="v1-home" ref={containerRef}>
       <style>{`
@@ -911,7 +919,7 @@ const Home = () => {
           {homeSections.s2 && (
             <div
               className="section s2"
-              style={{ backgroundImage: `url('${section2Banner?.image ? getFileUrl(section2Banner.image) : '/Rim.png'}')` }}
+              style={{ backgroundImage: `url('${s2Bg}')` }}
               ref={el => { sectionsRef.current[1] = el; }}
             >
               <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
@@ -927,7 +935,7 @@ const Home = () => {
           {homeSections.s3 && (
             <div
               className="section s3"
-              style={{ backgroundImage: `url('${section3Banner?.image ? getFileUrl(section3Banner.image) : '/Watch_1.png'}')` }}
+              style={{ backgroundImage: `url('${s3Bg}')` }}
               ref={el => { sectionsRef.current[2] = el; }}
             >
               <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>

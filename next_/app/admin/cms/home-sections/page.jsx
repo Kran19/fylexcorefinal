@@ -85,10 +85,10 @@ const HomeSections = () => {
             const bannersRes = await api.getBanners();
             if (bannersRes?.data) {
                 const s2 = bannersRes.data.find(b => b.type === 'home_s2' || b.position === 'home_s2' || b.position === 'Section 2');
-                if (s2) setBannerS2(prev => ({ ...prev, ...s2, type: 'home_s2', position: 'home_s2' }));
+                if (s2) setBannerS2(prev => ({ ...prev, ...s2, image: (s2.image && s2.image.trim()) ? s2.image : '/Rim.png', type: 'home_s2', position: 'home_s2' }));
                 
                 const s3 = bannersRes.data.find(b => b.type === 'home_s3' || b.position === 'home_s3' || b.position === 'Section 3');
-                if (s3) setBannerS3(prev => ({ ...prev, ...s3, type: 'home_s3', position: 'home_s3' }));
+                if (s3) setBannerS3(prev => ({ ...prev, ...s3, image: (s3.image && s3.image.trim()) ? s3.image : '/Watch_1.png', type: 'home_s3', position: 'home_s3' }));
             }
         } catch (err) {
             console.error("Failed to load content", err);
