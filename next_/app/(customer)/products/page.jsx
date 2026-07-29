@@ -1014,13 +1014,6 @@ const Products = () => {
 
                   <div className="p-price-row">
                     <span className="p-price-tag" style={{ color: autoTextColor }}>{col.price}</span>
-                    <div className="p-inventory-status">
-                      <svg onClick={() => openInfoModal(col)} className="i-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" title="View previously configured combinations" style={{ cursor: 'pointer' }}>
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                      </svg>
-                    </div>
                   </div>
                   <div className="p-actions-row">
                     <Link href={`/explore?watch=${col.id}`} className="p-link-luxury">
@@ -1046,35 +1039,6 @@ const Products = () => {
             </section>
           );
         })}
-      </div>
-      {/* ═══ INFO MODAL ═══ */}
-      <div className={`info-modal-overlay ${activeModalData ? 'show' : ''}`} onClick={closeInfoModal}>
-        <div className="info-modal-box" onClick={(e) => e.stopPropagation()}>
-          <div className="info-modal-header">
-            <h3 className="info-modal-title">Sold Configurations</h3>
-            <button className="info-modal-close" onClick={closeInfoModal}>✕</button>
-          </div>
-          <div className="info-modal-content" data-lenis-prevent="true" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
-            {activeModalData?.combinations?.length > 0 ? (
-              activeModalData.combinations.map((combo) => (
-                <div key={combo.id} className="info-combo-item">
-                  <span className="info-combo-num" style={{ fontSize: '1.2rem', color: '#c4a35a' }}>•</span>
-                  <div className="info-combo-img-wrap">
-                    <img src={combo.img} alt={`Combo ${combo.id}`} />
-                  </div>
-                  <div className="info-combo-details">
-                    <span className="info-combo-name">{combo.name}</span>
-                    <span className="info-combo-status">Sold on {combo.soldAt}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#888', fontSize: '0.9rem' }}>
-                No configurations have been registered yet.
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
