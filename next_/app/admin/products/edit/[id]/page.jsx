@@ -73,7 +73,6 @@ const EditProductPage = () => {
     const [variantImageModal, setVariantImageModal] = useState(null); // { index, name }
     const [pageThemeTab, setPageThemeTab] = useState('configured');
     const [previewDevice, setPreviewDevice] = useState('iphone14'); // 'iphone14' | 'desktop'
-    const [variantImageCounts, setVariantImageCounts] = useState({});
     const [selectedThemeVariantId, setSelectedThemeVariantId] = useState('all');
     const [previewVariantId, setPreviewVariantId] = useState(null);
 
@@ -227,9 +226,8 @@ const EditProductPage = () => {
                 if (p.theme) {
                     try {
                         parsedTheme = JSON.parse(p.theme);
-                        if (parsedTheme.variantImageCounts) {
-                            setVariantImageCounts(parsedTheme.variantImageCounts);
-                        }
+                        delete parsedTheme.variantImageCounts;
+                        delete parsedTheme.configuredImageCount;
                     } catch (e) {
                         console.error("Failed to parse theme JSON:", e);
                     }
@@ -640,6 +638,22 @@ const EditProductPage = () => {
                 galleryIds: v.gallery?.map(g => g.id).filter(id => id != null) || []
             }))
         };
+
+        delete payload.variantImageCounts;
+        delete payload.configuredImageCount;
+        delete payload.exploreHeroImage;
+        delete payload.exploreStoryImage;
+        delete payload.exploreSpecsImage;
+        delete payload.discoverBg;
+        delete payload.discoverTextColor;
+        delete payload.discoverAccentColor;
+        delete payload.discoverGradient;
+        delete payload.productsBg;
+        delete payload.productsTextColor;
+        delete payload.productsAccentColor;
+        delete payload.preConfigureBg;
+        delete payload.preConfigureTextColor;
+        delete payload.preConfigureAccentColor;
 
         const success = await updateRecord('products', productId, payload, api.updateProduct);
         setSubmitting(false);
@@ -1263,12 +1277,29 @@ const EditProductPage = () => {
                                             {/* Live Canvas View */}
                                             <div className="flex-1 relative bg-slate-950 p-6 flex flex-col items-center justify-center min-h-[750px] overflow-hidden">
                                                 {(() => {
-                                                    const previewVariantParam = previewVariantId ? `&variant=${previewVariantId}` : '';
-                                                    const iframeSrc = (pageThemeTab === 'explore' || pageThemeTab === 'discover')
-                                                        ? `/explore?watch=${productId}${previewVariantParam}`
-                                                        : (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure')
-                                                            ? `/configured?watch=${productId}${previewVariantParam}`
-                                                            : `/products`;
+                                                    const targetVariant = previewVariantId ? variants.find(v => v.id?.toString() === previewVariantId) : (variants.find(v => v.isPrimary) || variants[0]);
+                                                    const params = new URLSearchParams();
+                                                    params.set('watch', productId ? productId.toString() : '11');
+                                                    if (targetVariant) {
+                                                        if (targetVariant.id) {
+                                                            params.set('variant', targetVariant.id.toString());
+                                                        }
+                                                        if (targetVariant.variantAttributes && Array.isArray(targetVariant.variantAttributes)) {
+                                                            targetVariant.variantAttributes.forEach(va => {
+                                                                const attrKey = (va.attribute?.name || va.attributeValue?.attribute?.name || '').trim();
+                                                                const attrVal = (va.attributeValue?.label || va.attributeValue?.value || va.value || '').trim();
+                                                                if (attrKey && attrVal) {
+                                                                    params.set(attrKey, attrVal);
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+
+                                                    const iframeSrc = (pageThemeTab === 'products')
+                                                        ? `/products`
+                                                        : (pageThemeTab === 'explore' || pageThemeTab === 'discover')
+                                                            ? `/explore?${params.toString()}`
+                                                            : `/configured?${params.toString()}`;
 
                                                     return previewDevice === 'iphone14' ? (
                                                     /* iPhone 14 Pro Max Mockup Chassis */
