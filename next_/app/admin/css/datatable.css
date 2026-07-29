@@ -44,6 +44,26 @@
 .tabulator .tabulator-tableholder {
     background: #fff;
     overflow-x: auto !important;
+    WebkitOverflowScrolling: touch;
+}
+
+.tabulator .tabulator-tableholder::-webkit-scrollbar {
+    height: 10px !important;
+    width: 10px !important;
+}
+
+.tabulator .tabulator-tableholder::-webkit-scrollbar-track {
+    background: #e2e8f0 !important;
+    border-radius: 6px !important;
+}
+
+.tabulator .tabulator-tableholder::-webkit-scrollbar-thumb {
+    background: #6366f1 !important;
+    border-radius: 6px !important;
+}
+
+.tabulator .tabulator-tableholder::-webkit-scrollbar-thumb:hover {
+    background: #4f46e5 !important;
 }
 
 .tabulator .tabulator-tableholder .tabulator-table {

@@ -1278,9 +1278,33 @@ const EditProductPage = () => {
                                                          </div>
                                                      </div>
 
-                                                     {/* FLEXIBLE HORIZONTAL SCROLL CONTAINER */}
-                                                     <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
-                                                         <table style={{ width: '100%', minWidth: '1350px', borderCollapse: 'collapse' }}>
+                                                     {/* FLEXIBLE HORIZONTAL SCROLL CONTAINER WITH CUSTOM SCROLLBAR & WHEEL SUPPORT */}
+                                                     <style>{`
+                                                         .variants-scroll-wrapper::-webkit-scrollbar {
+                                                             height: 10px !important;
+                                                         }
+                                                         .variants-scroll-wrapper::-webkit-scrollbar-track {
+                                                             background: #e2e8f0 !important;
+                                                             border-radius: 6px !important;
+                                                         }
+                                                         .variants-scroll-wrapper::-webkit-scrollbar-thumb {
+                                                             background: #6366f1 !important;
+                                                             border-radius: 6px !important;
+                                                         }
+                                                         .variants-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+                                                             background: #4f46e5 !important;
+                                                         }
+                                                     `}</style>
+                                                     <div
+                                                         className="variants-scroll-wrapper"
+                                                         onWheel={(e) => {
+                                                             if (e.deltaY !== 0 && !e.shiftKey) {
+                                                                 e.currentTarget.scrollLeft += e.deltaY * 0.8;
+                                                             }
+                                                         }}
+                                                         style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', display: 'block', paddingBottom: '8px' }}
+                                                     >
+                                                         <table style={{ width: '100%', minWidth: '1400px', borderCollapse: 'collapse' }}>
                                                              <thead>
                                                                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                                                                      <th style={{ padding: '14px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', width: '90px' }}>Order</th>
