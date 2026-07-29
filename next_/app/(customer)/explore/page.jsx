@@ -2544,6 +2544,9 @@ function DiscoverContent() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
