@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import * as api from '@/services/adminApi';
 import { getFileUrl } from '@/lib/utils';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import Swal from 'sweetalert2';
@@ -34,24 +35,12 @@ export default function SpeedBoosterOptimizationCenter() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/media/optimization/dashboard');
-      const data = await res.json();
-      if (data.success) {
-        setStats(data.data);
+      const res = await api.getOptimizationStats();
+      if (res?.data || res?.success) {
+        setStats(res.data || res);
       }
     } catch (e) {
-      setStats({
-        imagesTotal: 12,
-        optimizedCount: 9,
-        pendingCount: 3,
-        totalOriginalBytes: '186000000',
-        totalOptimizedBytes: '42000000',
-        spaceSavedBytes: '144000000',
-        savedPercentage: '77.4%',
-        avgOriginalSizeMb: '3.2',
-        avgOptimizedSizeKb: 486,
-        largestImageMb: '18.2'
-      });
+      console.error('Failed to fetch speed booster stats:', e);
     } finally {
       setLoading(false);
     }
@@ -59,17 +48,15 @@ export default function SpeedBoosterOptimizationCenter() {
 
   const fetchAssets = async (sortOrder) => {
     try {
-      const res = await fetch(`/api/media/optimization/list?sort=${sortOrder}`);
-      const data = await res.json();
-      if (data.success && data.data) {
-        setAssets(data.data);
+      const res = await api.getOptimizationAssets(sortOrder);
+      if (res?.data) {
+        setAssets(res.data);
+        if (tabulatorRef.current) {
+          tabulatorRef.current.replaceData(res.data);
+        }
       }
     } catch (e) {
-      setAssets([
-        { id: 1, originalFilename: 'meridianblackcase.png', filePath: '/assets/fylex-watch-v2/meridianblackcase.png', fileType: 'image', originalSize: 13421772, originalSizeFormatted: '12.80 MB', optimizedSize: 243712, optimizedSizeFormatted: '238 KB', savedRatio: '98.2%', isOptimized: true, serveMode: 'auto' },
-        { id: 2, originalFilename: '36mm.png', filePath: '/assets/fylex-watch-v2/36mm.png', fileType: 'image', originalSize: 9437184, originalSizeFormatted: '9.00 MB', optimizedSize: 184320, optimizedSizeFormatted: '180 KB', savedRatio: '98.0%', isOptimized: true, serveMode: 'auto' },
-        { id: 3, originalFilename: '40mm.png', filePath: '/assets/fylex-watch-v2/40mm.png', fileType: 'image', originalSize: 6291456, originalSizeFormatted: '6.00 MB', optimizedSize: 153600, optimizedSizeFormatted: '150 KB', savedRatio: '97.5%', isOptimized: false, serveMode: 'original' }
-      ]);
+      console.error('Failed to fetch optimization assets:', e);
     }
   };
 
@@ -77,19 +64,18 @@ export default function SpeedBoosterOptimizationCenter() {
     setIsProcessing(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/media/optimization/process/${assetId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ format: selectedFormat, quality: qualityPreset })
-      });
-      const data = await res.json();
-      setMessage(data.message || `Successfully compressed media #${assetId}`);
-      setAssets(prev => prev.map(a => a.id === assetId ? { ...a, isOptimized: true, serveMode: 'auto', optimizedSizeFormatted: data.data?.optimizedSizeFormatted || '461 KB', savedRatio: data.data?.savedRatio || '98.2%' } : a));
+      const res = await api.optimizeSingleAsset(assetId, { format: selectedFormat, quality: qualityPreset });
+      const updatedAsset = { isOptimized: true, serveMode: 'auto', optimizedSizeFormatted: res?.data?.optimizedSizeFormatted || '461 KB', savedRatio: res?.data?.savedRatio || '98.2%' };
+      
+      setAssets(prev => prev.map(a => a.id === assetId ? { ...a, ...updatedAsset } : a));
+      if (tabulatorRef.current) {
+        tabulatorRef.current.updateData([{ id: assetId, ...updatedAsset }]);
+      }
       
       Swal.fire({
         icon: 'success',
         title: 'Asset Optimized!',
-        text: `Compressed asset #${assetId} to WebP/AVIF format successfully.`,
+        text: res?.message || `Compressed asset #${assetId} to WebP format successfully.`,
         timer: 1800,
         showConfirmButton: false,
         background: '#18181b',
@@ -98,13 +84,11 @@ export default function SpeedBoosterOptimizationCenter() {
 
       fetchStats();
     } catch (e) {
-      setAssets(prev => prev.map(a => a.id === assetId ? { ...a, isOptimized: true, serveMode: 'auto' } : a));
+      console.error(`Failed to optimize asset #${assetId}:`, e);
       Swal.fire({
-        icon: 'success',
-        title: 'Asset Optimized!',
-        text: `Compressed asset #${assetId} to WebP format.`,
-        timer: 1800,
-        showConfirmButton: false,
+        icon: 'error',
+        title: 'Optimization Error',
+        text: e.message || 'Failed to compress media asset.',
         background: '#18181b',
         color: '#ffffff'
       });
@@ -115,47 +99,69 @@ export default function SpeedBoosterOptimizationCenter() {
 
   const handleAcceptVariant = async (assetId) => {
     setMessage(null);
-    setAssets(prev => prev.map(a => a.id === assetId ? { ...a, serveMode: 'auto', isOptimized: true } : a));
-    
-    Swal.fire({
-      icon: 'success',
-      title: 'Variant Accepted!',
-      text: `Optimized WebP/AVIF variant for asset #${assetId} accepted and serving to storefront.`,
-      timer: 1800,
-      showConfirmButton: false,
-      background: '#18181b',
-      color: '#ffffff'
-    });
-
     try {
-      await fetch(`/api/media/optimization/accept/${assetId}`, { method: 'POST' });
-    } catch (e) {
-      // Ignored - UI updated immediately
-    } finally {
+      const res = await api.acceptOptimizationVariant(assetId);
+      const updatedAsset = { serveMode: 'auto', isOptimized: true };
+      
+      setAssets(prev => prev.map(a => a.id === assetId ? { ...a, ...updatedAsset } : a));
+      if (tabulatorRef.current) {
+        tabulatorRef.current.updateData([{ id: assetId, ...updatedAsset }]);
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Active / Accepted!',
+        text: res?.message || `Optimized WebP/AVIF variant for asset #${assetId} set to active storefront serve mode.`,
+        timer: 1800,
+        showConfirmButton: false,
+        background: '#18181b',
+        color: '#ffffff'
+      });
+
       fetchStats();
+    } catch (e) {
+      console.error(`Failed to accept variant for asset #${assetId}:`, e);
+      Swal.fire({
+        icon: 'error',
+        title: 'Action Failed',
+        text: e.message || `Could not activate compressed variant for #${assetId}.`,
+        background: '#18181b',
+        color: '#ffffff'
+      });
     }
   };
 
   const handleRejectVariant = async (assetId) => {
     setMessage(null);
-    setAssets(prev => prev.map(a => a.id === assetId ? { ...a, serveMode: 'original' } : a));
-    
-    Swal.fire({
-      icon: 'info',
-      title: 'Master File Restored!',
-      text: `Restored raw master original file for asset #${assetId}.`,
-      timer: 1800,
-      showConfirmButton: false,
-      background: '#18181b',
-      color: '#ffffff'
-    });
-
     try {
-      await fetch(`/api/media/optimization/reject/${assetId}`, { method: 'POST' });
-    } catch (e) {
-      // Ignored - UI updated immediately
-    } finally {
+      const res = await api.rejectOptimizationVariant(assetId);
+      const updatedAsset = { serveMode: 'original', isOptimized: false };
+      
+      setAssets(prev => prev.map(a => a.id === assetId ? { ...a, ...updatedAsset } : a));
+      if (tabulatorRef.current) {
+        tabulatorRef.current.updateData([{ id: assetId, ...updatedAsset }]);
+      }
+
+      Swal.fire({
+        icon: 'info',
+        title: 'Rejected / Restored Master!',
+        text: res?.message || `Restored raw master original file for asset #${assetId}.`,
+        timer: 1800,
+        showConfirmButton: false,
+        background: '#18181b',
+        color: '#ffffff'
+      });
+
       fetchStats();
+    } catch (e) {
+      console.error(`Failed to reject variant for asset #${assetId}:`, e);
+      Swal.fire({
+        icon: 'error',
+        title: 'Action Failed',
+        text: e.message || `Could not reject variant for #${assetId}.`,
+        background: '#18181b',
+        color: '#ffffff'
+      });
     }
   };
 
@@ -163,36 +169,21 @@ export default function SpeedBoosterOptimizationCenter() {
     setIsProcessing(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/media/optimization/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ format: selectedFormat, quality: qualityPreset })
-      });
-      const data = await res.json();
-      setMessage(data.message || 'Bulk optimization batch completed successfully.');
-
+      const res = await api.bulkOptimizeAssets({ format: selectedFormat, quality: qualityPreset });
+      setMessage(res?.message || 'Bulk optimization completed successfully.');
       Swal.fire({
         icon: 'success',
-        title: 'Bulk Batch Completed!',
-        text: 'All media assets optimized successfully.',
+        title: 'Bulk Compression Complete!',
+        text: res?.message || 'All uncompressed media assets optimized to WebP.',
         timer: 2000,
         showConfirmButton: false,
         background: '#18181b',
         color: '#ffffff'
       });
-
-      fetchStats();
       fetchAssets(sortBy);
+      fetchStats();
     } catch (e) {
-      Swal.fire({
-        icon: 'success',
-        title: 'Bulk Batch Executed!',
-        text: 'Bulk optimization batch executed.',
-        timer: 1800,
-        showConfirmButton: false,
-        background: '#18181b',
-        color: '#ffffff'
-      });
+      console.error('Bulk optimization failed:', e);
     } finally {
       setIsProcessing(false);
     }
