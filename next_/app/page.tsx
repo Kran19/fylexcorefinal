@@ -206,8 +206,8 @@ const GalleryCarousel = ({ items }: { items?: any[] }) => {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
-      onTouchStart={(e) => onPointerDown({ clientX: e.touches[0].clientX })}
-      onTouchMove={(e) => onPointerMove({ clientX: e.touches[0].clientX })}
+      onTouchStart={(e: any) => onPointerDown({ clientX: e.touches[0].clientX })}
+      onTouchMove={(e: any) => onPointerMove({ clientX: e.touches[0].clientX })}
       onTouchEnd={onPointerUp}
     >
       <div className="fylex-gallery-track" ref={trackRef}>
@@ -328,7 +328,7 @@ const Home = () => {
 
   // ── Flip counter ─────────────────────────────────────────────
   useEffect(() => {
-    const interval = setInterval(() => setFlipValue(prev => prev + 1), 1000);
+    const interval = setInterval(() => setFlipValue((prev: number) => prev + 1), 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -357,14 +357,14 @@ const Home = () => {
     ScrollTrigger.refresh();
 
     return () => {
-      ScrollTrigger.getAll().forEach(t => t.kill());
+      ScrollTrigger.getAll().forEach((t: any) => t.kill());
     };
   }, [homeSections]);
 
   // Features focal-point animation removed as the section is currently inactive
 
   // ── FlipDigit sub-component ───────────────────────────────────
-  const FlipDigit = ({ digit }: { digit: any }) => {
+  const FlipDigit = ({ digit }: { digit: string }) => {
     const [prevDigit, setPrevDigit] = useState(digit);
     const [isAnimating, setIsAnimating] = useState(false);
 
@@ -407,8 +407,8 @@ const Home = () => {
   };
 
   // ── Render ────────────────────────────────────────────────────
-  const section2Banner = banners.find(b => b.type === 'home_s2' || b.position === 'home_s2' || b.position === 'Section 2');
-  const section3Banner = banners.find(b => b.type === 'home_s3' || b.position === 'home_s3' || b.position === 'Section 3');
+  const section2Banner = banners.find((b: any) => b.type === 'home_s2' || b.position === 'home_s2' || b.position === 'Section 2');
+  const section3Banner = banners.find((b: any) => b.type === 'home_s3' || b.position === 'home_s3' || b.position === 'Section 3');
 
   const s2Bg = (section2Banner?.image && typeof section2Banner.image === 'string' && section2Banner.image.trim() !== '')
     ? getFileUrl(section2Banner.image)
