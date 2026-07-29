@@ -111,8 +111,8 @@ export default function Cart() {
   const navigate = useRouter();
   const { items, updateQty, removeFromCart, totals, processingItems } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
-  const [heroVisible, setHeroVisible] = useState(false);
-  const [summaryVisible, setSummaryVisible] = useState(false);
+  const [heroVisible, setHeroVisible] = useState(true);
+  const [summaryVisible, setSummaryVisible] = useState(true);
   const summaryRef = useRef(null);
 
   useEffect(() => {
@@ -200,9 +200,8 @@ export default function Cart() {
             ref={summaryRef}
             className="cart-summary-col"
             style={{
-              opacity: summaryVisible ? 1 : 0,
-              transform: summaryVisible ? 'translateY(0)' : 'translateY(30px)',
-              transition: 'opacity 0.65s ease 0.2s, transform 0.65s ease 0.2s',
+              opacity: 1,
+              transform: 'none'
             }}
           >
             <div className="cart-summary-card">
