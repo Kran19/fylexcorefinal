@@ -1093,59 +1093,137 @@ const EditProductPage = () => {
                                                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
                                                             Explicit 3 Explore Showcase Images
                                                         </label>
-                                                        <div className="grid grid-cols-3 gap-3">
-                                                            <div>
-                                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 1: Hero</label>
-                                                                <div className="relative group/box h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
-                                                                    {form.exploreHeroImage ? (
-                                                                        <>
-                                                                            <img src={getFileUrl(typeof form.exploreHeroImage === 'string' ? form.exploreHeroImage : (form.exploreHeroImage.url || form.exploreHeroImage.filePath || form.exploreHeroImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Hero" onClick={() => setPickerTarget('exploreHeroImage')} />
-                                                                            <button type="button" onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreHeroImage: null })); }} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" title="Remove image">
-                                                                                <i className="fas fa-times"></i>
-                                                                            </button>
-                                                                        </>
-                                                                    ) : (
-                                                                        <div onClick={() => setPickerTarget('exploreHeroImage')} className="w-full h-full flex items-center justify-center">
-                                                                            <span className="text-[10px] text-gray-400 font-bold">+ Pick Hero</span>
+                                                        {(() => {
+                                                            const resolveImgObj = (img) => {
+                                                                if (!img) return null;
+                                                                if (typeof img === 'string') return getFileUrl(img);
+                                                                const url = img.url || img.filePath || img.path || (img.fileName ? `uploads/${img.fileName}` : '');
+                                                                return getFileUrl(url);
+                                                            };
+
+                                                            const defaultHero = form.heroImage || (variants[0]?.heroImage);
+                                                            const defaultStory = (form.gallery && form.gallery[0]) || (variants[0]?.gallery && variants[0].gallery[0]) || defaultHero;
+                                                            const defaultSpecs = (form.gallery && form.gallery[1]) || (form.gallery && form.gallery[0]) || (variants[0]?.gallery && variants[0].gallery[1]) || defaultHero;
+
+                                                            const heroDisplayUrl = resolveImgObj(form.exploreHeroImage) || resolveImgObj(defaultHero);
+                                                            const storyDisplayUrl = resolveImgObj(form.exploreStoryImage) || resolveImgObj(defaultStory);
+                                                            const specsDisplayUrl = resolveImgObj(form.exploreSpecsImage) || resolveImgObj(defaultSpecs);
+
+                                                            return (
+                                                                <div className="grid grid-cols-3 gap-3">
+                                                                    {/* Image 1: Hero */}
+                                                                    <div>
+                                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 1: Hero</label>
+                                                                        <div 
+                                                                            onClick={() => setPickerTarget('exploreHeroImage')} 
+                                                                            className="relative group/box h-28 rounded-xl border-2 border-slate-200 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500 transition-all shadow-xs"
+                                                                        >
+                                                                            {heroDisplayUrl ? (
+                                                                                <>
+                                                                                    <img src={heroDisplayUrl} className="w-full h-full object-contain p-1.5" alt="Explore Hero" />
+                                                                                    <span className={`absolute top-1 left-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-xs ${form.exploreHeroImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
+                                                                                        {form.exploreHeroImage ? 'CUSTOM' : 'DEFAULT'}
+                                                                                    </span>
+                                                                                    {form.exploreHeroImage ? (
+                                                                                        <button 
+                                                                                            type="button" 
+                                                                                            onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreHeroImage: null })); }} 
+                                                                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
+                                                                                            title="Reset to default"
+                                                                                        >
+                                                                                            <i className="fas fa-times"></i>
+                                                                                        </button>
+                                                                                    ) : (
+                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[10px] font-bold">
+                                                                                            Change Hero
+                                                                                        </div>
+                                                                                    )}
+                                                                                </>
+                                                                            ) : (
+                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
+                                                                                    <i className="fas fa-plus text-gray-300 text-lg mb-1"></i>
+                                                                                    <span className="text-[10px] text-gray-400 font-bold">+ Pick Hero</span>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 2: Story</label>
-                                                                <div className="relative group/box h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
-                                                                    {form.exploreStoryImage ? (
-                                                                        <>
-                                                                            <img src={getFileUrl(typeof form.exploreStoryImage === 'string' ? form.exploreStoryImage : (form.exploreStoryImage.url || form.exploreStoryImage.filePath || form.exploreStoryImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Story" onClick={() => setPickerTarget('exploreStoryImage')} />
-                                                                            <button type="button" onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreStoryImage: null })); }} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" title="Remove image">
-                                                                                <i className="fas fa-times"></i>
-                                                                            </button>
-                                                                        </>
-                                                                    ) : (
-                                                                        <div onClick={() => setPickerTarget('exploreStoryImage')} className="w-full h-full flex items-center justify-center">
-                                                                            <span className="text-[10px] text-gray-400 font-bold">+ Pick Story</span>
+                                                                    </div>
+
+                                                                    {/* Image 2: Story */}
+                                                                    <div>
+                                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 2: Story</label>
+                                                                        <div 
+                                                                            onClick={() => setPickerTarget('exploreStoryImage')} 
+                                                                            className="relative group/box h-28 rounded-xl border-2 border-slate-200 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500 transition-all shadow-xs"
+                                                                        >
+                                                                            {storyDisplayUrl ? (
+                                                                                <>
+                                                                                    <img src={storyDisplayUrl} className="w-full h-full object-contain p-1.5" alt="Explore Story" />
+                                                                                    <span className={`absolute top-1 left-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-xs ${form.exploreStoryImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
+                                                                                        {form.exploreStoryImage ? 'CUSTOM' : 'DEFAULT'}
+                                                                                    </span>
+                                                                                    {form.exploreStoryImage ? (
+                                                                                        <button 
+                                                                                            type="button" 
+                                                                                            onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreStoryImage: null })); }} 
+                                                                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
+                                                                                            title="Reset to default"
+                                                                                        >
+                                                                                            <i className="fas fa-times"></i>
+                                                                                        </button>
+                                                                                    ) : (
+                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[10px] font-bold">
+                                                                                            Change Story
+                                                                                        </div>
+                                                                                    )}
+                                                                                </>
+                                                                            ) : (
+                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
+                                                                                    <i className="fas fa-plus text-gray-300 text-lg mb-1"></i>
+                                                                                    <span className="text-[10px] text-gray-400 font-bold">+ Pick Story</span>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 3: Specs</label>
-                                                                <div className="relative group/box h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
-                                                                    {form.exploreSpecsImage ? (
-                                                                        <>
-                                                                            <img src={getFileUrl(typeof form.exploreSpecsImage === 'string' ? form.exploreSpecsImage : (form.exploreSpecsImage.url || form.exploreSpecsImage.filePath || form.exploreSpecsImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Specs" onClick={() => setPickerTarget('exploreSpecsImage')} />
-                                                                            <button type="button" onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreSpecsImage: null })); }} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" title="Remove image">
-                                                                                <i className="fas fa-times"></i>
-                                                                            </button>
-                                                                        </>
-                                                                    ) : (
-                                                                        <div onClick={() => setPickerTarget('exploreSpecsImage')} className="w-full h-full flex items-center justify-center">
-                                                                            <span className="text-[10px] text-gray-400 font-bold">+ Pick Specs</span>
+                                                                    </div>
+
+                                                                    {/* Image 3: Specs */}
+                                                                    <div>
+                                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 3: Specs</label>
+                                                                        <div 
+                                                                            onClick={() => setPickerTarget('exploreSpecsImage')} 
+                                                                            className="relative group/box h-28 rounded-xl border-2 border-slate-200 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500 transition-all shadow-xs"
+                                                                        >
+                                                                            {specsDisplayUrl ? (
+                                                                                <>
+                                                                                    <img src={specsDisplayUrl} className="w-full h-full object-contain p-1.5" alt="Explore Specs" />
+                                                                                    <span className={`absolute top-1 left-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-xs ${form.exploreSpecsImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
+                                                                                        {form.exploreSpecsImage ? 'CUSTOM' : 'DEFAULT'}
+                                                                                    </span>
+                                                                                    {form.exploreSpecsImage ? (
+                                                                                        <button 
+                                                                                            type="button" 
+                                                                                            onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreSpecsImage: null })); }} 
+                                                                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
+                                                                                            title="Reset to default"
+                                                                                        >
+                                                                                            <i className="fas fa-times"></i>
+                                                                                        </button>
+                                                                                    ) : (
+                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[10px] font-bold">
+                                                                                            Change Specs
+                                                                                        </div>
+                                                                                    )}
+                                                                                </>
+                                                                            ) : (
+                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
+                                                                                    <i className="fas fa-plus text-gray-300 text-lg mb-1"></i>
+                                                                                    <span className="text-[10px] text-gray-400 font-bold">+ Pick Specs</span>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                    )}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
                                             )}
