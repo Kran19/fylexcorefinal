@@ -1030,16 +1030,16 @@ const EditProductPage = () => {
                                             {/* Page Theme Selection Tabs */}
                                             <div className="flex border-b border-gray-200 gap-2">
                                                 {[
-                                                    { id: 'discover', label: '1. Discover Page', icon: 'fa-compass' },
-                                                    { id: 'products', label: '2. Products Page', icon: 'fa-th-large' },
-                                                    { id: 'preConfigure', label: '3. Pre-Configure Page', icon: 'fa-sliders-h' },
+                                                    { id: 'explore', label: '1. Explore Page', icon: 'fa-compass' },
+                                                    { id: 'configure', label: '2. Configure Page', icon: 'fa-sliders-h' },
+                                                    { id: 'products', label: '3. Products Listing', icon: 'fa-th-large' },
                                                 ].map(pTab => (
                                                     <button
                                                         key={pTab.id}
                                                         type="button"
                                                         onClick={() => setPageThemeTab(pTab.id)}
                                                         className={`!px-3 !py-2.5 text-xs font-bold rounded-t-lg transition-all flex items-center gap-2 border-b-2 cursor-pointer ${
-                                                            pageThemeTab === pTab.id
+                                                            (pageThemeTab === pTab.id || (pageThemeTab === 'discover' && pTab.id === 'explore') || (pageThemeTab === 'preConfigure' && pTab.id === 'configure'))
                                                                 ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
                                                                 : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                                                         }`}
@@ -1050,21 +1050,35 @@ const EditProductPage = () => {
                                                 ))}
                                             </div>
 
-                                            {/* Tab 1: Discover Page Theme Controls */}
-                                            {pageThemeTab === 'discover' && (
+                                            {/* Tab 1: Explore Page Theme Controls */}
+                                            {(pageThemeTab === 'explore' || pageThemeTab === 'discover') && (
                                                 <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
                                                     <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                                        <i className="fas fa-compass text-indigo-600"></i> Discover Page Theme
+                                                        <i className="fas fa-compass text-indigo-600"></i> Explore Page Theme (3 Showcase Images)
                                                     </h4>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <FormField label="Discover Hero Background Color" name="discoverBg" type="color" value={form.discoverBg || form.bgColor || '#ffffff'} onChange={handleChange} />
-                                                        <FormField label="Discover Text Color (Title, Price)" name="discoverTextColor" type="color" value={form.discoverTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
-                                                        <FormField label="Discover Accent Color" name="discoverAccentColor" type="color" value={form.discoverAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
+                                                        <FormField label="Explore Hero Background Color" name="discoverBg" type="color" value={form.discoverBg || form.bgColor || '#ffffff'} onChange={handleChange} />
+                                                        <FormField label="Explore Text Color (Title, Price)" name="discoverTextColor" type="color" value={form.discoverTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
+                                                        <FormField label="Explore Accent Color" name="discoverAccentColor" type="color" value={form.discoverAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* Tab 2: Products Page Theme Controls */}
+                                            {/* Tab 2: Configure Page Theme Controls */}
+                                            {(pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') && (
+                                                <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
+                                                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                        <i className="fas fa-sliders-h text-indigo-600"></i> Configure Customizer Theme (1 Single Watch Image)
+                                                    </h4>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                        <FormField label="Configure Background Color" name="preConfigureBg" type="color" value={form.preConfigureBg || form.bgColor || '#ffffff'} onChange={handleChange} />
+                                                        <FormField label="Configure Text Color" name="preConfigureTextColor" type="color" value={form.preConfigureTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
+                                                        <FormField label="Configure Accent Color" name="preConfigureAccentColor" type="color" value={form.preConfigureAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Tab 3: Products Page Theme Controls */}
                                             {pageThemeTab === 'products' && (
                                                 <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
                                                     <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
@@ -1074,20 +1088,6 @@ const EditProductPage = () => {
                                                         <FormField label="Card Background Color" name="productsBg" type="color" value={form.productsBg || form.bgColor || '#1a1a1a'} onChange={handleChange} />
                                                         <FormField label="Card Text Color (Title, Price)" name="productsTextColor" type="color" value={form.productsTextColor || form.textColor || '#ffffff'} onChange={handleChange} />
                                                         <FormField label="Card Accent Color (Tagline, Links)" name="productsAccentColor" type="color" value={form.productsAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Tab 3: Pre-Configure Page Theme Controls */}
-                                            {pageThemeTab === 'preConfigure' && (
-                                                <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
-                                                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                                        <i className="fas fa-sliders-h text-indigo-600"></i> Pre-Configure Slide Theme
-                                                    </h4>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <FormField label="Pre-Configure Background Color" name="preConfigureBg" type="color" value={form.preConfigureBg || form.bgColor || '#ffffff'} onChange={handleChange} />
-                                                        <FormField label="Pre-Configure Text Color" name="preConfigureTextColor" type="color" value={form.preConfigureTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
-                                                        <FormField label="Pre-Configure Accent Color" name="preConfigureAccentColor" type="color" value={form.preConfigureAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
                                                     </div>
                                                 </div>
                                             )}
@@ -1107,7 +1107,7 @@ const EditProductPage = () => {
                                                             key={pIdx}
                                                             type="button"
                                                             onClick={() => {
-                                                                if (pageThemeTab === 'discover') {
+                                                                if (pageThemeTab === 'explore' || pageThemeTab === 'discover') {
                                                                     setForm(prev => ({ ...prev, discoverBg: preset.bg, discoverTextColor: preset.text, discoverAccentColor: preset.accent }));
                                                                 } else if (pageThemeTab === 'products') {
                                                                     setForm(prev => ({ ...prev, productsBg: preset.bg, productsTextColor: preset.text, productsAccentColor: preset.accent }));
@@ -1133,7 +1133,7 @@ const EditProductPage = () => {
                                                     <span className="text-xs font-bold uppercase tracking-wider">Real-Time Live Layout Preview</span>
                                                 </div>
                                                 <span className="text-[10px] bg-gray-700 px-2.5 py-0.5 rounded text-gray-300 font-semibold">
-                                                    {pageThemeTab === 'discover' ? 'Discover Page' : pageThemeTab === 'products' ? 'Products Page' : 'Pre-Configure Page'}
+                                                    {(pageThemeTab === 'explore' || pageThemeTab === 'discover') ? 'Explore Page' : (pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? 'Configure Page' : 'Products Page'}
                                                 </span>
                                             </div>
 
@@ -1146,9 +1146,9 @@ const EditProductPage = () => {
                                                 <iframe
                                                     ref={iframeRef}
                                                     src={
-                                                        pageThemeTab === 'discover' ? `/discover?watch=${productId}` :
-                                                        pageThemeTab === 'products' ? `/products` :
-                                                        `/pre-configure`
+                                                        (pageThemeTab === 'explore' || pageThemeTab === 'discover') ? `/explore?watch=${productId}` :
+                                                        (pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? `/configure?watch=${productId}` :
+                                                        `/products`
                                                     }
                                                     className="w-full h-full border-none"
                                                     title="Real-Time Layout Preview"

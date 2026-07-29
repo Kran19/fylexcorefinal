@@ -494,20 +494,6 @@ function ConfigureContent() {
           ) : (
             <img src={previewSrc} alt="Watch preview" className="watch-preview" ref={previewImgRef} />
           )}
-          {(() => {
-            const maxImgs = Number(product.configuredImageCount) || 3;
-            const galleryList = (product.galleryImages || []).slice(0, maxImgs);
-            if (maxImgs <= 1 || galleryList.length <= 1) return null;
-            return (
-              <div className="thumbnails">
-                {galleryList.map((img, idx) => (
-                  <div key={idx} className={`thumb ${previewSrc === img ? 'active' : ''}`} onClick={() => updatePreviewImage(img)}>
-                    <img src={img} alt={`Gallery ${idx}`} />
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
           {media360.length > 0 && <div style={{ position: 'absolute', bottom: 100, color: '#888', fontSize: 13 }}><RefreshCw size={14} /> Swipe for 360° View</div>}
         </div>
 
