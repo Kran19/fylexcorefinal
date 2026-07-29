@@ -2089,7 +2089,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           <div className="cfg-hero-main-visual" style={{ zIndex: 10 }}>
             <div className="cfg-hero-visual-box">
               <img
-                src={product.heroImage}
+                src={(!isConfiguredMode && previewTheme?.exploreHeroImage) ? (typeof previewTheme.exploreHeroImage === 'string' ? getFileUrl(previewTheme.exploreHeroImage) : getFileUrl(previewTheme.exploreHeroImage.url || previewTheme.exploreHeroImage.filePath || previewTheme.exploreHeroImage.path || (previewTheme.exploreHeroImage.fileName ? `uploads/${previewTheme.exploreHeroImage.fileName}` : ''))) : product.heroImage}
                 alt={product.title}
                 className="cfg-hero-product-img"
               />
@@ -2180,9 +2180,16 @@ export function DiscoverContent({ isConfiguredMode = false }) {
             parsedTheme = typeof product.theme === 'string' ? JSON.parse(product.theme) : (product.theme || {});
           } catch (e) {}
 
+          const getImgUrl = (img) => {
+            if (!img) return null;
+            if (typeof img === 'string') return getFileUrl(img);
+            const u = img.url || img.filePath || img.path || (img.fileName ? `uploads/${img.fileName}` : '');
+            return getFileUrl(u);
+          };
+
           const effectiveImageCount = 3;
-          const displayStoryImg = isConfiguredMode ? product.heroImage : getFileUrl(product.exploreStoryImage || product.galleryImages?.[0] || product.heroImage);
-          const displaySpecsImg = isConfiguredMode ? product.heroImage : (product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage);
+          const displayStoryImg = isConfiguredMode ? product.heroImage : (getImgUrl(previewTheme?.exploreStoryImage) || getImgUrl(product.exploreStoryImage) || product.galleryImages?.[0] || product.heroImage);
+          const displaySpecsImg = isConfiguredMode ? product.heroImage : (getImgUrl(previewTheme?.exploreSpecsImage) || getImgUrl(product.exploreSpecsImage) || product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage);
 
           return (
             <>

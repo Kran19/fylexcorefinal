@@ -71,7 +71,7 @@ const EditProductPage = () => {
     const [variantSearch, setVariantSearch] = useState('');
     const [pickerTarget, setPickerTarget] = useState(null); // 'primary' | 'gallery' | {variantIndex, type}
     const [variantImageModal, setVariantImageModal] = useState(null); // { index, name }
-    const [pageThemeTab, setPageThemeTab] = useState('discover');
+    const [pageThemeTab, setPageThemeTab] = useState('configured');
     const [previewDevice, setPreviewDevice] = useState('iphone14'); // 'iphone14' | 'desktop'
     const [variantImageCounts, setVariantImageCounts] = useState({});
     const [selectedThemeVariantId, setSelectedThemeVariantId] = useState('all');
@@ -84,6 +84,9 @@ const EditProductPage = () => {
             iframeRef.current.contentWindow.postMessage({
                 type: 'PREVIEW_PRODUCT_THEME',
                 payload: {
+                    exploreHeroImage: form.exploreHeroImage,
+                    exploreStoryImage: form.exploreStoryImage,
+                    exploreSpecsImage: form.exploreSpecsImage,
                     discoverBg: form.discoverBg,
                     discoverTextColor: form.discoverTextColor,
                     discoverAccentColor: form.discoverAccentColor,
@@ -97,6 +100,7 @@ const EditProductPage = () => {
             }, '*');
         }
     }, [
+        form.exploreHeroImage, form.exploreStoryImage, form.exploreSpecsImage,
         form.discoverBg, form.discoverTextColor, form.discoverAccentColor,
         form.productsBg, form.productsTextColor, form.productsAccentColor,
         form.preConfigureBg, form.preConfigureTextColor, form.preConfigureAccentColor,
@@ -494,6 +498,12 @@ const EditProductPage = () => {
             setForm(prev => ({ ...prev, heroImage: selection[0] }));
         } else if (pickerTarget === 'discoverHeroBgImage') {
             setForm(prev => ({ ...prev, discoverHeroBgImage: selection[0]?.url || selection[0] }));
+        } else if (pickerTarget === 'exploreHeroImage') {
+            setForm(prev => ({ ...prev, exploreHeroImage: selection[0] }));
+        } else if (pickerTarget === 'exploreStoryImage') {
+            setForm(prev => ({ ...prev, exploreStoryImage: selection[0] }));
+        } else if (pickerTarget === 'exploreSpecsImage') {
+            setForm(prev => ({ ...prev, exploreSpecsImage: selection[0] }));
         } else if (pickerTarget === 'gallery') {
             setForm(prev => {
                 const existingIds = new Set(prev.gallery.map(g => g.id.toString()));
@@ -566,7 +576,9 @@ const EditProductPage = () => {
 
         const themeJson = JSON.stringify({
             configuredImageCount: configuredImageNum,
-            variantImageCounts: variantImageCounts,
+            exploreHeroImage: form.exploreHeroImage || null,
+            exploreStoryImage: form.exploreStoryImage || null,
+            exploreSpecsImage: form.exploreSpecsImage || null,
             discoverBg: form.discoverBg || form.bgColor || '#ffffff',
             discoverTextColor: form.discoverTextColor || form.textColor || '#1a1a1a',
             discoverAccentColor: form.discoverAccentColor || form.accentColor || '#c4a35a',
@@ -1070,31 +1082,52 @@ const EditProductPage = () => {
                                                         <div className="grid grid-cols-3 gap-3">
                                                             <div>
                                                                 <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 1: Hero</label>
-                                                                <div onClick={() => setPickerTarget('exploreHeroImage')} className="h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
+                                                                <div className="relative group/box h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
                                                                     {form.exploreHeroImage ? (
-                                                                        <img src={getFileUrl(typeof form.exploreHeroImage === 'string' ? form.exploreHeroImage : (form.exploreHeroImage.url || form.exploreHeroImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Hero" />
+                                                                        <>
+                                                                            <img src={getFileUrl(typeof form.exploreHeroImage === 'string' ? form.exploreHeroImage : (form.exploreHeroImage.url || form.exploreHeroImage.filePath || form.exploreHeroImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Hero" onClick={() => setPickerTarget('exploreHeroImage')} />
+                                                                            <button type="button" onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreHeroImage: null })); }} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" title="Remove image">
+                                                                                <i className="fas fa-times"></i>
+                                                                            </button>
+                                                                        </>
                                                                     ) : (
-                                                                        <span className="text-[10px] text-gray-400 font-bold">+ Pick Hero</span>
+                                                                        <div onClick={() => setPickerTarget('exploreHeroImage')} className="w-full h-full flex items-center justify-center">
+                                                                            <span className="text-[10px] text-gray-400 font-bold">+ Pick Hero</span>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </div>
                                                             <div>
                                                                 <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 2: Story</label>
-                                                                <div onClick={() => setPickerTarget('exploreStoryImage')} className="h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
+                                                                <div className="relative group/box h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
                                                                     {form.exploreStoryImage ? (
-                                                                        <img src={getFileUrl(typeof form.exploreStoryImage === 'string' ? form.exploreStoryImage : (form.exploreStoryImage.url || form.exploreStoryImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Story" />
+                                                                        <>
+                                                                            <img src={getFileUrl(typeof form.exploreStoryImage === 'string' ? form.exploreStoryImage : (form.exploreStoryImage.url || form.exploreStoryImage.filePath || form.exploreStoryImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Story" onClick={() => setPickerTarget('exploreStoryImage')} />
+                                                                            <button type="button" onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreStoryImage: null })); }} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" title="Remove image">
+                                                                                <i className="fas fa-times"></i>
+                                                                            </button>
+                                                                        </>
                                                                     ) : (
-                                                                        <span className="text-[10px] text-gray-400 font-bold">+ Pick Story</span>
+                                                                        <div onClick={() => setPickerTarget('exploreStoryImage')} className="w-full h-full flex items-center justify-center">
+                                                                            <span className="text-[10px] text-gray-400 font-bold">+ Pick Story</span>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </div>
                                                             <div>
                                                                 <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 3: Specs</label>
-                                                                <div onClick={() => setPickerTarget('exploreSpecsImage')} className="h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
+                                                                <div className="relative group/box h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
                                                                     {form.exploreSpecsImage ? (
-                                                                        <img src={getFileUrl(typeof form.exploreSpecsImage === 'string' ? form.exploreSpecsImage : (form.exploreSpecsImage.url || form.exploreSpecsImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Specs" />
+                                                                        <>
+                                                                            <img src={getFileUrl(typeof form.exploreSpecsImage === 'string' ? form.exploreSpecsImage : (form.exploreSpecsImage.url || form.exploreSpecsImage.filePath || form.exploreSpecsImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Specs" onClick={() => setPickerTarget('exploreSpecsImage')} />
+                                                                            <button type="button" onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreSpecsImage: null })); }} className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" title="Remove image">
+                                                                                <i className="fas fa-times"></i>
+                                                                            </button>
+                                                                        </>
                                                                     ) : (
-                                                                        <span className="text-[10px] text-gray-400 font-bold">+ Pick Specs</span>
+                                                                        <div onClick={() => setPickerTarget('exploreSpecsImage')} className="w-full h-full flex items-center justify-center">
+                                                                            <span className="text-[10px] text-gray-400 font-bold">+ Pick Specs</span>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -1199,9 +1232,45 @@ const EditProductPage = () => {
                                                 </div>
                                             </div>
 
+                                            {/* Variant Switcher Sub-Header */}
+                                            {variants.length > 0 && (
+                                                <div className="bg-slate-850 !px-4 !py-2 flex items-center gap-2 overflow-x-auto border-b border-slate-800">
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider shrink-0">Variant Preview:</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPreviewVariantId(null)}
+                                                        className={`!px-2.5 !py-1 rounded-md text-[10px] font-bold transition-all shrink-0 cursor-pointer ${
+                                                            !previewVariantId ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-800 text-slate-400 hover:text-white'
+                                                        }`}
+                                                    >
+                                                        Default
+                                                    </button>
+                                                    {variants.map((v, idx) => (
+                                                        <button
+                                                            key={v.id || idx}
+                                                            type="button"
+                                                            onClick={() => setPreviewVariantId(v.id.toString())}
+                                                            className={`!px-2.5 !py-1 rounded-md text-[10px] font-bold transition-all shrink-0 cursor-pointer ${
+                                                                previewVariantId === v.id.toString() ? 'bg-indigo-600 text-white shadow-xs' : 'bg-slate-800 text-slate-400 hover:text-white'
+                                                            }`}
+                                                        >
+                                                            {v.name || `Variant ${idx + 1}`}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
                                             {/* Live Canvas View */}
                                             <div className="flex-1 relative bg-slate-950 p-6 flex flex-col items-center justify-center min-h-[750px] overflow-hidden">
-                                                {previewDevice === 'iphone14' ? (
+                                                {(() => {
+                                                    const previewVariantParam = previewVariantId ? `&variant=${previewVariantId}` : '';
+                                                    const iframeSrc = (pageThemeTab === 'explore' || pageThemeTab === 'discover')
+                                                        ? `/explore?watch=${productId}${previewVariantParam}`
+                                                        : (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure')
+                                                            ? `/configured?watch=${productId}${previewVariantParam}`
+                                                            : `/products`;
+
+                                                    return previewDevice === 'iphone14' ? (
                                                     /* iPhone 14 Pro Max Mockup Chassis */
                                                     <div className="relative w-[380px] h-[750px] rounded-[50px] border-[12px] border-slate-900 shadow-2xl bg-black ring-1 ring-slate-700/60 flex flex-col overflow-hidden transition-all duration-300">
                                                         {/* Hardware Side Buttons */}
@@ -1222,11 +1291,7 @@ const EditProductPage = () => {
                                                         {/* Live Preview Iframe inside iPhone 14 Screen */}
                                                         <iframe
                                                             ref={iframeRef}
-                                                            src={
-                                                                (pageThemeTab === 'explore' || pageThemeTab === 'discover') ? `/explore?watch=${productId}` :
-                                                                (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? `/configured?watch=${productId}` :
-                                                                `/products`
-                                                            }
+                                                            src={iframeSrc}
                                                             className="w-full h-full border-none rounded-[38px] pt-7 pb-3"
                                                             title="iPhone 14 Pro Max Live Layout Preview"
                                                             onLoad={() => {
@@ -1234,6 +1299,9 @@ const EditProductPage = () => {
                                                                     iframeRef.current.contentWindow.postMessage({
                                                                         type: 'PREVIEW_PRODUCT_THEME',
                                                                         payload: {
+                                                                            exploreHeroImage: form.exploreHeroImage,
+                                                                            exploreStoryImage: form.exploreStoryImage,
+                                                                            exploreSpecsImage: form.exploreSpecsImage,
                                                                             discoverBg: form.discoverBg,
                                                                             discoverTextColor: form.discoverTextColor,
                                                                             discoverAccentColor: form.discoverAccentColor,
@@ -1262,11 +1330,7 @@ const EditProductPage = () => {
                                                         </div>
                                                         <iframe
                                                             ref={iframeRef}
-                                                            src={
-                                                                (pageThemeTab === 'explore' || pageThemeTab === 'discover') ? `/explore?watch=${productId}` :
-                                                                (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? `/configured?watch=${productId}` :
-                                                                `/products`
-                                                            }
+                                                            src={iframeSrc}
                                                             className="w-full flex-1 border-none"
                                                             title="Desktop Live Layout Preview"
                                                             onLoad={() => {
@@ -1274,6 +1338,9 @@ const EditProductPage = () => {
                                                                     iframeRef.current.contentWindow.postMessage({
                                                                         type: 'PREVIEW_PRODUCT_THEME',
                                                                         payload: {
+                                                                            exploreHeroImage: form.exploreHeroImage,
+                                                                            exploreStoryImage: form.exploreStoryImage,
+                                                                            exploreSpecsImage: form.exploreSpecsImage,
                                                                             discoverBg: form.discoverBg,
                                                                             discoverTextColor: form.discoverTextColor,
                                                                             discoverAccentColor: form.discoverAccentColor,
@@ -1289,7 +1356,8 @@ const EditProductPage = () => {
                                                             }}
                                                         />
                                                     </div>
-                                                )}
+                                                );
+                                                })()}
                                             </div>
                                         </div>
                                     </div>
