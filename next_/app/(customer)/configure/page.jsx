@@ -531,12 +531,9 @@ function ConfigureContent() {
                         color: isSelected ? '#008767' : '#94a3b8',
                         fontWeight: isSelected ? '700' : '500',
                         cursor: 'pointer',
-                        transition: 'all 0.3s ease',
+                        transition: 'color 0.3s ease',
                         whiteSpace: 'nowrap',
-                        background: isSelected ? 'rgba(0,135,103,0.12)' : 'transparent',
-                        padding: '6px 14px',
-                        borderRadius: '20px',
-                        border: `1px solid ${isSelected ? '#008767' : 'rgba(255,255,255,0.1)'}`
+                        marginRight: '16px'
                       }}
                       onClick={() => handleOptClick(i, opt.img)}
                     >

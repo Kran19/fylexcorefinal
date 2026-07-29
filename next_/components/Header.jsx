@@ -312,12 +312,6 @@ const Header = () => {
               <Link href="/products" className="primary" onClick={closeAll}>
                 FYLEX Watches
               </Link>
-              <Link href="/discover" className="primary" onClick={closeAll}>
-                Explore Collection
-              </Link>
-              <Link href="/configure" className="primary" onClick={closeAll}>
-                Customizer & Configure
-              </Link>
               <Link href="/my-purchases" className="primary" onClick={closeAll}>Your Collection</Link>
               <Link href="/about" className="primary" onClick={closeAll}>About Us</Link>
               <Link href="/#gallery" className="primary" onClick={(e) => handleLinkClick(e, 'gallery')}>Community</Link>

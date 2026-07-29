@@ -938,7 +938,7 @@ const Products = () => {
 
       {/* ═══ NAVIGATION ═══ */}
       <nav className={`products-top-nav ${scrollDir === 'down' && isScrolled ? 'hidden' : ''}`} style={{ justifyContent: 'flex-end' }}>
-        <Link href="/pre-configure" className="btn-config-pill">Configure</Link>
+        <Link href="/configure" className="btn-config-pill">Configure</Link>
       </nav>
 
       {/* ═══ HERO ═══ */}
@@ -1023,7 +1023,7 @@ const Products = () => {
                     </div>
                   </div>
                   <div className="p-actions-row">
-                    <Link href={`/discover?watch=${col.id}`} className="p-link-luxury">
+                    <Link href={`/explore?watch=${col.id}`} className="p-link-luxury">
                       <span>Explore</span>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                     </Link>
@@ -1035,7 +1035,7 @@ const Products = () => {
                 </div>
 
                 {/* Watch Visual Layer */}
-                <Link href={`/discover?watch=${col.id}`} className="p-watch-wrap">
+                <Link href={`/explore?watch=${col.id}`} className="p-watch-wrap">
                   <div className="p-watch-canvas">
                     <div className="p-diffusion-glow"></div>
                     <img src={col.image} alt={col.title} className="p-watch-image" />
