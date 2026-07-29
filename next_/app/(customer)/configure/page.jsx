@@ -103,7 +103,7 @@ function ConfigureContent() {
         const dynamicSteps = Object.keys(attrMap).map((key, idx, arr) => ({
           ...attrMap[key],
           id: key.toLowerCase(),
-          nextLbl: idx < arr.length - 1 ? Object.keys(attrMap)[idx + 1] : 'Discover'
+          nextLbl: idx < arr.length - 1 ? Object.keys(attrMap)[idx + 1] : 'Finish & View'
         }));
 
         setStepsData(dynamicSteps);
@@ -139,11 +139,8 @@ function ConfigureContent() {
           ).filter(Boolean);
           setProduct(prev => ({ ...prev, galleryImages: matchGallery }));
         }
-
-        const dialsStep = dynamicSteps.find(s => s.id === 'dial' || s.id === 'dials');
-        if (dialsStep) setDialOptions(dialsStep.options);
       } catch (err) {
-        console.error('Failed to load product for configurator:', err);
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -153,32 +150,7 @@ function ConfigureContent() {
 
   const getCompatibleOptions = (step) => {
     if (!step || !step.options) return [];
-    if (!variants || variants.length === 0) return step.options;
-
-    const currentAttrId = step.id.toLowerCase();
-    
-    // Filter options: an option 'opt' for current attribute is compatible if there exists
-    // at least one variant that has 'opt' AND matches all OTHER current userSelections.
-    const filtered = step.options.filter(opt => {
-      return variants.some(v => {
-        const vAttrs = v.variantAttributes || [];
-        const hasOpt = vAttrs.some(va =>
-          va.attributeValue?.attribute?.name?.toLowerCase() === currentAttrId &&
-          va.attributeValue?.label === opt.name
-        );
-        if (!hasOpt) return false;
-
-        return Object.entries(userSelections).every(([selKey, selVal]) => {
-          if (selKey === currentAttrId || !selVal) return true;
-          return vAttrs.some(va =>
-            va.attributeValue?.attribute?.name?.toLowerCase() === selKey &&
-            va.attributeValue?.label === selVal
-          );
-        });
-      });
-    });
-
-    return filtered.length > 0 ? filtered : step.options;
+    return step.options;
   };
 
   const previewImgRef = useRef(null);
