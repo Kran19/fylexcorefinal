@@ -518,10 +518,11 @@ function ConfigureContent() {
               return full.split('?')[0].split('/').pop() || full;
             };
 
+            const basePrimary = product.heroImage || previewSrc;
             const seenKeys = new Set();
             const sideList = [];
 
-            [previewSrc, ...rawGallery].forEach(img => {
+            [basePrimary, ...rawGallery].forEach(img => {
               if (!img) return;
               const fullUrl = getFileUrl(img);
               const key = normalizeKey(img);
