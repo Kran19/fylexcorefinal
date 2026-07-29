@@ -55,8 +55,8 @@ const HomeSections = () => {
     // --- Content Editor State ---
     const [contentLoading, setContentLoading] = useState(true);
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-    const [bannerS2, setBannerS2] = useState({ ...DEFAULT_BANNER, type: 'home_s2' });
-    const [bannerS3, setBannerS3] = useState({ ...DEFAULT_BANNER, type: 'home_s3' });
+    const [bannerS2, setBannerS2] = useState({ ...DEFAULT_BANNER, type: 'home_s2', position: 'home_s2' });
+    const [bannerS3, setBannerS3] = useState({ ...DEFAULT_BANNER, type: 'home_s3', position: 'home_s3' });
     const [savingContent, setSavingContent] = useState(false);
     const fileInputRefs = useRef({});
     const [activeTab, setActiveTab] = useState('structure');
@@ -84,11 +84,11 @@ const HomeSections = () => {
             // Fetch Banners
             const bannersRes = await api.getBanners();
             if (bannersRes?.data) {
-                const s2 = bannersRes.data.find(b => b.type === 'home_s2');
-                if (s2) setBannerS2(s2);
+                const s2 = bannersRes.data.find(b => b.type === 'home_s2' || b.position === 'home_s2' || b.position === 'Section 2');
+                if (s2) setBannerS2(prev => ({ ...prev, ...s2, type: 'home_s2', position: 'home_s2' }));
                 
-                const s3 = bannersRes.data.find(b => b.type === 'home_s3');
-                if (s3) setBannerS3(s3);
+                const s3 = bannersRes.data.find(b => b.type === 'home_s3' || b.position === 'home_s3' || b.position === 'Section 3');
+                if (s3) setBannerS3(prev => ({ ...prev, ...s3, type: 'home_s3', position: 'home_s3' }));
             }
         } catch (err) {
             console.error("Failed to load content", err);

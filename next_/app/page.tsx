@@ -407,8 +407,8 @@ const Home = () => {
   };
 
   // ── Render ────────────────────────────────────────────────────
-  const section2Banner = banners.find(b => b.position === 'Section 2' || b.type === 'home_s2');
-  const section3Banner = banners.find(b => b.position === 'Section 3' || b.type === 'home_s3');
+  const section2Banner = banners.find(b => b.type === 'home_s2' || b.position === 'home_s2' || b.position === 'Section 2');
+  const section3Banner = banners.find(b => b.type === 'home_s3' || b.position === 'home_s3' || b.position === 'Section 3');
 
   return (
     <div className="v1-home" ref={containerRef}>
