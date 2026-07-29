@@ -392,7 +392,7 @@
 
 /* ─── Page Content ─── */
 .admin-page {
-    padding: 24px;
+    padding: 16px;
     width: 100%;
     /* max-width: 1200px; */
     margin: 0 auto;
@@ -403,7 +403,7 @@
     background: #ffffff;
     border: 1px solid var(--admin-border);
     border-radius: 14px;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     overflow: hidden;
     box-shadow: var(--admin-shadow-sm);
     transition: box-shadow 0.2s ease;
@@ -414,14 +414,14 @@
 }
 
 .admin-section-header {
-    padding: 14px 20px;
+    padding: 12px 18px;
     border-bottom: 1px solid var(--admin-border-light);
     background: #fafbff;
 }
 
 .admin-section-header h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--admin-text);
     display: flex;
@@ -430,7 +430,7 @@
 }
 
 .admin-section-body {
-    padding: 24px;
+    padding: 16px 20px;
 }
 
 /* ─── Tags Input ─── */
@@ -581,7 +581,7 @@
 }
 
 .admin-card-header {
-    padding: 16px 22px;
+    padding: 12px 18px;
     border-bottom: 1px solid var(--admin-border-light);
     display: flex;
     align-items: center;
@@ -591,7 +591,7 @@
 }
 
 .admin-card-header h3 {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 700;
     color: var(--admin-text);
     margin: 0;
@@ -599,7 +599,7 @@
 }
 
 .admin-card-body {
-    padding: 22px;
+    padding: 16px 20px;
 }
 
 @media (max-width: 640px) {
@@ -1740,11 +1740,11 @@ select.form-control {
 .welcome-banner {
     position: relative;
     background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-    border-radius: 20px;
-    padding: 28px 32px;
-    margin-bottom: 24px;
+    border-radius: 16px;
+    padding: 16px 24px;
+    margin-bottom: 16px;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1770,10 +1770,10 @@ select.form-control {
 }
 
 .welcome-banner-title {
-    font-size: 26px;
+    font-size: 20px;
     font-weight: 800;
     color: #312e81;
-    margin: 0 0 8px 0;
+    margin: 0 0 6px 0;
     letter-spacing: -0.02em;
     display: flex;
     align-items: center;
@@ -1787,7 +1787,7 @@ select.form-control {
 }
 
 .welcome-banner-text {
-    font-size: 14px;
+    font-size: 13px;
     color: #4338ca;
     margin: 0;
     font-weight: 500;

@@ -85,25 +85,26 @@ export class SystemService {
       })
     ]);
 
-    // Format Top Products
-    const topProducts = await Promise.all(topProductsRaw.map(async (item) => {
-      // item.productId could be null from groupBy, but we filter or handle it
-      if (item.productId === null) return null;
-      
-      const product = await this.prisma.product.findUnique({ 
-        where: { id: item.productId },
-        select: { name: true, price: true }
-      });
-      return {
-        name: product?.name || 'Unknown',
-        sales: item._count.productId,
-        revenue: Number(item._sum.total || 0),
-        price: Number(product?.price || 0)
-      };
-    }));
+    // Format Top Products in a single batch query (resolves N+1 query issue)
+    const productIds = topProductsRaw.map(item => item.productId).filter((id): id is number => id !== null);
+    const productsList = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true, price: true }
+    });
+    const productMap = new Map(productsList.map(p => [p.id, p]));
 
-    // Filter out any potential nulls from topProducts if we had them
-    const validTopProducts = topProducts.filter((p): p is NonNullable<typeof p> => p !== null);
+    const validTopProducts = topProductsRaw
+      .map(item => {
+        if (item.productId === null) return null;
+        const product = productMap.get(item.productId);
+        return {
+          name: product?.name || 'Unknown',
+          sales: item._count.productId,
+          revenue: Number(item._sum.total || 0),
+          price: Number(product?.price || 0)
+        };
+      })
+      .filter((p): p is NonNullable<typeof p> => p !== null);
 
     // Helper for percentage change
     const calculateChange = (current: number, previous: number) => {
