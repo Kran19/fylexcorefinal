@@ -43,10 +43,21 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const [activeSection, setActiveSection] = useState('hero');
   const [isAdded, setIsAdded] = useState(false);
   const [addedBelts, setAddedBelts] = useState({});
+  const [previewTheme, setPreviewTheme] = useState(null);
   const lastScrollY = useRef(0);
   const heroRef = useRef(null);
   const strapsSectionRef = useRef(null);
   const strapsTrackRef = useRef(null);
+
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data && event.data.type === 'PREVIEW_PRODUCT_THEME') {
+        setPreviewTheme(event.data.payload || {});
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || loading) return;
@@ -499,19 +510,31 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     return getFileUrl(vPath);
   };
 
+  const activeBgColor = isConfiguredMode
+    ? (previewTheme?.preConfigureBg || product.bgColor)
+    : (previewTheme?.discoverBg || product.bgColor);
+
+  const activeTextColor = isConfiguredMode
+    ? (previewTheme?.preConfigureTextColor || product.textColor)
+    : (previewTheme?.discoverTextColor || product.textColor);
+
+  const activeAccentColor = isConfiguredMode
+    ? (previewTheme?.preConfigureAccentColor || product.accentColor)
+    : (previewTheme?.discoverAccentColor || product.accentColor);
+
   return (
     <div className={`cfg-page section-${product.theme} ${hasConfig ? 'is-configured' : ''}`}>
       <style>{`
         /* ═══════════ CONFIGURE PAGE ═══════════ */
         .cfg-page {
           font-family: 'Inter', sans-serif;
-          color: ${product.textColor};
-          background: #ffffff;
+          color: ${activeTextColor};
+          background: ${activeBgColor};
           overflow-x: hidden;
         }
         .cfg-page.is-configured {
           background: ${product.gradient || product.bgColor || '#000000'};
-          color: ${product.textColor || '#ffffff'};
+          color: ${activeTextColor || '#ffffff'};
         }
         .cfg-page.is-configured .cfg-heritage-section,
         .cfg-page.is-configured .cfg-desc-section {

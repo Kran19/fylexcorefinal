@@ -17,6 +17,17 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [videoSettings, setVideoSettings] = useState({});
+  const [previewTheme, setPreviewTheme] = useState(null);
+
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data && event.data.type === 'PREVIEW_PRODUCT_THEME') {
+        setPreviewTheme(event.data.payload || {});
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -56,6 +67,10 @@ const Products = () => {
 
           const pageTheme = getPageTheme(p, 'products');
 
+          const activeBg = previewTheme?.productsBg || pageTheme.bg;
+          const activeTextColor = previewTheme?.productsTextColor || pageTheme.textColor;
+          const activeAccent = previewTheme?.productsAccentColor || pageTheme.accentColor;
+
           return {
             id: p.id.toString(),
             num: String(idx + 1).padStart(2, '0'),
@@ -69,13 +84,13 @@ const Products = () => {
             totalStock: p.qty || 0,
             sold: p.soldCount || 0,
             theme: p.theme || 'champagne',
-            bgColor: pageTheme.bg,
-            accentColor: pageTheme.accentColor,
-            accentRgb: hexToRgb(pageTheme.accentColor),
-            textColor: pageTheme.textColor,
+            bgColor: activeBg,
+            accentColor: activeAccent,
+            accentRgb: hexToRgb(activeAccent),
+            textColor: activeTextColor,
             gradient: pageTheme.gradient || p.gradient || '',
             mistColor: p.mistColor || '',
-            mistRgb: hexToRgb(p.mistColor || pageTheme.accentColor),
+            mistRgb: hexToRgb(p.mistColor || activeAccent),
             combinations: soldCards
           };
         });
