@@ -823,6 +823,19 @@ const Home = () => {
 
         /* ── Mobile overrides ── */
         @media (max-width: 768px) {
+          .section, .s2, .s3, .s4 {
+            background-attachment: scroll !important;
+            background-size: cover !important;
+            background-position: center !important;
+          }
+          .card {
+            opacity: 1 !important;
+            transform: none !important;
+            padding: 40px 20px !important;
+          }
+          .card h1 {
+            font-size: clamp(1.8rem, 6vw, 2.8rem) !important;
+          }
           .features-wrapper {
             height: 100svh; width: 100%;
             display: flex; align-items: center; justify-content: center;

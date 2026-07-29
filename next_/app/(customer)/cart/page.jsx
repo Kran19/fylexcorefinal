@@ -10,6 +10,7 @@ const watchGold = '/assets/fylex-watch-v2/goldwatch.png';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { getFileUrl } from '@/lib/utils';
 
 function CartItemRow({ item, index, onQtyChange, onRemove, onMoveToWishlist, isProcessing }) {
   const [visible, setVisible] = useState(false);
