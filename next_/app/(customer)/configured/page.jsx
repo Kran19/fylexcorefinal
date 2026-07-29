@@ -6,9 +6,7 @@ import { fetchProducts, fetchBoxes } from '../../../lib/api';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useDesignSystem } from '@/context/DesignSystemContext';
-import { getFileUrl, resolveProductImage, getDisplayData, getPageTheme } from '@/lib/utils';
-import Footer from '@/components/Footer';
-import Header from '@/components/Header';
+import { getFileUrl, getDisplayData, getPageTheme } from '@/lib/utils';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -773,9 +771,6 @@ function ConfiguredContent() {
         }
       `}</style>
 
-      {/* Header */}
-      <Header />
-
       {!hasConfig && (
         <div className={`cfg-top-right-cta ${scrollDir === 'down' && isScrolled ? 'hidden' : ''}`}>
           {product.productType === 'simple' ? (
@@ -1235,9 +1230,6 @@ function ConfiguredContent() {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }
