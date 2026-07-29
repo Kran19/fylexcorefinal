@@ -2311,11 +2311,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                       })()}
                     </div>
                   </div>
-                </div>
               </section>
-            </>
-          );
-        })()}
 
         {/* ── COMPATIBLE BELTS SECTION (DESKTOP AUTOMATIC HORIZONTAL PINNED SCROLL) ── */}
         {product.productBelts?.length > 0 && (
