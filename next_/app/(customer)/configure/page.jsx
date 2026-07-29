@@ -261,26 +261,65 @@ function ConfigureContent() {
         gsap.to(previewImgRef.current, { opacity: 1, duration: 0.3 });
       }
     });
-  };
+  };  const findMatchingVariant = (targetSelections) => {
+    if (!variants || variants.length === 0) return null;
 
-  const findMatchingVariant = (selections) => {
-    return variants.find(v => {
-      return (v.variantAttributes || []).every(va => {
-        const attrName = va.attributeValue?.attribute?.name?.toLowerCase();
-        return selections[attrName] === va.attributeValue?.label;
+    // 1. Try exact match for all selections
+    const exact = variants.find(v => {
+      const vAttrs = v.variantAttributes || [];
+      return Object.entries(targetSelections).every(([attrKey, attrVal]) => {
+        if (!attrVal) return true;
+        return vAttrs.some(va =>
+          va.attributeValue?.attribute?.name?.toLowerCase() === attrKey.toLowerCase() &&
+          va.attributeValue?.label === attrVal
+        );
       });
     });
+    if (exact) return exact;
+
+    // 2. Carry-forward fallback: score variants by highest number of matching attributes
+    let bestMatch = variants[0];
+    let highestScore = -1;
+
+    variants.forEach(v => {
+      const vAttrs = v.variantAttributes || [];
+      let score = 0;
+      Object.entries(targetSelections).forEach(([attrKey, attrVal]) => {
+        if (!attrVal) return;
+        const matches = vAttrs.some(va =>
+          va.attributeValue?.attribute?.name?.toLowerCase() === attrKey.toLowerCase() &&
+          va.attributeValue?.label === attrVal
+        );
+        if (matches) score += (attrKey === 'case' ? 3 : attrKey === 'belt' ? 2 : 1);
+      });
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = v;
+      }
+    });
+
+    return bestMatch;
   };
 
   const handleOptClick = (idx, src) => {
     setActiveOpt(idx);
-    const stepId = stepsData[currentStep].id;
-    const optName = stepsData[currentStep].options[idx].name;
-    const nextSelections = { ...userSelections, [stepId]: optName };
-    setUserSelections(nextSelections);
+    const stepId = stepsData[currentStep]?.id;
+    const optName = stepsData[currentStep]?.options[idx]?.name;
+    if (!stepId || !optName) return;
 
-    const match = findMatchingVariant(nextSelections);
+    // Carry-forward target selections
+    const targetSelections = { ...userSelections, [stepId]: optName };
+    const match = findMatchingVariant(targetSelections);
+
     if (match) {
+      // Sync selections with resolved variant attributes
+      const resolvedSelections = { ...targetSelections };
+      (match.variantAttributes || []).forEach(va => {
+        const attrName = va.attributeValue?.attribute?.name?.toLowerCase();
+        if (attrName) resolvedSelections[attrName] = va.attributeValue?.label;
+      });
+      setUserSelections(resolvedSelections);
+
       const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media;
       const vPath = getFileUrl(vImg?.path || vImg?.url || (vImg?.fileName ? `/uploads/${vImg.fileName}` : null));
       updatePreviewImage(vPath || src);
@@ -292,6 +331,7 @@ function ConfigureContent() {
       ).filter(Boolean);
       setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath }));
     } else {
+      setUserSelections(targetSelections);
       updatePreviewImage(src);
     }
     setActiveThumb(-1);
@@ -324,6 +364,13 @@ function ConfigureContent() {
         updatePreviewImage(stepsData[nextStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
       }
     } else {
+      // Final completed step - Enforce Single Primary Image
+      const match = findMatchingVariant(userSelections);
+      if (match) {
+        const primaryMedia = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media;
+        const primaryPath = getFileUrl(primaryMedia?.path || primaryMedia?.url || (primaryMedia?.fileName ? `/uploads/${primaryMedia.fileName}` : null));
+        if (primaryPath) setPreviewSrc(primaryPath);
+      }
       setShowCustomAlert(true);
     }
   };
@@ -348,13 +395,13 @@ function ConfigureContent() {
         .customize-root { font-family: 'Inter', sans-serif; background: #f0f2f5; color: ${product.textColor}; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
         #configurator { flex: 1; width: 100%; background: ${product.bgColor || product.gradient || 'radial-gradient(circle at center, #FFFFFF 0%, #ebedf0 100%)'}; position: relative; overflow: hidden; display: flex; flex-direction: column; z-index: 5; }
         .top-actions { position: fixed; top: 100px; right: 30px; display: flex; align-items: center; gap: 15px; z-index: 999; }
-        .top-left-actions { position: fixed; top: 100px; left: 30px; display: flex; align-items: center; gap: 15px; z-index: 999; }
-        .close-btn { display: flex; align-items: center; justify-content: center; color: #111; cursor: pointer; }
-        .c-main { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding-bottom: 200px; }
-        .watch-preview { height: 65vh; object-fit: contain; filter: drop-shadow(0 30px 60px rgba(0,0,0,0.15)); transition: opacity 0.4s ease; }
-        .thumbnails { position: absolute; right: 20px; top: 40%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 15; }
-        .thumb { width: 48px; height: 48px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.1); background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .thumb.active { border-color: #1a1a1a; transform: scale(1.1); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .close-btn { background: rgba(0,0,0,0.6); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); transition: transform 0.2s; }
+        .close-btn:hover { transform: scale(1.1); }
+        .c-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 55vh; }
+        .watch-preview { max-width: 80%; max-height: 52vh; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.25)); transition: transform 0.3s; }
+        .thumbnails { position: absolute; bottom: 30px; left: 30px; display: flex; gap: 12px; }
+        .thumb { width: 50px; height: 50px; border-radius: 10px; border: 2px solid transparent; overflow: hidden; cursor: pointer; background: rgba(255,255,255,0.7); backdrop-filter: blur(6px); transition: all 0.2s; }
+        .thumb.active { border-color: #008767; transform: scale(1.08); }
         .thumb img { width: 100%; height: 100%; object-fit: cover; }
         @media (max-width: 768px) {
           .thumbnails { right: 15px; gap: 10px; }

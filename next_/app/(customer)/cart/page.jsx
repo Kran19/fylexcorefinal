@@ -22,7 +22,8 @@ function CartItemRow({ item, index, onQtyChange, onRemove, onMoveToWishlist, isP
   const displayName = `${item.title} ${item.titleAccent || ''}`;
   const displayVariant = item.subtitle;
   const displayColor = item.accentColor || '#1C2E4A';
-  const displayImage = item.image;
+  const rawImg = item.image || item.imageUrl || item.img || item.filePath || item.mediaUrl || item.beltImage;
+  const displayImage = getFileUrl(typeof rawImg === 'object' ? (rawImg.path || rawImg.url || rawImg.fileName) : rawImg);
   const redirectUrl = item.redirectUrl || '#';
 
   return (

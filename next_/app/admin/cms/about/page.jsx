@@ -76,8 +76,10 @@ export default function AboutPageManager() {
             toast?.info?.("Uploading file...");
             const { data, error } = await uploadMedia(formData);
             if (error) throw new Error(error);
-            const uploadedFile = Array.isArray(data) ? data[0] : data;
-            const filePath = `/uploads/${uploadedFile.fileName}`;
+            const fileItem = data?.data ? (Array.isArray(data.data) ? data.data[0] : data.data) : (Array.isArray(data) ? data[0] : data);
+            const fileName = fileItem?.fileName || fileItem?.name;
+            const filePath = fileName ? `/uploads/${fileName}` : (fileItem?.url || fileItem?.filePath || '');
+            if (!filePath) throw new Error("Could not parse uploaded file path");
             handleChange(key, filePath);
             toast?.success?.("File uploaded successfully!");
         } catch (err) {

@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { useOrder } from '@/context/OrderContext';
 import { useAuth } from '@/context/AuthContext';
 import { addAddressApi, initiatePaymentApi, verifyPaymentApi, calculateTotalApi } from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 import Swal from 'sweetalert2';
 
 const Checkout = () => {
@@ -492,11 +493,14 @@ const Checkout = () => {
             <div className="order-summary-card glassmorphism">
               <h3 className="summary-title">Order Summary</h3>
               <div className="summary-items">
-                {items.map((item) => (
-                  <div key={item.id} className="summary-item">
-                    <div className="item-thumbnail rose-bg">
-                      <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    </div>
+                {items.map((item) => {
+                  const rawImg = item.image || item.imageUrl || item.img || item.filePath || item.mediaUrl || item.beltImage;
+                  const itemImgUrl = getFileUrl(typeof rawImg === 'object' ? (rawImg.path || rawImg.url || rawImg.fileName) : rawImg);
+                  return (
+                    <div key={item.id} className="summary-item">
+                      <div className="item-thumbnail rose-bg">
+                        <img src={itemImgUrl} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      </div>
                     <div className="item-info">
                       <div className="item-name">{item.title}</div>
                       <div className="item-variant" style={{ fontSize: '10px', color: '#ccc', textTransform: 'uppercase', marginBottom: '4px' }}>

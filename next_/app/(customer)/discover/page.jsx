@@ -2232,6 +2232,63 @@ function DiscoverContent() {
                 </section>
               )}
 
+              {/* ── SOLID CONFIGURATION SECTION ── */}
+              <section id="solid-configuration" className="cfg-solid-config-section" style={{ background: '#09090b', padding: '60px 24px', borderTop: '1px solid #27272a', color: '#ffffff' }}>
+                <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#c4a35a' }}>EXPLORE CRAFTSMANSHIP</span>
+                    <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', marginTop: '6px' }}>
+                      Solid Configuration Summary
+                    </h2>
+                    <p style={{ color: '#a1a1aa', fontSize: '14px', marginTop: '4px' }}>
+                      Every component is individually assembled to perfection.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+                    <div style={{ background: '#18181b', padding: '24px', borderRadius: '14px', border: '1px solid #27272a' }}>
+                      <span style={{ fontSize: '11px', color: '#c4a35a', fontWeight: 800, textTransform: 'uppercase' }}>Model Case</span>
+                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginTop: '8px' }}>
+                        {product.title}, 40 mm, Oystersteel
+                      </h4>
+                      <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px', lineHeight: 1.5 }}>
+                        Monobloc middle case, screw-down case back and winding crown. Water resistance up to 100 metres.
+                      </p>
+                    </div>
+
+                    <div style={{ background: '#18181b', padding: '24px', borderRadius: '14px', border: '1px solid #27272a' }}>
+                      <span style={{ fontSize: '11px', color: '#c4a35a', fontWeight: 800, textTransform: 'uppercase' }}>Dial & Finish</span>
+                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginTop: '8px' }}>
+                        Precision Sunray / Matte Finish
+                      </h4>
+                      <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px', lineHeight: 1.5 }}>
+                        High-contrast indices with Chromalight display offering long-lasting blue luminescence.
+                      </p>
+                    </div>
+
+                    <div style={{ background: '#18181b', padding: '24px', borderRadius: '14px', border: '1px solid #27272a' }}>
+                      <span style={{ fontSize: '11px', color: '#c4a35a', fontWeight: 800, textTransform: 'uppercase' }}>Movement & Power</span>
+                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginTop: '8px' }}>
+                        Perpetual, Mechanical, Self-Winding
+                      </h4>
+                      <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px', lineHeight: 1.5 }}>
+                        Calibre 3230, precision -2/+2 sec/day, approximate power reserve of 70 hours.
+                      </p>
+                    </div>
+
+                    <div style={{ background: '#18181b', padding: '24px', borderRadius: '14px', border: '1px solid #27272a' }}>
+                      <span style={{ fontSize: '11px', color: '#c4a35a', fontWeight: 800, textTransform: 'uppercase' }}>Bracelet & Clasp</span>
+                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginTop: '8px' }}>
+                        Executive Oyster / Leather Silicone
+                      </h4>
+                      <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px', lineHeight: 1.5 }}>
+                        Folding Oysterlock safety clasp with Easylink 5 mm comfort extension link.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               {/* ── TECHNICAL DETAILS SECTION ── */}
               <section id="specs" className="cfg-specs-section">
                 <div className="cfg-specs-container">
