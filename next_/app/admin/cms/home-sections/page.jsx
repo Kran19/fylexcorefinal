@@ -154,6 +154,33 @@ const HomeSections = () => {
         }
     };
 
+    const handleResetToDefaults = () => {
+        setSettings(DEFAULT_SETTINGS);
+        setBannerS2(prev => ({
+            ...DEFAULT_BANNER,
+            ...prev,
+            type: 'home_s2',
+            position: 'home_s2',
+            subtitle: 'II · Movement',
+            title: 'The <em>Heart</em> Within',
+            content: 'Hundreds of hand-finished bridges and jewels.<br />A calibre beating 28,800 times each hour.',
+            image: '/Rim.png',
+            textColor: '#ffffff'
+        }));
+        setBannerS3(prev => ({
+            ...DEFAULT_BANNER,
+            ...prev,
+            type: 'home_s3',
+            position: 'home_s3',
+            subtitle: 'III · Design',
+            title: 'Form Follows <em>Time</em>',
+            content: 'Sapphire crystal, polished steel, supple leather.<br />Every element chosen for eternity, not fashion.',
+            image: '/Watch_1.png',
+            textColor: '#ffffff'
+        }));
+        toast?.info?.("Reset settings to default values. Click 'Save Content' to apply.");
+    };
+
     const handleFileUpload = async (key, e, bannerType = null) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -305,6 +332,22 @@ const HomeSections = () => {
                 contentLoading ? <Loader message="Loading content settings..." /> :
                 <form onSubmit={handleSaveContent} style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
                     
+                    {/* Top Action Bar */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '16px 20px', borderRadius: 12, border: '1px solid var(--admin-border)' }}>
+                        <div>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--admin-text)' }}>Visual Content & Banners</span>
+                            <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', margin: 0 }}>Configure hero videos, title copy, background images, and text color overrides.</p>
+                        </div>
+                        <button 
+                            type="button" 
+                            onClick={handleResetToDefaults}
+                            style={{ padding: '8px 16px', background: '#fff', color: '#475569', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s' }}
+                            title="Reset settings and banner images to original factory defaults"
+                        >
+                            <i className="fas fa-undo"></i> Reset to Default
+                        </button>
+                    </div>
+
                     {/* SECTION 1: HERO VIDEO */}
                     <div className="admin-card" style={{ borderRadius: 16, padding: 0, overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
                         <div style={sectionHeaderStyle}>
@@ -359,9 +402,12 @@ const HomeSections = () => {
                                     <label style={labelStyle}>Background Image</label>
                                     {bannerS2.image && <img src={getFileUrl(bannerS2.image)} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} alt="Preview" />}
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                        <input type="text" value={bannerS2.image} onChange={e => handleBannerChange('home_s2', 'image', e.target.value)} placeholder="/Rim.png" style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
+                                        <input type="text" value={bannerS2.image || ''} onChange={e => handleBannerChange('home_s2', 'image', e.target.value)} placeholder="/Rim.png" style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
                                         <input type="file" ref={el => fileInputRefs.current['home_s2_img'] = el} onChange={e => handleFileUpload('image', e, 'home_s2')} accept="image/*" style={{ display: 'none' }} />
                                         <button type="button" onClick={() => fileInputRefs.current['home_s2_img']?.click()} style={{ padding: '0 16px', background: '#0e1726', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }}>Upload</button>
+                                        {bannerS2.image && (
+                                            <button type="button" onClick={() => handleBannerChange('home_s2', 'image', '')} style={{ padding: '0 14px', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }} title="Remove Image">Remove</button>
+                                        )}
                                     </div>
                                 </div>
                                 <div>
@@ -402,9 +448,12 @@ const HomeSections = () => {
                                     <label style={labelStyle}>Background Image</label>
                                     {bannerS3.image && <img src={getFileUrl(bannerS3.image)} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} alt="Preview" />}
                                     <div style={{ display: 'flex', gap: 8 }}>
-                                        <input type="text" value={bannerS3.image} onChange={e => handleBannerChange('home_s3', 'image', e.target.value)} placeholder="/Watch_1.png" style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
+                                        <input type="text" value={bannerS3.image || ''} onChange={e => handleBannerChange('home_s3', 'image', e.target.value)} placeholder="/Watch_1.png" style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
                                         <input type="file" ref={el => fileInputRefs.current['home_s3_img'] = el} onChange={e => handleFileUpload('image', e, 'home_s3')} accept="image/*" style={{ display: 'none' }} />
                                         <button type="button" onClick={() => fileInputRefs.current['home_s3_img']?.click()} style={{ padding: '0 16px', background: '#0e1726', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }}>Upload</button>
+                                        {bannerS3.image && (
+                                            <button type="button" onClick={() => handleBannerChange('home_s3', 'image', '')} style={{ padding: '0 14px', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }} title="Remove Image">Remove</button>
+                                        )}
                                     </div>
                                 </div>
                                 <div>
