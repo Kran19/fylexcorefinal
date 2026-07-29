@@ -380,6 +380,38 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     );
   }
 
+  // ── THEME & SHOWCASE IMAGE RESOLUTION ──
+  let parsedTheme = {};
+  if (product?.theme) {
+    try {
+      parsedTheme = typeof product.theme === 'string' ? JSON.parse(product.theme) : (product.theme || {});
+    } catch (e) {}
+  }
+
+  const getImgUrl = (img) => {
+    if (!img) return null;
+    if (typeof img === 'string') return getFileUrl(img);
+    const u = img.url || img.filePath || img.path || (img.fileName ? `uploads/${img.fileName}` : '');
+    return getFileUrl(u);
+  };
+
+  const activeHeroImg = (previewTheme?.exploreHeroImage !== undefined && previewTheme?.exploreHeroImage !== null) 
+    ? previewTheme.exploreHeroImage 
+    : (parsedTheme.exploreHeroImage || product.exploreHeroImage);
+
+  const activeStoryImg = (previewTheme?.exploreStoryImage !== undefined && previewTheme?.exploreStoryImage !== null) 
+    ? previewTheme.exploreStoryImage 
+    : (parsedTheme.exploreStoryImage || product.exploreStoryImage);
+
+  const activeSpecsImg = (previewTheme?.exploreSpecsImage !== undefined && previewTheme?.exploreSpecsImage !== null) 
+    ? previewTheme.exploreSpecsImage 
+    : (parsedTheme.exploreSpecsImage || product.exploreSpecsImage);
+
+  const displayHeroImg = (!isConfiguredMode && getImgUrl(activeHeroImg)) ? getImgUrl(activeHeroImg) : product.heroImage;
+  const displayStoryImg = isConfiguredMode ? product.heroImage : (getImgUrl(activeStoryImg) || product.galleryImages?.[0] || product.heroImage);
+  const displaySpecsImg = isConfiguredMode ? product.heroImage : (getImgUrl(activeSpecsImg) || product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage);
+  const effectiveImageCount = 3;
+
   // ── LIVE PREVIEW INTERCEPT ──
   if (productOverrides) {
     product.bgColor = productOverrides.discoverBg || product.bgColor;
@@ -2089,7 +2121,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           <div className="cfg-hero-main-visual" style={{ zIndex: 10 }}>
             <div className="cfg-hero-visual-box">
               <img
-                src={(!isConfiguredMode && previewTheme?.exploreHeroImage) ? (typeof previewTheme.exploreHeroImage === 'string' ? getFileUrl(previewTheme.exploreHeroImage) : getFileUrl(previewTheme.exploreHeroImage.url || previewTheme.exploreHeroImage.filePath || previewTheme.exploreHeroImage.path || (previewTheme.exploreHeroImage.fileName ? `uploads/${previewTheme.exploreHeroImage.fileName}` : ''))) : product.heroImage}
+                src={displayHeroImg}
                 alt={product.title}
                 className="cfg-hero-product-img"
               />
@@ -2174,30 +2206,11 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         </section>
 
         {/* ── SECONDARY SECTION ("your timepiece") ── */}
-        {(() => {
-          let parsedTheme = {};
-          try {
-            parsedTheme = typeof product.theme === 'string' ? JSON.parse(product.theme) : (product.theme || {});
-          } catch (e) {}
-
-          const getImgUrl = (img) => {
-            if (!img) return null;
-            if (typeof img === 'string') return getFileUrl(img);
-            const u = img.url || img.filePath || img.path || (img.fileName ? `uploads/${img.fileName}` : '');
-            return getFileUrl(u);
-          };
-
-          const effectiveImageCount = 3;
-          const displayStoryImg = isConfiguredMode ? product.heroImage : (getImgUrl(previewTheme?.exploreStoryImage) || getImgUrl(product.exploreStoryImage) || product.galleryImages?.[0] || product.heroImage);
-          const displaySpecsImg = isConfiguredMode ? product.heroImage : (getImgUrl(previewTheme?.exploreSpecsImage) || getImgUrl(product.exploreSpecsImage) || product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage);
-
-          return (
-            <>
-              {product.longDesc ? (
-                <section id="description" className="cfg-desc-section" style={{
-                  background: product.heroBgImage ? 'rgba(0,0,0,0.85)' : (product.bgColor || '#ffffff'),
-                  color: product.textColor || '#111111'
-                }}>
+        {product.longDesc ? (
+          <section id="description" className="cfg-desc-section" style={{
+            background: product.heroBgImage ? 'rgba(0,0,0,0.85)' : (product.bgColor || '#ffffff'),
+            color: product.textColor || '#111111'
+          }}>
                   <div className="cfg-mist-layer" style={{
                     background: `radial-gradient(circle at 70% 40%, ${product.accentColor || '#c4a35a'}22 0%, transparent 70%)`
                   }}></div>
