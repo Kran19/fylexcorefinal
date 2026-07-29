@@ -279,15 +279,7 @@ function ConfigureContent() {
 
 
 
-  const updatePreviewImage = (src) => {
-    if (!src || src === previewSrc) return;
-    gsap.to(previewImgRef.current, {
-      opacity: 0, duration: 0.2, onComplete: () => {
-        setPreviewSrc(src);
-        gsap.to(previewImgRef.current, { opacity: 1, duration: 0.3 });
-      }
-    });
-  };  const normalizeAttrKey = (k) => {
+  const normalizeAttrKey = (k) => {
     if (!k) return '';
     const clean = k.toLowerCase().trim();
     if (clean.includes('dial')) return 'dial';
