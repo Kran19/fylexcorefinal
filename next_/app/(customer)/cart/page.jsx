@@ -23,8 +23,17 @@ function CartItemRow({ item, index, onQtyChange, onRemove, onMoveToWishlist, isP
   const displayName = `${item.title} ${item.titleAccent || ''}`;
   const displayVariant = item.subtitle;
   const displayColor = item.accentColor || '#1C2E4A';
-  const rawImg = item.image || item.imageUrl || item.img || item.filePath || item.mediaUrl || item.beltImage;
-  const displayImage = getFileUrl(typeof rawImg === 'object' ? (rawImg.path || rawImg.url || rawImg.fileName) : rawImg);
+  const isBelt = item.subtitle === 'Belt' || (item.productId && String(item.productId).startsWith('belt-'));
+  const rawImg = item.image || item.imageUrl || item.img || item.filePath || item.mediaUrl || item.beltImage || item.belt?.image;
+  let resolvedImgPath = typeof rawImg === 'object' 
+    ? (rawImg?.url || rawImg?.path || rawImg?.filePath || rawImg?.fileName || rawImg?.media?.url || rawImg?.media?.path) 
+    : rawImg;
+
+  if (!resolvedImgPath || typeof resolvedImgPath !== 'string' || resolvedImgPath.trim() === '') {
+    resolvedImgPath = isBelt ? '/assets/fylex-watch-v2/everose-gold.png' : '/Rim.png';
+  }
+
+  const displayImage = getFileUrl(resolvedImgPath);
   const redirectUrl = item.redirectUrl || '#';
 
   return (
@@ -41,15 +50,11 @@ function CartItemRow({ item, index, onQtyChange, onRemove, onMoveToWishlist, isP
           <div className="cart-watch-visual" style={{
             background: `linear-gradient(135deg, ${displayColor}15, ${displayColor}25)`
           }}>
-            {displayImage ? (
-              <img
-                src={displayImage}
-                alt={displayName}
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-              />
-            ) : (
-              <div className="cart-placeholder-icon">⌚</div>
-            )}
+            <img
+              src={displayImage}
+              alt={displayName}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
           </div>
 
           <div className="cart-item-details">

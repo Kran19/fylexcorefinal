@@ -21,16 +21,30 @@ export function CartProvider({ children }) {
     const cartItems = data?.items || [];
     const mapped = cartItems.map(item => {
         if (item.belt) {
+            const b = item.belt;
+            const bImg = b.image || b.imageUrl || b.img || b.beltImage || b.filePath || b.mediaUrl || b.media;
+            let finalImage = null;
+            if (bImg) {
+                if (typeof bImg === 'string') {
+                    finalImage = bImg;
+                } else if (typeof bImg === 'object') {
+                    finalImage = bImg.url || bImg.path || bImg.filePath || bImg.fileName || bImg.media?.url || bImg.media?.path;
+                }
+            }
+            if (!finalImage || String(finalImage).trim() === '') {
+                finalImage = '/assets/fylex-watch-v2/everose-gold.png';
+            }
+
             return {
                 id: item.id.toString(),
-                productId: 'belt-' + item.belt.id,
-                variantId: 'belt-' + item.belt.id,
-                sku: 'BELT-' + item.belt.id,
-                title: item.belt.name,
+                productId: 'belt-' + b.id,
+                variantId: 'belt-' + b.id,
+                sku: 'BELT-' + b.id,
+                title: b.name || 'Watch Belt',
                 subtitle: 'Belt',
                 unitPrice: Number(item.unitPrice || 0),
                 total: Number(item.total || 0),
-                image: item.belt.image ? (typeof item.belt.image === 'string' ? item.belt.image : item.belt.image.url) : null,
+                image: finalImage,
                 qty: item.quantity,
             };
         }

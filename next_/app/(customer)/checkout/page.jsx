@@ -494,8 +494,17 @@ const Checkout = () => {
               <h3 className="summary-title">Order Summary</h3>
               <div className="summary-items">
                 {items.map((item) => {
-                  const rawImg = item.image || item.imageUrl || item.img || item.filePath || item.mediaUrl || item.beltImage;
-                  const itemImgUrl = getFileUrl(typeof rawImg === 'object' ? (rawImg.path || rawImg.url || rawImg.fileName) : rawImg);
+                  const isBelt = item.subtitle === 'Belt' || (item.productId && String(item.productId).startsWith('belt-'));
+                  const rawImg = item.image || item.imageUrl || item.img || item.filePath || item.mediaUrl || item.beltImage || item.belt?.image;
+                  let resolvedImgPath = typeof rawImg === 'object' 
+                    ? (rawImg?.url || rawImg?.path || rawImg?.filePath || rawImg?.fileName || rawImg?.media?.url || rawImg?.media?.path) 
+                    : rawImg;
+
+                  if (!resolvedImgPath || typeof resolvedImgPath !== 'string' || resolvedImgPath.trim() === '') {
+                    resolvedImgPath = isBelt ? '/assets/fylex-watch-v2/everose-gold.png' : '/Rim.png';
+                  }
+
+                  const itemImgUrl = getFileUrl(resolvedImgPath);
                   return (
                     <div key={item.id} className="summary-item">
                       <div className="item-thumbnail rose-bg">
