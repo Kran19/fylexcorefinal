@@ -293,19 +293,14 @@ function ConfigureContent() {
     const optName = stepsData[currentStep]?.options[idx]?.name;
     if (!stepId || !optName) return;
 
-    // Carry-forward target selections
+    // Explicit user choice for current step and carry-forward selections
     const targetSelections = { ...userSelections, [stepId]: optName };
+
+    // Retain explicit user choices for userSelections
+    setUserSelections(targetSelections);
+
     const match = findMatchingVariant(targetSelections);
-
     if (match) {
-      // Sync selections with resolved variant attributes
-      const resolvedSelections = { ...targetSelections };
-      (match.variantAttributes || []).forEach(va => {
-        const attrName = va.attributeValue?.attribute?.name?.toLowerCase();
-        if (attrName) resolvedSelections[attrName] = va.attributeValue?.label;
-      });
-      setUserSelections(resolvedSelections);
-
       const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media;
       const vPath = getFileUrl(vImg?.path || vImg?.url || (vImg?.fileName ? `/uploads/${vImg.fileName}` : null));
       updatePreviewImage(vPath || src);
@@ -317,7 +312,6 @@ function ConfigureContent() {
       ).filter(Boolean);
       setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath }));
     } else {
-      setUserSelections(targetSelections);
       updatePreviewImage(src);
     }
     setActiveThumb(-1);
