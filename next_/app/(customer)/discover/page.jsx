@@ -2232,60 +2232,142 @@ function DiscoverContent() {
                 </section>
               )}
 
-              {/* ── SOLID CONFIGURATION SECTION ── */}
-              <section id="solid-configuration" className="cfg-solid-config-section" style={{ background: '#09090b', padding: '60px 24px', borderTop: '1px solid #27272a', color: '#ffffff' }}>
-                <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+              {/* ── SOLD CONFIGURATIONS PRODUCT LIST ── */}
+              <section id="sold-configurations" className="cfg-sold-config-section" style={{ background: '#09090b', padding: '60px 24px', borderTop: '1px solid #27272a', color: '#ffffff' }}>
+                <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
                   <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#c4a35a' }}>EXPLORE CRAFTSMANSHIP</span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: '#c4a35a' }}>EXCLUSIVE ARCHIVE</span>
                     <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', marginTop: '6px' }}>
-                      Solid Configuration Summary
+                      Sold Configurations
                     </h2>
                     <p style={{ color: '#a1a1aa', fontSize: '14px', marginTop: '4px' }}>
-                      Every component is individually assembled to perfection.
+                      Real customized watch combinations assembled and acquired by FYLEX patrons.
                     </p>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
-                    <div style={{ background: '#18181b', padding: '24px', borderRadius: '14px', border: '1px solid #27272a' }}>
-                      <span style={{ fontSize: '11px', color: '#c4a35a', fontWeight: 800, textTransform: 'uppercase' }}>Model Case</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginTop: '8px' }}>
-                        {product.title}, 40 mm, Oystersteel
-                      </h4>
-                      <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px', lineHeight: 1.5 }}>
-                        Monobloc middle case, screw-down case back and winding crown. Water resistance up to 100 metres.
-                      </p>
-                    </div>
+                  {(() => {
+                    const variantsList = product.variants || [];
+                    const soldItems = (product.orderItems || []).map((item, idx) => {
+                      const v = item.productVariant || {};
+                      const vImg = v.variantImages?.find(vi => vi.type === 'MAIN')?.media || v.variantImages?.[0]?.media;
+                      const imgUrl = getFileUrl(vImg?.path || vImg?.url || (vImg?.fileName ? `/uploads/${vImg.fileName}` : null)) || product.heroImage;
+                      const attrs = (v.variantAttributes || []).map(va => `${va.attributeValue?.attribute?.name || 'Attribute'}: ${va.attributeValue?.label}`);
+                      return {
+                        id: item.id || idx,
+                        variantId: v.id,
+                        title: v.name || product.title,
+                        attrs: attrs.length ? attrs : ['Oystersteel Case', 'Precision Sunray Dial', 'Executive Bracelet'],
+                        img: imgUrl,
+                        price: item.price ? `₹ ${Number(item.price).toLocaleString('en-IN')}` : (v.sellingPrice ? `₹ ${Number(v.sellingPrice).toLocaleString('en-IN')}` : product.formattedPrice),
+                        soldDate: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently Sold',
+                        attrParams: (v.variantAttributes || []).map(va => ({ name: va.attributeValue?.attribute?.name?.toLowerCase(), value: va.attributeValue?.label }))
+                      };
+                    });
 
-                    <div style={{ background: '#18181b', padding: '24px', borderRadius: '14px', border: '1px solid #27272a' }}>
-                      <span style={{ fontSize: '11px', color: '#c4a35a', fontWeight: 800, textTransform: 'uppercase' }}>Dial & Finish</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginTop: '8px' }}>
-                        Precision Sunray / Matte Finish
-                      </h4>
-                      <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px', lineHeight: 1.5 }}>
-                        High-contrast indices with Chromalight display offering long-lasting blue luminescence.
-                      </p>
-                    </div>
+                    // Fallback to variant combinations if no order items exist yet
+                    const displayList = soldItems.length > 0 ? soldItems : variantsList.map((v, idx) => {
+                      const vImg = v.variantImages?.find(vi => vi.type === 'MAIN')?.media || v.variantImages?.[0]?.media;
+                      const imgUrl = getFileUrl(vImg?.path || vImg?.url || (vImg?.fileName ? `/uploads/${vImg.fileName}` : null)) || product.heroImage;
+                      const attrs = (v.variantAttributes || []).map(va => `${va.attributeValue?.attribute?.name || 'Attribute'}: ${va.attributeValue?.label}`);
+                      return {
+                        id: v.id || idx,
+                        variantId: v.id,
+                        title: `${product.title} ${v.name || ''}`,
+                        attrs: attrs.length ? attrs : ['Oystersteel Case', 'Precision Sunray Dial', 'Executive Bracelet'],
+                        img: imgUrl,
+                        price: v.sellingPrice ? `₹ ${Number(v.sellingPrice).toLocaleString('en-IN')}` : product.formattedPrice,
+                        soldDate: 'Popular Sold Configuration',
+                        attrParams: (v.variantAttributes || []).map(va => ({ name: va.attributeValue?.attribute?.name?.toLowerCase(), value: va.attributeValue?.label }))
+                      };
+                    });
 
-                    <div style={{ background: '#18181b', padding: '24px', borderRadius: '14px', border: '1px solid #27272a' }}>
-                      <span style={{ fontSize: '11px', color: '#c4a35a', fontWeight: 800, textTransform: 'uppercase' }}>Movement & Power</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginTop: '8px' }}>
-                        Perpetual, Mechanical, Self-Winding
-                      </h4>
-                      <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px', lineHeight: 1.5 }}>
-                        Calibre 3230, precision -2/+2 sec/day, approximate power reserve of 70 hours.
-                      </p>
-                    </div>
+                    if (!displayList || displayList.length === 0) {
+                      return (
+                        <div style={{ textAlign: 'center', color: '#71717a', padding: '40px 0', fontSize: '14px' }}>
+                          No sold configurations available for this model yet.
+                        </div>
+                      );
+                    }
 
-                    <div style={{ background: '#18181b', padding: '24px', borderRadius: '14px', border: '1px solid #27272a' }}>
-                      <span style={{ fontSize: '11px', color: '#c4a35a', fontWeight: 800, textTransform: 'uppercase' }}>Bracelet & Clasp</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginTop: '8px' }}>
-                        Executive Oyster / Leather Silicone
-                      </h4>
-                      <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px', lineHeight: 1.5 }}>
-                        Folding Oysterlock safety clasp with Easylink 5 mm comfort extension link.
-                      </p>
-                    </div>
-                  </div>
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px' }}>
+                        {displayList.slice(0, 8).map((configItem) => (
+                          <div
+                            key={configItem.id}
+                            style={{
+                              background: '#18181b',
+                              borderRadius: '16px',
+                              border: '1px solid #27272a',
+                              padding: '20px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justify: 'space-between',
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                                <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#22c55e', background: 'rgba(34,197,94,0.12)', padding: '4px 10px', borderRadius: '999px', border: '1px solid rgba(34,197,94,0.2)' }}>
+                                  ✓ {configItem.soldDate}
+                                </span>
+                                <span style={{ fontSize: '14px', fontWeight: 800, color: '#c4a35a' }}>
+                                  {configItem.price}
+                                </span>
+                              </div>
+
+                              <div style={{ width: '100%', height: '180px', background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)', borderRadius: '12px', display: 'flex', alignItems: 'center', justify: 'center', marginBottom: '16px' }}>
+                                <img
+                                  src={configItem.img}
+                                  alt={configItem.title}
+                                  style={{ maxHeight: '160px', maxWidth: '90%', objectFit: 'contain', filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.5))' }}
+                                />
+                              </div>
+
+                              <h4 style={{ fontSize: '15px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>
+                                {configItem.title}
+                              </h4>
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '16px' }}>
+                                {configItem.attrs.map((attrStr, aIdx) => (
+                                  <span key={aIdx} style={{ fontSize: '11px', color: '#a1a1aa' }}>
+                                    • {attrStr}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                const params = new URLSearchParams();
+                                params.set('watch', product.id);
+                                if (configItem.variantId) params.set('variant', configItem.variantId);
+                                (configItem.attrParams || []).forEach(ap => {
+                                  if (ap.name && ap.value) params.set(ap.name, ap.value);
+                                });
+                                router.push(`/configure?${params.toString()}`);
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '10px 16px',
+                                borderRadius: '999px',
+                                background: 'transparent',
+                                border: '1px solid #c4a35a',
+                                color: '#c4a35a',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.1em',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              Configure This Combination →
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </section>
 
