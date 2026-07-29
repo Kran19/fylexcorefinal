@@ -2184,7 +2184,7 @@ function DiscoverContent() {
                   </div>
                   {effectiveImageCount >= 2 && (
                     <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
-                      <img src={product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-desc-img" />
+                      <img src={getFileUrl(product.exploreStoryImage || product.galleryImages?.[0] || product.heroImage)} alt={product.title} className="cfg-desc-img" />
                     </div>
                   )}
                 </section>

@@ -388,14 +388,13 @@ function ConfigureContent() {
         updatePreviewImage(stepsData[nextStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
       }
     } else {
-      // Final completed step - Enforce Single Primary Image
-      const match = findMatchingVariant(userSelections);
-      if (match) {
-        const primaryMedia = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media;
-        const primaryPath = getFileUrl(primaryMedia?.path || primaryMedia?.url || (primaryMedia?.fileName ? `/uploads/${primaryMedia.fileName}` : null));
-        if (primaryPath) setPreviewSrc(primaryPath);
-      }
-      setShowCustomAlert(true);
+      // Final completed step - Navigate to /configured outcome page!
+      const params = new URLSearchParams();
+      params.set('watch', watchId);
+      Object.entries(userSelections).forEach(([k, v]) => {
+        if (k && v) params.set(k, v);
+      });
+      router.push(`/configured?${params.toString()}`);
     }
   };
 

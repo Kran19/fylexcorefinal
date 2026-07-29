@@ -1050,16 +1050,54 @@ const EditProductPage = () => {
                                                 ))}
                                             </div>
 
-                                            {/* Tab 1: Explore Page Theme Controls */}
+                                            {/* Tab 1: Explore Page Theme & Showcase Images Controls */}
                                             {(pageThemeTab === 'explore' || pageThemeTab === 'discover') && (
                                                 <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
                                                     <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                                        <i className="fas fa-compass text-indigo-600"></i> Explore Page Theme (3 Showcase Images)
+                                                        <i className="fas fa-compass text-indigo-600"></i> Explore Page Theme &amp; 3 Showcase Photos
                                                     </h4>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                         <FormField label="Explore Hero Background Color" name="discoverBg" type="color" value={form.discoverBg || form.bgColor || '#ffffff'} onChange={handleChange} />
                                                         <FormField label="Explore Text Color (Title, Price)" name="discoverTextColor" type="color" value={form.discoverTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
                                                         <FormField label="Explore Accent Color" name="discoverAccentColor" type="color" value={form.discoverAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
+                                                    </div>
+
+                                                    <div className="pt-3 border-t border-gray-200 space-y-3">
+                                                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                                            Explicit 3 Explore Showcase Images
+                                                        </label>
+                                                        <div className="grid grid-cols-3 gap-3">
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 1: Hero</label>
+                                                                <div onClick={() => setPickerTarget('exploreHeroImage')} className="h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
+                                                                    {form.exploreHeroImage ? (
+                                                                        <img src={getFileUrl(typeof form.exploreHeroImage === 'string' ? form.exploreHeroImage : (form.exploreHeroImage.url || form.exploreHeroImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Hero" />
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-gray-400 font-bold">+ Pick Hero</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 2: Story</label>
+                                                                <div onClick={() => setPickerTarget('exploreStoryImage')} className="h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
+                                                                    {form.exploreStoryImage ? (
+                                                                        <img src={getFileUrl(typeof form.exploreStoryImage === 'string' ? form.exploreStoryImage : (form.exploreStoryImage.url || form.exploreStoryImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Story" />
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-gray-400 font-bold">+ Pick Story</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 3: Specs</label>
+                                                                <div onClick={() => setPickerTarget('exploreSpecsImage')} className="h-24 rounded-lg border-2 border-dashed border-gray-300 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500">
+                                                                    {form.exploreSpecsImage ? (
+                                                                        <img src={getFileUrl(typeof form.exploreSpecsImage === 'string' ? form.exploreSpecsImage : (form.exploreSpecsImage.url || form.exploreSpecsImage.fileName))} className="w-full h-full object-contain p-1" alt="Explore Specs" />
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-gray-400 font-bold">+ Pick Specs</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}
