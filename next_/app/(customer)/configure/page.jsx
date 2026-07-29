@@ -261,18 +261,32 @@ function ConfigureContent() {
         gsap.to(previewImgRef.current, { opacity: 1, duration: 0.3 });
       }
     });
-  };  const findMatchingVariant = (targetSelections) => {
+  };  const normalizeAttrKey = (k) => {
+    if (!k) return '';
+    const clean = k.toLowerCase().trim();
+    if (clean.includes('dial')) return 'dial';
+    if (clean.includes('belt') || clean.includes('strap')) return 'belt';
+    if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
+    return clean;
+  };
+
+  const findMatchingVariant = (targetSelections) => {
     if (!variants || variants.length === 0) return null;
 
-    // 1. Try exact match for all selections
+    const normalizedTarget = {};
+    Object.entries(targetSelections).forEach(([k, v]) => {
+      if (v) normalizedTarget[normalizeAttrKey(k)] = v.toLowerCase().trim();
+    });
+
+    // 1. Try exact match for all normalized attributes
     const exact = variants.find(v => {
       const vAttrs = v.variantAttributes || [];
-      return Object.entries(targetSelections).every(([attrKey, attrVal]) => {
-        if (!attrVal) return true;
-        return vAttrs.some(va =>
-          va.attributeValue?.attribute?.name?.toLowerCase() === attrKey.toLowerCase() &&
-          va.attributeValue?.label === attrVal
-        );
+      return Object.entries(normalizedTarget).every(([normKey, normVal]) => {
+        return vAttrs.some(va => {
+          const attrName = normalizeAttrKey(va.attributeValue?.attribute?.name);
+          const label = (va.attributeValue?.label || '').toLowerCase().trim();
+          return attrName === normKey && label === normVal;
+        });
       });
     });
     if (exact) return exact;
@@ -284,13 +298,13 @@ function ConfigureContent() {
     variants.forEach(v => {
       const vAttrs = v.variantAttributes || [];
       let score = 0;
-      Object.entries(targetSelections).forEach(([attrKey, attrVal]) => {
-        if (!attrVal) return;
-        const matches = vAttrs.some(va =>
-          va.attributeValue?.attribute?.name?.toLowerCase() === attrKey.toLowerCase() &&
-          va.attributeValue?.label === attrVal
-        );
-        if (matches) score += (attrKey === 'case' ? 3 : attrKey === 'belt' ? 2 : 1);
+      Object.entries(normalizedTarget).forEach(([normKey, normVal]) => {
+        const matches = vAttrs.some(va => {
+          const attrName = normalizeAttrKey(va.attributeValue?.attribute?.name);
+          const label = (va.attributeValue?.label || '').toLowerCase().trim();
+          return attrName === normKey && label === normVal;
+        });
+        if (matches) score += (normKey === 'case' ? 4 : normKey === 'dial' ? 2 : 1);
       });
       if (score > highestScore) {
         highestScore = score;
