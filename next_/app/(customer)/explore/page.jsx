@@ -24,7 +24,7 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-function DiscoverContent() {
+export function DiscoverContent({ isConfiguredMode = false }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { addToCart } = useCart();
@@ -2120,49 +2120,12 @@ function DiscoverContent() {
                           strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                        >
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                        </svg>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-
-              </div>
-            </div>
-          </div>
-
-          {/* The image is now a central element, no longer background */}
-
-          {/* Far Right Vertical Nav */}
-          {isGeneralMode && (
-            <div className="cfg-vert-nav" style={{ zIndex: 10 }}>
-              {productsData.map((p, idx) => (
-                <div
-                  key={p.id}
-                  className={`cfg-nav-dash ${initialIndex === idx ? 'active' : ''}`}
-                  style={product.discoverHeroBgImage && initialIndex === idx ? { background: '#ffffff' } : product.discoverHeroBgImage ? { background: 'rgba(255,255,255,0.4)' } : {}}
-                  onClick={() => {
-                    const params = new URLSearchParams(searchParams);
-                    params.set('watch', p.id);
-                    router.push(`?${params.toString()}`, { scroll: false });
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-
-        {/* ── SECONDARY SECTION ("your timepiece") ── */}
-        {(() => {
-          let parsedTheme = {};
-          try {
             parsedTheme = typeof product.theme === 'string' ? JSON.parse(product.theme) : (product.theme || {});
           } catch (e) {}
 
           const effectiveImageCount = 3;
+          const displayStoryImg = isConfiguredMode ? product.heroImage : getFileUrl(product.exploreStoryImage || product.galleryImages?.[0] || product.heroImage);
+          const displaySpecsImg = isConfiguredMode ? product.heroImage : (product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage);
 
           return (
             <>
@@ -2185,7 +2148,7 @@ function DiscoverContent() {
                   </div>
                   {effectiveImageCount >= 2 && (
                     <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
-                      <img src={getFileUrl(product.exploreStoryImage || product.galleryImages?.[0] || product.heroImage)} alt={product.title} className="cfg-desc-img" />
+                      <img src={displayStoryImg} alt={product.title} className="cfg-desc-img" />
                     </div>
                   )}
                 </section>
@@ -2205,7 +2168,7 @@ function DiscoverContent() {
                   </div>
                   {effectiveImageCount >= 2 && (
                     <div className="cfg-desc-img-wrap">
-                      <img src={product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-desc-img" />
+                      <img src={displayStoryImg} alt={product.title} className="cfg-desc-img" />
                     </div>
                   )}
                 </section>
@@ -2224,10 +2187,6 @@ function DiscoverContent() {
                     />
                   </div>
                 </section>
-              )}
-
-
-
               {/* ── TECHNICAL DETAILS SECTION ── */}
               <section id="specs" className="cfg-specs-section">
                 <div className="cfg-specs-container">
@@ -2241,7 +2200,7 @@ function DiscoverContent() {
                   <div className="cfg-specs-grid" style={ effectiveImageCount < 3 ? { gridTemplateColumns: '1fr' } : {} }>
                     {effectiveImageCount >= 3 && (
                       <div className="cfg-specs-img-wrap">
-                        <img src={product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage} alt={product.title} className="cfg-specs-img" />
+                        <img src={displaySpecsImg} alt={product.title} className="cfg-specs-img" />
                       </div>
                     )}
 
