@@ -503,20 +503,29 @@ function ConfigureContent() {
               <div className="step-title">{stepsData[currentStep]?.title}</div>
               <div className="options-row">
                 {getCompatibleOptions(stepsData[currentStep]).map((opt, i) => {
-                  const isSelected = (isDialStep ? appliedDial === opt.dialImg : activeOpt === i);
+                  const stepKey = stepsData[currentStep]?.id;
+                  const selectedVal = userSelections[stepKey];
+                  const isSelected = selectedVal
+                    ? selectedVal.toLowerCase() === opt.name.toLowerCase()
+                    : i === 0;
+
                   return (
-                    <span key={i} className={`opt ${isSelected ? 'active' : ''}`}
+                    <span
+                      key={i}
+                      className={`opt ${isSelected ? 'active' : ''}`}
                       style={{
                         color: isSelected ? '#008767' : '#94a3b8',
                         fontWeight: isSelected ? '700' : '500',
                         cursor: 'pointer',
                         transition: 'all 0.3s ease',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        background: isSelected ? 'rgba(0,135,103,0.12)' : 'transparent',
+                        padding: '6px 14px',
+                        borderRadius: '20px',
+                        border: `1px solid ${isSelected ? '#008767' : 'rgba(255,255,255,0.1)'}`
                       }}
-                      onClick={() => {
-                        if (isDialStep) { setAppliedDial(opt.dialImg); updatePreviewImage(opt.img); setUserSelections(prev => ({ ...prev, dial: opt.name })); }
-                        else handleOptClick(i, opt.img);
-                      }}>
+                      onClick={() => handleOptClick(i, opt.img)}
+                    >
                       {opt.name}
                     </span>
                   );
