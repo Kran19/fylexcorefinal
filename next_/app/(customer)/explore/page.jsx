@@ -16,6 +16,7 @@ import { useWishlist } from '@/context/WishlistContext';
 import { useDesignSystem } from '@/context/DesignSystemContext';
 import { getFileUrl, resolveProductImage, getDisplayData, getPageTheme } from '@/lib/utils';
 import localProductsData from '../../../data/productsData';
+import Footer from '@/components/Footer';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
