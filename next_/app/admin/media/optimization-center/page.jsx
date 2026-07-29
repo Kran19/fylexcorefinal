@@ -583,7 +583,7 @@ export default function SpeedBoosterOptimizationCenter() {
                           <span style={{ fontSize: '12px', background: '#14532d', color: '#86efac', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
                             {compareAsset.optimizedSizeFormatted || '461 KB'}
                           </span>
-                          <span style={{ fontSize: '12px', background: '#713f12', color: '#fef08a', padding: '4px 10px', borderRadius: '6px', fontWeight 800 }}>
+                          <span style={{ fontSize: '12px', background: '#713f12', color: '#fef08a', padding: '4px 10px', borderRadius: '6px', fontWeight: 800 }}>
                             Saved {compareAsset.savedRatio || '98.2%'}
                           </span>
                         </div>

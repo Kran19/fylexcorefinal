@@ -501,16 +501,17 @@ const Checkout = () => {
                       <div className="item-thumbnail rose-bg">
                         <img src={itemImgUrl} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                       </div>
-                    <div className="item-info">
-                      <div className="item-name">{item.title}</div>
-                      <div className="item-variant" style={{ fontSize: '10px', color: '#ccc', textTransform: 'uppercase', marginBottom: '4px' }}>
-                        {item.subtitle}
+                      <div className="item-info">
+                        <div className="item-name">{item.title}</div>
+                        <div className="item-variant" style={{ fontSize: '10px', color: '#ccc', textTransform: 'uppercase', marginBottom: '4px' }}>
+                          {item.subtitle}
+                        </div>
+                        <div className="item-meta">{item.qty} item{item.qty !== 1 ? 's' : ''}</div>
                       </div>
-                      <div className="item-meta">{item.qty} item{item.qty !== 1 ? 's' : ''}</div>
+                      <div className="item-price">₹{Math.round(Number(item.unitPrice) * item.qty).toLocaleString()}</div>
                     </div>
-                    <div className="item-price">₹{Math.round(Number(item.unitPrice) * item.qty).toLocaleString()}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
               <div className="summary-divider" />
