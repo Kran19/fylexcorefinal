@@ -2223,7 +2223,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                       <p className="cfg-desc-text">{product.longDesc.replace(/<[^>]*>/g, '')}</p>
                     )}
                   </div>
-                  {effectiveImageCount >= 2 && (
+                  {effectiveImageCount >= 2 && !isConfiguredMode && (
                     <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
                       <img src={displayStoryImg} alt={product.title} className="cfg-desc-img" />
                     </div>
@@ -2243,7 +2243,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                       Every Watch Begins With A Choice. Assembled By Us, Your Combination Ready To Be Worn.
                     </p>
                   </div>
-                  {effectiveImageCount >= 2 && (
+                  {effectiveImageCount >= 2 && !isConfiguredMode && (
                     <div className="cfg-desc-img-wrap">
                       <img src={displayStoryImg} alt={product.title} className="cfg-desc-img" />
                     </div>
@@ -2275,8 +2275,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     </h2>
                   </div>
 
-                  <div className="cfg-specs-grid" style={ effectiveImageCount < 3 ? { gridTemplateColumns: '1fr' } : {} }>
-                    {effectiveImageCount >= 3 && (
+                  <div className="cfg-specs-grid" style={ (effectiveImageCount < 3 || isConfiguredMode) ? { gridTemplateColumns: '1fr' } : {} }>
+                    {effectiveImageCount >= 3 && !isConfiguredMode && (
                       <div className="cfg-specs-img-wrap">
                         <img src={displaySpecsImg} alt={product.title} className="cfg-specs-img" />
                       </div>
