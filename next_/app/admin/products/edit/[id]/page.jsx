@@ -72,6 +72,7 @@ const EditProductPage = () => {
     const [pickerTarget, setPickerTarget] = useState(null); // 'primary' | 'gallery' | {variantIndex, type}
     const [variantImageModal, setVariantImageModal] = useState(null); // { index, name }
     const [pageThemeTab, setPageThemeTab] = useState('discover');
+    const [previewDevice, setPreviewDevice] = useState('iphone14'); // 'iphone14' | 'desktop'
     const [variantImageCounts, setVariantImageCounts] = useState({});
     const [selectedThemeVariantId, setSelectedThemeVariantId] = useState('all');
     const [previewVariantId, setPreviewVariantId] = useState(null);
@@ -1164,52 +1165,131 @@ const EditProductPage = () => {
                                         </div>
 
                                         {/* Real-Time Live Preview Column (6 Cols) */}
-                                        <div className="lg:col-span-6 border border-gray-300 rounded-2xl overflow-hidden shadow-lg bg-gray-900 flex flex-col">
-                                            <div className="bg-gray-800 text-white !px-4 !py-3 flex justify-between items-center border-b border-gray-700">
+                                        <div className="lg:col-span-6 border border-slate-300 rounded-2xl overflow-hidden shadow-lg bg-slate-900 flex flex-col">
+                                            <div className="bg-slate-800 text-white !px-4 !py-3 flex justify-between items-center border-b border-slate-700">
                                                 <div className="flex items-center gap-2">
                                                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                                    <span className="text-xs font-bold uppercase tracking-wider">Real-Time Live Layout Preview</span>
+                                                    <span className="text-xs font-bold uppercase tracking-wider">Live Preview</span>
                                                 </div>
-                                                <span className="text-[10px] bg-gray-700 px-2.5 py-0.5 rounded text-gray-300 font-semibold">
-                                                    {(pageThemeTab === 'explore' || pageThemeTab === 'discover') ? 'Explore Page' : (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? 'Configured Page' : 'Products Page'}
-                                                </span>
+
+                                                {/* Device Switcher Toggle */}
+                                                <div className="flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-700">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPreviewDevice('iphone14')}
+                                                        className={`!px-3 !py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                                            previewDevice === 'iphone14'
+                                                                ? 'bg-indigo-600 text-white shadow-sm'
+                                                                : 'text-slate-400 hover:text-white'
+                                                        }`}
+                                                    >
+                                                        <i className="fas fa-mobile-alt"></i> iPhone 14 Pro Max
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPreviewDevice('desktop')}
+                                                        className={`!px-3 !py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                                                            previewDevice === 'desktop'
+                                                                ? 'bg-indigo-600 text-white shadow-sm'
+                                                                : 'text-slate-400 hover:text-white'
+                                                        }`}
+                                                    >
+                                                        <i className="fas fa-desktop"></i> Desktop
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             {/* Live Canvas View */}
-                                            <div className="flex-1 relative bg-black/5 rounded-b-2xl overflow-hidden" style={{ minHeight: '600px' }}>
-                                                {/* Desktop Only Preview Notice */}
-                                                <div className="absolute top-0 left-0 w-full bg-indigo-600/90 text-white text-[10px] font-bold tracking-widest uppercase py-1 text-center z-10 shadow-md backdrop-blur-sm">
-                                                    Interactive Live Preview
-                                                </div>
-                                                <iframe
-                                                    ref={iframeRef}
-                                                    src={
-                                                        (pageThemeTab === 'explore' || pageThemeTab === 'discover') ? `/explore?watch=${productId}` :
-                                                        (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? `/configured?watch=${productId}` :
-                                                        `/products`
-                                                    }
-                                                    className="w-full h-full border-none"
-                                                    title="Real-Time Layout Preview"
-                                                    onLoad={() => {
-                                                        // Fire initial styles on load
-                                                        if (iframeRef.current) {
-                                                            iframeRef.current.contentWindow.postMessage({
-                                                                type: 'PREVIEW_PRODUCT_THEME',
-                                                                payload: {
-                                                                    discoverBg: form.discoverBg,
-                                                                    discoverTextColor: form.discoverTextColor,
-                                                                    discoverAccentColor: form.discoverAccentColor,
-                                                                    productsBg: form.productsBg,
-                                                                    productsTextColor: form.productsTextColor,
-                                                                    productsAccentColor: form.productsAccentColor,
-                                                                    preConfigureBg: form.preConfigureBg,
-                                                                    preConfigureTextColor: form.preConfigureTextColor,
-                                                                    preConfigureAccentColor: form.preConfigureAccentColor
+                                            <div className="flex-1 relative bg-slate-950 p-6 flex flex-col items-center justify-center min-h-[750px] overflow-hidden">
+                                                {previewDevice === 'iphone14' ? (
+                                                    /* iPhone 14 Pro Max Mockup Chassis */
+                                                    <div className="relative w-[380px] h-[750px] rounded-[50px] border-[12px] border-slate-900 shadow-2xl bg-black ring-1 ring-slate-700/60 flex flex-col overflow-hidden transition-all duration-300">
+                                                        {/* Hardware Side Buttons */}
+                                                        <div className="absolute -left-[16px] top-24 w-[4px] h-[36px] bg-slate-800 rounded-l-md shadow-sm"></div>
+                                                        <div className="absolute -left-[16px] top-36 w-[4px] h-[48px] bg-slate-800 rounded-l-md shadow-sm"></div>
+                                                        <div className="absolute -left-[16px] top-50 w-[4px] h-[48px] bg-slate-800 rounded-l-md shadow-sm"></div>
+                                                        <div className="absolute -right-[16px] top-32 w-[4px] h-[60px] bg-slate-800 rounded-r-md shadow-sm"></div>
+
+                                                        {/* Dynamic Island Notch */}
+                                                        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[115px] h-[28px] bg-black rounded-full z-40 flex items-center justify-between px-3 border border-slate-800/60 shadow-inner pointer-events-none">
+                                                            <div className="w-3 h-3 rounded-full bg-slate-900 ring-1 ring-slate-800/80"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-blue-950/80 ring-1 ring-indigo-900/60"></div>
+                                                        </div>
+
+                                                        {/* Home Indicator Bar */}
+                                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[130px] h-[4px] bg-white/40 rounded-full z-40 pointer-events-none"></div>
+
+                                                        {/* Live Preview Iframe inside iPhone 14 Screen */}
+                                                        <iframe
+                                                            ref={iframeRef}
+                                                            src={
+                                                                (pageThemeTab === 'explore' || pageThemeTab === 'discover') ? `/explore?watch=${productId}` :
+                                                                (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? `/configured?watch=${productId}` :
+                                                                `/products`
+                                                            }
+                                                            className="w-full h-full border-none rounded-[38px] pt-7 pb-3"
+                                                            title="iPhone 14 Pro Max Live Layout Preview"
+                                                            onLoad={() => {
+                                                                if (iframeRef.current) {
+                                                                    iframeRef.current.contentWindow.postMessage({
+                                                                        type: 'PREVIEW_PRODUCT_THEME',
+                                                                        payload: {
+                                                                            discoverBg: form.discoverBg,
+                                                                            discoverTextColor: form.discoverTextColor,
+                                                                            discoverAccentColor: form.discoverAccentColor,
+                                                                            productsBg: form.productsBg,
+                                                                            productsTextColor: form.productsTextColor,
+                                                                            productsAccentColor: form.productsAccentColor,
+                                                                            preConfigureBg: form.preConfigureBg,
+                                                                            preConfigureTextColor: form.preConfigureTextColor,
+                                                                            preConfigureAccentColor: form.preConfigureAccentColor
+                                                                        }
+                                                                    }, '*');
                                                                 }
-                                                            }, '*');
-                                                        }
-                                                    }}
-                                                />
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    /* Desktop Monitor Frame Mockup */
+                                                    <div className="w-full h-[650px] rounded-2xl border-4 border-slate-800 shadow-2xl bg-black overflow-hidden flex flex-col relative transition-all duration-300">
+                                                        <div className="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-800">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="w-3 h-3 rounded-full bg-red-500/80"></span>
+                                                                <span className="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+                                                                <span className="w-3 h-3 rounded-full bg-green-500/80"></span>
+                                                            </div>
+                                                            <span className="text-[10px] text-slate-400 font-mono font-medium">Desktop View</span>
+                                                        </div>
+                                                        <iframe
+                                                            ref={iframeRef}
+                                                            src={
+                                                                (pageThemeTab === 'explore' || pageThemeTab === 'discover') ? `/explore?watch=${productId}` :
+                                                                (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? `/configured?watch=${productId}` :
+                                                                `/products`
+                                                            }
+                                                            className="w-full flex-1 border-none"
+                                                            title="Desktop Live Layout Preview"
+                                                            onLoad={() => {
+                                                                if (iframeRef.current) {
+                                                                    iframeRef.current.contentWindow.postMessage({
+                                                                        type: 'PREVIEW_PRODUCT_THEME',
+                                                                        payload: {
+                                                                            discoverBg: form.discoverBg,
+                                                                            discoverTextColor: form.discoverTextColor,
+                                                                            discoverAccentColor: form.discoverAccentColor,
+                                                                            productsBg: form.productsBg,
+                                                                            productsTextColor: form.productsTextColor,
+                                                                            productsAccentColor: form.productsAccentColor,
+                                                                            preConfigureBg: form.preConfigureBg,
+                                                                            preConfigureTextColor: form.preConfigureTextColor,
+                                                                            preConfigureAccentColor: form.preConfigureAccentColor
+                                                                        }
+                                                                    }, '*');
+                                                                }
+                                                            }}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
