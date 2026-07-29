@@ -2,21 +2,13 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { EffectFade, EffectCoverflow, Navigation, Pagination, FreeMode } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
-import 'swiper/css/effect-fade';
-import 'swiper/css/effect-coverflow';
-import 'swiper/css/free-mode';
 import { fetchProducts, fetchBoxes } from '../../../lib/api';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useDesignSystem } from '@/context/DesignSystemContext';
 import { getFileUrl, resolveProductImage, getDisplayData, getPageTheme } from '@/lib/utils';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Header from '@/components/Header';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -42,8 +34,48 @@ function ConfiguredContent() {
   const [activeSpecGroup, setActiveSpecGroup] = useState(null);
   const [activeSection, setActiveSection] = useState('hero');
   const [isAdded, setIsAdded] = useState(false);
+  const [addedBelts, setAddedBelts] = useState({});
   const lastScrollY = useRef(0);
   const heroRef = useRef(null);
+  const strapsSectionRef = useRef(null);
+  const strapsTrackRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading) return;
+    if (window.innerWidth <= 768) return;
+
+    const section = strapsSectionRef.current;
+    const track = strapsTrackRef.current;
+    if (!section || !track) return;
+
+    const timer = setTimeout(() => {
+      const getScrollAmount = () => {
+        return track.scrollWidth - window.innerWidth + 120;
+      };
+
+      const scrollAmount = getScrollAmount();
+      if (scrollAmount <= 0) return;
+
+      const ctx = gsap.context(() => {
+        gsap.to(track, {
+          x: () => -getScrollAmount(),
+          ease: 'none',
+          scrollTrigger: {
+            trigger: section,
+            pin: true,
+            scrub: 1,
+            start: 'top top',
+            end: () => `+=${getScrollAmount() + 400}`,
+            invalidateOnRefresh: true,
+          }
+        });
+      }, section);
+
+      return () => ctx.revert();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [loading, productsData, watchId]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -65,7 +97,6 @@ function ConfiguredContent() {
               image: bxImg ? getFileUrl(bxImg) : null
             };
           });
-
           const hexToRgb = (hex) => {
             if (!hex) return '196, 163, 90';
             const cleanHex = hex.replace('#', '');
@@ -102,6 +133,31 @@ function ConfiguredContent() {
               heritageText: p.heritageText || 'Founded on the principles of precision and timeless elegance, Fylex has been at the forefront of horological innovation for generations.',
               sold: (p.soldCount !== undefined && p.soldCount !== null) ? p.soldCount : Math.min((p.id % 100) + 120, p.qty || p.stockCount || 500),
               totalStock: p.qty || p.stockCount || 500,
+              galleryImages: (p.productMedia?.length > 0)
+                ? p.productMedia
+                  .filter(m => m.type === 'GALLERY')
+                  .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+                  .map(m => {
+                    let mPath = m.media?.url || (m.media?.fileName ? `/uploads/${m.media.fileName}` : '');
+                    return getFileUrl(mPath);
+                  }).filter(Boolean)
+                : (p.images || []).map(img => getFileUrl(img.startsWith('http') || img.startsWith('/') ? img : `/uploads/${img}`)),
+              combinations: (p.variants || []).map(v => {
+                const vDisplay = getDisplayData(p, v);
+                return {
+                  id: v.id.toString(),
+                  name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label).join(' • ') || v.name || v.sku,
+                  img: vDisplay.image,
+                  price: vDisplay.price,
+                  formattedPrice: vDisplay.formattedPrice,
+                  isSoldConfiguration: v.isSoldConfiguration,
+                  fakeSoldCount: v.fakeSoldCount || 0,
+                  attributes: v.variantAttributes?.map(va => ({
+                    name: va.attributeValue?.attribute?.name?.toLowerCase(),
+                    value: va.attributeValue?.label
+                  })) || []
+                };
+              }),
               specs: (() => {
                 const specsObj = {};
                 if (Array.isArray(p.specifications) && p.specifications.length > 0) {
@@ -133,7 +189,19 @@ function ConfiguredContent() {
                   };
                 }
                 return specsObj;
-              })()
+              })(),
+              productBelts: p.productBelts?.map(pb => {
+                const bImg = pb.belt?.image?.url || pb.belt?.image?.filePath || pb.belt?.image?.path || pb.belt?.image?.fileName || (typeof pb.belt?.image === 'string' ? pb.belt?.image : null);
+                return {
+                  id: pb.belt.id,
+                  name: pb.belt.name,
+                  price: pb.belt.price,
+                  stock: pb.belt.stock,
+                  image: bImg ? getFileUrl(bImg) : null
+                };
+              }) || [],
+              productBoxes: universalBoxes,
+              totalSoldConfigurations: (p.variants || []).reduce((sum, v) => sum + (v.fakeSoldCount || 0), 0)
             };
           });
           setProductsData(mapped);
@@ -196,6 +264,36 @@ function ConfiguredContent() {
     };
   }, [loading, watchId]);
 
+  const openInfoModal = (p) => {
+    const soldConfigs = (p.combinations || [])
+      .filter(combo => combo.isSoldConfiguration)
+      .map(combo => ({
+        ...combo,
+        isProduct: false
+      }));
+    setActiveModalData({ ...p, combinations: soldConfigs });
+  };
+  const closeInfoModal = () => setActiveModalData(null);
+
+  const handleComboClick = (combo) => {
+    if (combo.isProduct) {
+      router.push(`?watch=${combo.id}`);
+      closeInfoModal();
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    if (activeModalData?.id) {
+      params.set('watch', activeModalData.id);
+    }
+    (combo.attributes || []).forEach(attr => {
+      if (attr.name && attr.value) {
+        params.set(attr.name, attr.value);
+      }
+    });
+    router.push(`?${params.toString()}`);
+    closeInfoModal();
+  };
+
   const handleBookNow = () => {
     let targetVariant = null;
     const variants = product?.variants || [];
@@ -239,7 +337,7 @@ function ConfiguredContent() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-        <div className="loading-state">Initializing Assembled Timepiece...</div>
+        <div className="loading-state">Initializing Experience...</div>
       </div>
     );
   }
@@ -301,14 +399,14 @@ function ConfiguredContent() {
     product.currentVariantId = matchingVariant.id.toString();
   }
 
-  // ── ENFORCE 1 SINGLE PRIMARY IMAGE ACROSS ALL SECTIONS ──
-  const singlePrimaryImage = product.heroImage;
+  // ── EXACT COPY DITTO OF EXPLORE PAGE WITH 1 SINGLE IMAGE ──
+  const singleImage = product.heroImage;
   const hasConfig = hasSelections || !!variantIdParam;
 
   return (
     <div className={`cfg-discover-root ${product.theme}`}>
       <style jsx global>{`
-        /* Global Reset & Base Fonts */
+        /* EXACT EXPLORE STYLES */
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@200;300;400;500;600;700&display=swap');
 
         .cfg-discover-root {
@@ -319,7 +417,6 @@ function ConfiguredContent() {
           min-height: 100vh;
         }
 
-        /* Fixed Navigation Buttons */
         .cfg-top-right-cta {
           position: fixed;
           top: 30px;
@@ -378,7 +475,6 @@ function ConfiguredContent() {
           box-shadow: 0 15px 30px rgba(0,0,0,0.25);
         }
 
-        /* Vertical Dash Indicators */
         .cfg-page-pagination {
           position: fixed;
           left: 40px;
@@ -404,7 +500,6 @@ function ConfiguredContent() {
           background: ${product.accentColor || '#c4a35a'};
         }
 
-        /* Hero Section */
         .cfg-hero {
           position: relative;
           min-height: 100vh;
@@ -458,7 +553,6 @@ function ConfiguredContent() {
           transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Details Box */
         .cfg-details-box {
           position: relative;
           width: 100%;
@@ -535,7 +629,6 @@ function ConfiguredContent() {
           border-color: #ef4444;
         }
 
-        /* Description Section */
         .cfg-desc-section {
           position: relative;
           padding: 140px 80px;
@@ -586,7 +679,6 @@ function ConfiguredContent() {
           filter: drop-shadow(0 20px 40px rgba(0,0,0,0.4));
         }
 
-        /* Technical Specs Section */
         .cfg-specs-section {
           padding: 140px 80px;
           background: #000000;
@@ -721,7 +813,7 @@ function ConfiguredContent() {
           </div>
         )}
 
-        {/* ── HERO SECTION: 1 SINGLE PRIMARY IMAGE ── */}
+        {/* HERO SECTION - 1 SINGLE PRIMARY IMAGE */}
         <section id="hero" className={`cfg-hero ${product.heroBgImage ? 'has-bg-image' : ''}`} ref={heroRef} style={!product.heroBgImage ? { background: product.bgColor || 'radial-gradient(circle at center, #ffffff 0%, #e8edf3 100%)' } : {}}>
           {product.heroBgImage ? (
             <>
@@ -744,7 +836,7 @@ function ConfiguredContent() {
           <div className="cfg-hero-main-visual" style={{ zIndex: 10 }}>
             <div className="cfg-hero-visual-box">
               <img
-                src={singlePrimaryImage}
+                src={singleImage}
                 alt={product.title}
                 className="cfg-hero-product-img"
               />
@@ -809,7 +901,7 @@ function ConfiguredContent() {
           </div>
         </section>
 
-        {/* ── SECONDARY SECTION ("your timepiece") - USES 1 SINGLE PRIMARY IMAGE ── */}
+        {/* DESCRIPTION SECTION - 1 SINGLE PRIMARY IMAGE */}
         <section id="description" className="cfg-desc-section" style={{
           background: product.heroBgImage ? 'rgba(0,0,0,0.85)' : (product.bgColor || '#ffffff'),
           color: product.textColor || '#111111'
@@ -827,7 +919,7 @@ function ConfiguredContent() {
             )}
           </div>
           <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
-            <img src={singlePrimaryImage} alt={product.title} className="cfg-desc-img" />
+            <img src={singleImage} alt={product.title} className="cfg-desc-img" />
           </div>
         </section>
 
@@ -846,7 +938,7 @@ function ConfiguredContent() {
           </section>
         )}
 
-        {/* ── TECHNICAL DETAILS SECTION - USES 1 SINGLE PRIMARY IMAGE ── */}
+        {/* TECHNICAL DETAILS SECTION - 1 SINGLE PRIMARY IMAGE */}
         <section id="specs" className="cfg-specs-section">
           <div className="cfg-specs-container">
             <div className="cfg-specs-header">
@@ -858,7 +950,7 @@ function ConfiguredContent() {
 
             <div className="cfg-specs-grid">
               <div className="cfg-specs-img-wrap">
-                <img src={singlePrimaryImage} alt={product.title} className="cfg-specs-img" />
+                <img src={singleImage} alt={product.title} className="cfg-specs-img" />
               </div>
 
               <div className="cfg-spec-accordion" style={{ width: '100%' }}>
@@ -874,17 +966,16 @@ function ConfiguredContent() {
                       >
                         <span className="cfg-spec-group-name">{groupName}</span>
                       </button>
-
-                      {currentActiveGroup === groupName && (
-                        <div className="cfg-spec-content">
-                          {(product.specs[groupName] || []).map((s, i) => (
-                            <div key={i} className="cfg-spec-row">
-                              <span className="cfg-spec-label">{s.label}</span>
-                              <span className="cfg-spec-value">{s.value}</span>
+                      <div className="cfg-spec-content">
+                        <div className="cfg-spec-inner">
+                          {(product.specs[groupName] || []).map((spec, sIdx) => (
+                            <div key={sIdx} className="cfg-spec-row">
+                              <span className="cfg-spec-label">{spec.label}</span>
+                              <span className="cfg-spec-value">{spec.value}</span>
                             </div>
                           ))}
                         </div>
-                      )}
+                      </div>
                     </div>
                   ));
                 })()}
@@ -893,21 +984,256 @@ function ConfiguredContent() {
           </div>
         </section>
 
-        {/* ── HERITAGE SECTION ── */}
-        <section id="heritage" style={{ padding: '140px 80px', background: '#09090b', color: '#ffffff', textAlign: 'center' }}>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.25em', color: product.accentColor || '#c4a35a', display: 'block', marginBottom: '16px' }}>
-              HERITAGE &amp; CRAFTSMANSHIP
-            </span>
-            <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '2.5rem', fontWeight: 600, marginBottom: '24px' }}>
-              The Legacy of Precision
-            </h2>
-            <p style={{ fontSize: '1.05rem', lineHeight: '1.8', color: 'rgba(255,255,255,0.75)' }}>
-              {product.heritageText}
-            </p>
-          </div>
-        </section>
+        {/* COMPATIBLE BELTS SECTION */}
+        {product.productBelts?.length > 0 && (
+          <section 
+            ref={strapsSectionRef}
+            className="cfg-belts-pinned-section"
+            style={{ 
+              background: '#f5f5f3', 
+              width: '100%', 
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '100vh',
+              padding: '60px 0'
+            }}
+          >
+            <div style={{ width: '100%', maxWidth: '1600px', margin: '0 auto', padding: '0 40px' }}>
+              <div style={{ marginBottom: '36px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#333', marginBottom: '10px' }}>Compatible Straps</p>
+                  <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 300, fontFamily: 'Georgia, serif', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+                    Add to the look
+                  </h2>
+                </div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#666', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>Scroll down to explore all straps</span> →
+                </div>
+              </div>
 
+              <div 
+                ref={strapsTrackRef}
+                className="cfg-belts-track-row"
+                style={{ 
+                  display: 'flex', 
+                  gap: '28px', 
+                  willChange: 'transform',
+                  paddingBottom: '24px',
+                  paddingTop: '8px'
+                }}
+              >
+                {product.productBelts.map(belt => (
+                  <div key={belt.id} className="group" style={{ 
+                    flex: '0 0 280px', 
+                    width: '280px', 
+                    scrollSnapAlign: 'start',
+                    background: '#ffffff',
+                    borderRadius: '16px',
+                    padding: '20px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.03)',
+                    border: '1px solid #eaeaea',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <div
+                      style={{
+                        background: '#f9f9f8',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        paddingBottom: '110%',
+                        marginBottom: '16px',
+                        transition: 'background 0.3s',
+                      }}
+                    >
+                      {belt.image ? (
+                        <img
+                          src={belt.image}
+                          alt={belt.name}
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            padding: '0px',
+                            transition: 'transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)',
+                          }}
+                          className="group-hover:scale-105"
+                        />
+                      ) : (
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#666', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em'
+                        }}>No Image</div>
+                      )}
+                    </div>
+
+                    <div style={{ paddingBottom: '4px' }}>
+                      <h3 style={{ fontSize: '18px', fontWeight: 500, fontFamily: 'Georgia, serif', color: '#111', lineHeight: 1.25, marginBottom: '6px' }}>{belt.name}</h3>
+                      <p style={{ fontSize: '15px', fontWeight: 600, letterSpacing: '0.05em', color: '#111', marginBottom: '14px' }}>₹{(belt.price || 0).toLocaleString()}</p>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!addedBelts[belt.id]) {
+                            addToCart(`belt-${belt.id}`, 1, { title: belt.name, price: belt.price, image: belt.image });
+                            setAddedBelts(prev => ({ ...prev, [belt.id]: true }));
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'block',
+                          textAlign: 'center',
+                          padding: '10px 18px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          letterSpacing: '0.12em',
+                          textTransform: 'uppercase',
+                          border: addedBelts[belt.id] ? '1px solid #111' : '1px solid #111',
+                          background: addedBelts[belt.id] ? '#111' : 'transparent',
+                          color: addedBelts[belt.id] ? '#fff' : '#111',
+                          cursor: addedBelts[belt.id] ? 'default' : 'pointer',
+                          transition: 'all 0.25s',
+                          borderRadius: '999px',
+                        }}
+                      >
+                        {addedBelts[belt.id] ? '✓ Added to Cart' : 'Add to Cart'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* UNIVERSAL PACKAGING BANNER */}
+        {product.productBoxes?.length > 0 && (() => {
+          const mainBox = product.productBoxes[0];
+          const boxImg = mainBox?.image;
+          const defaultParagraph = "Inspired by the travel cases from the 1940s, simply sophisticated and refined, our packaging is crafted with attention to details to guarantee great robustness. It includes warranty and certificates papers, a micro-fiber cloth and a secondary strap.";
+          let rawDesc = mainBox?.description || defaultParagraph;
+          const sentenceList = rawDesc.split(/(?<=[.?!])\s+/).filter(Boolean);
+          const uniqueSentences = Array.from(new Set(sentenceList));
+          let cleanDesc = uniqueSentences.join(' ').trim() || defaultParagraph;
+          const rawBoxName = mainBox?.name?.trim() || '';
+          const isLongName = rawBoxName.length >= 50 || rawBoxName.toLowerCase().includes('inspired by');
+          const displayBoxName = (!isLongName && rawBoxName && rawBoxName !== cleanDesc)
+            ? rawBoxName
+            : 'Universal Signature Packaging';
+
+          return (
+            <section style={{ 
+              width: '100%', 
+              background: '#ffffff', 
+              padding: '0 0 60px 0', 
+              margin: 0,
+              borderTop: '1px solid #e5e5e0', 
+              borderBottom: '1px solid #e5e5e0',
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                width: '100%', 
+                margin: 0, 
+                padding: 0, 
+                background: '#f9f9f8', 
+                overflow: 'hidden' 
+              }}>
+                {boxImg ? (
+                  <img
+                    src={boxImg}
+                    alt={displayBoxName}
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '75vh',
+                      objectFit: 'contain',
+                      display: 'block',
+                      margin: '0 auto',
+                      padding: 0
+                    }}
+                  />
+                ) : (
+                  <div style={{ padding: '80px 20px', textAlign: 'center', color: '#888' }}>
+                    <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>📦</span>
+                    <p style={{ fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>Universal Signature Packaging</p>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 30px 0 30px', width: '100%' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  gap: '24px' 
+                }}>
+                  <div style={{ flex: '1 1 500px', maxWidth: '850px' }}>
+                    <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#006039', marginBottom: '8px' }}>
+                      Included Packaging
+                    </p>
+                    <h3 style={{ fontSize: '26px', fontWeight: 400, fontFamily: 'Georgia, serif', color: '#111', marginBottom: '12px' }}>
+                      {displayBoxName}
+                    </h3>
+                    <p style={{ fontSize: '15px', color: '#555', lineHeight: 1.7, margin: 0 }}>
+                      {cleanDesc}
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <span style={{ 
+                      fontSize: '12px', 
+                      fontWeight: 700, 
+                      letterSpacing: '0.15em', 
+                      textTransform: 'uppercase', 
+                      color: '#006039', 
+                      background: '#e6f4ed', 
+                      padding: '12px 24px', 
+                      borderRadius: '999px',
+                      border: '1px solid #bce3d0'
+                    }}>
+                      ✓ Included with order
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </section>
+          );
+        })()}
+      </div>
+
+      <div className={`cfg-modal-overlay ${activeModalData ? 'show' : ''}`} onClick={closeInfoModal}>
+        <div className="cfg-modal-box" onClick={(e) => e.stopPropagation()}>
+          <div className="cfg-modal-header">
+            <h3 className="cfg-modal-title">Sold Configurations</h3>
+            <button className="cfg-modal-close" onClick={closeInfoModal}>✕</button>
+          </div>
+          <div className="cfg-modal-content" data-lenis-prevent="true" onWheel={(e) => e.stopPropagation()} onTouchMove={(e) => e.stopPropagation()}>
+            {activeModalData?.combinations?.length > 0 ? (
+              activeModalData.combinations.map((combo) => (
+                <div key={combo.id} className="cfg-combo-item" onClick={() => handleComboClick(combo)}>
+                  <div className="cfg-combo-img-wrap">
+                    <img src={combo.img} alt={`Combo ${combo.id}`} />
+                  </div>
+                  <div className="cfg-combo-details">
+                    <span className="cfg-combo-name">{combo.name}</span>
+                    <span className="cfg-combo-status">Exclusive Build &bull; {combo.fakeSoldCount || 0} Sold</span>
+                  </div>
+                  <div className="cfg-combo-chevron">&#8250;</div>
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '60px 40px', textAlign: 'center', color: '#888', fontSize: '0.95rem' }}>
+                No configurations have been registered yet.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
@@ -918,7 +1244,7 @@ function ConfiguredContent() {
 
 export default function ConfiguredPage() {
   return (
-    <Suspense fallback={<div style={{ background: '#09090b', height: '100vh' }}></div>}>
+    <Suspense fallback={<div>Loading Assembled Timepiece...</div>}>
       <ConfiguredContent />
     </Suspense>
   );
