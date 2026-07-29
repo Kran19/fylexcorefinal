@@ -505,6 +505,61 @@ function ConfigureContent() {
             <img src={previewSrc} alt="Watch preview" className="watch-preview" ref={previewImgRef} />
           )}
           {media360.length > 0 && <div style={{ position: 'absolute', bottom: 100, color: '#888', fontSize: 13 }}><RefreshCw size={14} /> Swipe for 360° View</div>}
+
+          {/* ── SIDE ANGLE THUMBNAILS BAR ── */}
+          {(() => {
+            const rawGallery = (product.galleryImages || []).length > 0
+              ? product.galleryImages
+              : (product.gallery || []).map(g => typeof g === 'string' ? g : getFileUrl(g?.url || g?.filePath || g?.fileName)).filter(Boolean);
+
+            const sideList = Array.from(new Set([previewSrc, ...rawGallery].filter(Boolean)));
+            if (sideList.length <= 1) return null;
+
+            return (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: '28px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  zIndex: 15
+                }}
+              >
+                {sideList.slice(0, 5).map((imgUrl, idx) => {
+                  const isActive = previewSrc === imgUrl;
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => updatePreviewImage(imgUrl)}
+                      style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '12px',
+                        background: '#121212',
+                        border: isActive ? '2px solid #008767' : '1px solid rgba(255,255,255,0.18)',
+                        padding: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.25s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: isActive ? '0 0 14px rgba(0, 135, 103, 0.5)' : '0 4px 12px rgba(0,0,0,0.3)'
+                      }}
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Angle ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="c-bottom-panel">
