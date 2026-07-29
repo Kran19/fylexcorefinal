@@ -2221,6 +2221,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     />
                   </div>
                 </section>
+              )}
               {/* ── TECHNICAL DETAILS SECTION ── */}
               <section id="specs" className="cfg-specs-section">
                 <div className="cfg-specs-container">
