@@ -1019,7 +1019,7 @@ const EditProductPage = () => {
                                     <div className="flex justify-between items-center border-b !pb-3">
                                         <div>
                                             <h3 className="text-xl font-bold text-gray-900">Per-Page Visual Theme Customization</h3>
-                                            <p className="text-xs text-gray-500">Configure distinct background, text, and accent colors for Discover, Products, and Pre-Configure pages with real-time live layout analysis.</p>
+                                            <p className="text-xs text-gray-500">Configure distinct background, text, and accent colors for Explore, Configured, and Products pages with real-time live layout analysis.</p>
                                         </div>
                                     </div>
 
@@ -1031,7 +1031,7 @@ const EditProductPage = () => {
                                             <div className="flex border-b border-gray-200 gap-2">
                                                 {[
                                                     { id: 'explore', label: '1. Explore Page', icon: 'fa-compass' },
-                                                    { id: 'configure', label: '2. Configure Page', icon: 'fa-sliders-h' },
+                                                    { id: 'configured', label: '2. Configured Page', icon: 'fa-check-circle' },
                                                     { id: 'products', label: '3. Products Listing', icon: 'fa-th-large' },
                                                 ].map(pTab => (
                                                     <button
@@ -1039,7 +1039,7 @@ const EditProductPage = () => {
                                                         type="button"
                                                         onClick={() => setPageThemeTab(pTab.id)}
                                                         className={`!px-3 !py-2.5 text-xs font-bold rounded-t-lg transition-all flex items-center gap-2 border-b-2 cursor-pointer ${
-                                                            (pageThemeTab === pTab.id || (pageThemeTab === 'discover' && pTab.id === 'explore') || (pageThemeTab === 'preConfigure' && pTab.id === 'configure'))
+                                                            (pageThemeTab === pTab.id || (pageThemeTab === 'discover' && pTab.id === 'explore') || (pageThemeTab === 'preConfigure' && pTab.id === 'configured') || (pageThemeTab === 'configure' && pTab.id === 'configured'))
                                                                 ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
                                                                 : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                                                         }`}
@@ -1102,16 +1102,16 @@ const EditProductPage = () => {
                                                 </div>
                                             )}
 
-                                            {/* Tab 2: Configure Page Theme Controls */}
-                                            {(pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') && (
+                                            {/* Tab 2: Configured Page Theme Controls */}
+                                            {(pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') && (
                                                 <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
                                                     <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                                        <i className="fas fa-sliders-h text-indigo-600"></i> Configure Customizer Theme (1 Single Watch Image)
+                                                        <i className="fas fa-check-circle text-indigo-600"></i> Configured Page Theme (Single Timepiece Showcase)
                                                     </h4>
                                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <FormField label="Configure Background Color" name="preConfigureBg" type="color" value={form.preConfigureBg || form.bgColor || '#ffffff'} onChange={handleChange} />
-                                                        <FormField label="Configure Text Color" name="preConfigureTextColor" type="color" value={form.preConfigureTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
-                                                        <FormField label="Configure Accent Color" name="preConfigureAccentColor" type="color" value={form.preConfigureAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
+                                                        <FormField label="Configured Background Color" name="preConfigureBg" type="color" value={form.preConfigureBg || form.bgColor || '#ffffff'} onChange={handleChange} />
+                                                        <FormField label="Configured Text Color" name="preConfigureTextColor" type="color" value={form.preConfigureTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
+                                                        <FormField label="Configured Accent Color" name="preConfigureAccentColor" type="color" value={form.preConfigureAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
                                                     </div>
                                                 </div>
                                             )}
@@ -1171,7 +1171,7 @@ const EditProductPage = () => {
                                                     <span className="text-xs font-bold uppercase tracking-wider">Real-Time Live Layout Preview</span>
                                                 </div>
                                                 <span className="text-[10px] bg-gray-700 px-2.5 py-0.5 rounded text-gray-300 font-semibold">
-                                                    {(pageThemeTab === 'explore' || pageThemeTab === 'discover') ? 'Explore Page' : (pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? 'Configure Page' : 'Products Page'}
+                                                    {(pageThemeTab === 'explore' || pageThemeTab === 'discover') ? 'Explore Page' : (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? 'Configured Page' : 'Products Page'}
                                                 </span>
                                             </div>
 
@@ -1185,7 +1185,7 @@ const EditProductPage = () => {
                                                     ref={iframeRef}
                                                     src={
                                                         (pageThemeTab === 'explore' || pageThemeTab === 'discover') ? `/explore?watch=${productId}` :
-                                                        (pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? `/configure?watch=${productId}` :
+                                                        (pageThemeTab === 'configured' || pageThemeTab === 'configure' || pageThemeTab === 'preConfigure') ? `/configured?watch=${productId}` :
                                                         `/products`
                                                     }
                                                     className="w-full h-full border-none"
