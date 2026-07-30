@@ -20,6 +20,8 @@ const CommunityPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ title: '', image: '', sortOrder: 0, isActive: true });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -29,7 +31,7 @@ const CommunityPage = () => {
     const item = selection[0];
     const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
     setFormData(prev => ({ ...prev, image: url }));
-    toast?.success('Community wristshot image selected from Media Library');
+    toast?.success?.('Community wristshot image selected from Media Library');
     setIsPickerOpen(false);
   };
 
@@ -58,7 +60,7 @@ const CommunityPage = () => {
 
   const handleSave = async () => {
     if (!formData.image && !imageFile) {
-      toast?.error?.('Please select an image');
+      toast?.error?.('Please select an image from Media Library');
       return;
     }
     setSaving(true);
@@ -107,6 +109,7 @@ const CommunityPage = () => {
     setImageFile(null);
     setImagePreview('');
     setShowModal(true);
+    setIsPickerOpen(true);
   };
 
   const handleEdit = (img) => {
