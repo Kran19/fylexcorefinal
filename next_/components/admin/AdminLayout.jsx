@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import AdminHelpDrawer from './AdminHelpDrawer';
 import { usePathname, useRouter } from 'next/navigation';
 
 const AdminLayout = ({ children }) => {
@@ -61,6 +62,7 @@ const AdminLayout = ({ children }) => {
         <div className="admin-page animate-fade-in">
           {children}
         </div>
+        <AdminHelpDrawer />
       </div>
     </div>
   );

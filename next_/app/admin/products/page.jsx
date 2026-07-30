@@ -32,7 +32,7 @@ const AdminProducts = () => {
   const router = useRouter();
 
   const getDisplayData = (product) => {
-    if (!product) return { name: 'Unknown', price: 0, formattedPrice: '$0.00', image: '', isConfigurable: false };
+    if (!product) return { name: 'Unknown', price: 0, formattedPrice: '₹0.00', image: '', isConfigurable: false };
     const isConfigurable = product.productType === 'configurable';
     let img = product.images?.[0]?.url || product.primaryImage || product.image || product.thumbnailUrl || '';
     let price = product.price || product.basePrice || 0;
@@ -44,7 +44,7 @@ const AdminProducts = () => {
         if (!img && activeVariants[0]?.image) img = activeVariants[0].image;
       }
     }
-    const formattedPrice = typeof price === 'number' ? `$${price.toFixed(2)}` : (price ? `$${price}` : '$0.00');
+    const formattedPrice = typeof price === 'number' ? `₹${Number(price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : (price ? `₹${price}` : '₹0.00');
     return {
       name: product.name || 'Untitled Product',
       price,

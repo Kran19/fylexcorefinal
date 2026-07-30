@@ -2,11 +2,13 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const users = await prisma.user.findMany({
-    take: 5
+  const settings = await prisma.setting.findMany();
+  console.log('=== SETTINGS IN DB ===');
+  settings.forEach(s => {
+    if (s.key.includes('video') || s.key.includes('home')) {
+      console.log(`${s.key}: "${s.value}"`);
+    }
   });
-  console.log('Users in database:');
-  users.forEach(u => console.log(`ID: ${u.id}, Name: ${u.name}, Email: ${u.email}`));
 }
 
 main()

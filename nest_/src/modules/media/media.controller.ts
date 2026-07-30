@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Param, UploadedFiles, UseInterceptors, Delete, Body, Put } from '@nestjs/common';
+import { Controller, Get, Post, Param, UploadedFiles, UseInterceptors, Delete, Body, Put, UseGuards } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { MediaService } from './media.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('media')
 export class MediaController {
@@ -14,6 +15,7 @@ export class MediaController {
   }
 
   @Post('upload')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('file', 500, {
     limits: { fileSize: 200 * 1024 * 1024 },
     storage: diskStorage({
