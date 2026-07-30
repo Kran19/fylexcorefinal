@@ -76,15 +76,28 @@ DOM Layer: Transparent watch dial & strap overlay rendering
 
 ---
 
-## 3. Strict 8 Production Readiness Criteria Checklist
+## 3. Production Readiness Criteria Checklist
 
 Before deleting the legacy `images` JSON fallback or running a production cutover:
 
-- [x] **Criterion 1:** Every media-producing API returns a consistent `Media` object payload.
-- [x] **Criterion 2:** Frontend utilities resolve WebP variants dynamically when `serveMode === 'auto'`.
-- [x] **Criterion 3:** PostgreSQL `Media` table contains 100% optimized WebP variants (66 of 66 assets).
-- [x] **Criterion 4:** Server-side static interceptor (`nest_/src/main.ts:L20`) transparently streams WebP files for raw static image requests.
+- [ ] **Criterion 1 (Partially Complete):** Several APIs (`GET /api/products`, `GET /api/settings`) still expose mixed legacy string arrays alongside `ProductMedia` payloads.
+- [x] **Criterion 2 (Complete):** Frontend utilities resolve WebP variants dynamically when object entities are passed and `serveMode === 'auto'`.
+- [x] **Criterion 3 (Complete):** PostgreSQL `Media` table contains 100% optimized WebP variants (66 of 66 assets registered in DAM).
+- [ ] **Criterion 4 (Pending Process Restart):** Server-side static interceptor (`nest_/src/main.ts:L20`) is implemented; requires PM2 process reload on production server. Current raw HEAD response serves 4.18MB `image/png`.
 - [ ] **Criterion 5 (Pending):** One-time data sync script executed to link 100% of legacy products to `ProductMedia` join records.
 - [ ] **Criterion 6 (Pending):** Visual regression testing completed across `/shop`, `/configure`, `/discover`, `/cart`, and `/checkout`.
 - [ ] **Criterion 7 (Pending):** Admin CMS forms (`settings`, `care-steps`) updated to store `mediaId` foreign keys.
 - [ ] **Criterion 8 (Pending):** Final production build completed with zero TypeScript or runtime errors.
+
+---
+
+## 4. Runtime Validation Matrix
+
+| Check Domain | Verified Status | Empirical Observation |
+| :--- | :---: | :--- |
+| **Network Serves Optimized Image** | ⚠️ Partial | WebP served on `ProductMedia` entities; raw PNG fallback on string primitives |
+| **Network Serves Optimized Video** | ⚠️ Partial | Compressed WebM streams available; raw MP4 hero fallback on static paths |
+| **No Raw `/uploads/` Requests** | ⚠️ Pending Data Sync | Legacy products still trigger `/api/uploads/[hash].png` requests |
+| **Browser Cache Behavior** | ✅ Pass | 304 Not Modified headers & static asset caching verified |
+| **Lighthouse Image Audit** | ⚠️ Pending | $+18$ estimated score gain upon full WebP cutover |
+| **Largest Contentful Paint (LCP)** | ⚠️ Pending | Direct reduction from 4.18MB to 214KB per hero watch asset |
