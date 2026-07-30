@@ -8,7 +8,10 @@ export function cn(...inputs) {
 
 export function getFileUrl(path) {
   if (!path) return null;
-  if (typeof path !== 'string') return null;
+  if (typeof path === 'object') {
+    path = extractMediaPath(path);
+  }
+  if (!path || typeof path !== 'string') return null;
 
   let cleanPath = path.trim();
   if (!cleanPath) return null;
@@ -59,6 +62,25 @@ export function getFileUrl(path) {
   let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
   const apiPrefix = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
   return `${apiPrefix}/uploads/${fileKey}`;
+}
+
+function extractMediaPath(item) {
+  if (!item) return null;
+  if (typeof item === 'string') return item;
+  const m = item.media || item;
+  if (typeof m === 'string') return m;
+
+  // PRIORITY: If compressed variant exists and serveMode is auto/accepted, return compressed path!
+  if (m.serveMode !== 'original') {
+    if (m.bestVariant?.filePath) return m.bestVariant.filePath;
+    if (m.primaryVariant?.filePath) return m.primaryVariant.filePath;
+    if (m.variants && Array.isArray(m.variants) && m.variants.length > 0) {
+      const best = m.variants.reduce((prev, curr) => (Number(curr.fileSize) < Number(prev.fileSize) ? curr : prev), m.variants[0]);
+      if (best?.filePath) return best.filePath;
+    }
+  }
+
+  return m.url || m.filePath || m.path || m.fileName || null;
 }
 
 /**
@@ -130,13 +152,7 @@ export function getDisplayData(product, variant = null) {
     };
 }
 
-function extractMediaPath(item) {
-  if (!item) return null;
-  if (typeof item === 'string') return item;
-  const m = item.media || item;
-  if (typeof m === 'string') return m;
-  return m.url || m.filePath || m.path || m.fileName || null;
-}
+
 
 export function resolveProductImage(product, variant = null) {
   if (!product) return '/assets/fylex-watch-v2/premium.png';
