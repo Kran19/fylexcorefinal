@@ -52,9 +52,8 @@ export default function EnterpriseDAMOptimizationCenter() {
   const fetchStats = async () => {
     try {
       const res = await api.getOptimizationStats();
-      if (res?.data || res?.success) {
-        setStats(res.data || res);
-      }
+      const statsObj = res?.data?.data || res?.data || res;
+      setStats(statsObj);
     } catch (e) {
       console.error("Failed to fetch DAM stats:", e);
     } finally {
