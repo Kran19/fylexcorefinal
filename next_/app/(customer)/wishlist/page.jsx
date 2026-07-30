@@ -266,7 +266,7 @@ export default function Wishlist() {
               <div 
                 key={item.id} 
                 className="wishlist-item"
-                onClick={() => router.push(item.redirectUrl || `/discover?watch=${item.slug || item.productId || item.id}`)}
+                onClick={() => router.push(item.redirectUrl || `/explore?watch=${item.slug || item.productId || item.id}`)}
               >
                 <button
                   className="wishlist-remove"

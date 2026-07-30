@@ -49,7 +49,7 @@ export function WishlistProvider({ children }) {
                   price: display.price,
                   formattedPrice: display.formattedPrice,
                   image: display.image,
-                  redirectUrl: `/discover?watch=${product.id}&variant=${variant.id}${attrParams ? `&${attrParams}` : ''}`,
+                  redirectUrl: `/explore?watch=${product.id}&variant=${variant.id}${attrParams ? `&${attrParams}` : ''}`,
                   isOutOfStock,
               };
           }).filter(Boolean);

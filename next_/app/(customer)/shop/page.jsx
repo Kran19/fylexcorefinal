@@ -554,7 +554,7 @@ export default function Shop() {
             <img id="mainWatch" ref={mainWatchRef} src={displayProducts[activeWatchIndex]?.image} alt="Fylex Watch" />
           </div>
           <div className="rbtn-wrap r0">
-            <Link href="/discover" className="bf">Discover our watches</Link>
+            <Link href="/explore" className="bf">Explore our watches</Link>
           </div>
           <div className="rpag" id="rpag">
             {displayProducts.map((_, idx) => (
@@ -675,7 +675,7 @@ export default function Shop() {
                 
                 {founderVariant && (
                   <Link 
-                    href={`/discover?watch=${founderVariant.productId || founderVariant.product?.id || ''}`}
+                    href={`/explore?watch=${founderVariant.productId || founderVariant.product?.id || ''}`}
                     style={{
                       display: 'inline-block',
                       background: 'rgba(255,255,255,0.05)',
