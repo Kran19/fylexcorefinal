@@ -78,7 +78,7 @@ function ConfigureContent() {
 
         const threeSixty = (p.productMedia || [])
           .filter(m => m.type === '360' || m.role === '360_view')
-          .map(m => getFileUrl(m.media?.path || m.media?.url))
+          .map(m => getFileUrl(m.media || m))
           .filter(Boolean);
         setMedia360(threeSixty);
 
@@ -135,7 +135,7 @@ function ConfigureContent() {
           setProduct(prev => ({ ...prev, heroBgImage: vBgPath }));
 
           const matchGallery = (match.variantImages || []).map(vi =>
-            getFileUrl(vi.media?.path || vi.media?.url || vi.media?.fileName)
+            getFileUrl(vi.media || vi)
           ).filter(Boolean);
           setProduct(prev => ({ ...prev, galleryImages: matchGallery }));
         }
@@ -345,14 +345,14 @@ function ConfigureContent() {
 
     const match = findMatchingVariant(targetSelections);
     if (match) {
-      const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media;
-      const vPath = getFileUrl(vImg?.path || vImg?.url || (vImg?.fileName ? `/uploads/${vImg.fileName}` : null));
+      const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media || match;
+      const vPath = getFileUrl(vImg);
       updatePreviewImage(vPath || src);
       setDisplayPrice(`₹${Number(match.sellingPrice || 0).toLocaleString('en-IN')}`);
 
       const vBgPath = resolveProductBackground(product, match);
       const matchGallery = (match.variantImages || []).map(vi =>
-        getFileUrl(vi.media?.path || vi.media?.url || (vi.media?.fileName ? `/uploads/${vi.media.fileName}` : null))
+        getFileUrl(vi.media || vi)
       ).filter(Boolean);
       setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath }));
     } else {
@@ -374,14 +374,14 @@ function ConfigureContent() {
 
       const match = findMatchingVariant(userSelections);
       if (match) {
-        const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media;
-        const vPath = getFileUrl(vImg?.path || vImg?.url || (vImg?.fileName ? `/uploads/${vImg.fileName}` : null));
+        const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media || match;
+        const vPath = getFileUrl(vImg);
         updatePreviewImage(vPath || stepsData[nextStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
         setDisplayPrice(`₹${Number(match.sellingPrice || 0).toLocaleString('en-IN')}`);
 
         const vBgPath = resolveProductBackground(product, match);
         const matchGallery = (match.variantImages || []).map(vi =>
-          getFileUrl(vi.media?.path || vi.media?.url || (vi.media?.fileName ? `/uploads/${vi.media.fileName}` : null))
+          getFileUrl(vi.media || vi)
         ).filter(Boolean);
         setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath }));
       } else {
@@ -509,7 +509,7 @@ function ConfigureContent() {
           {(() => {
             const rawGallery = (product.galleryImages || []).length > 0
               ? product.galleryImages
-              : (product.gallery || []).map(g => typeof g === 'string' ? g : getFileUrl(g?.url || g?.filePath || g?.fileName)).filter(Boolean);
+              : (product.gallery || []).map(g => getFileUrl(g)).filter(Boolean);
 
             const normalizeKey = (url) => {
               if (!url) return '';
