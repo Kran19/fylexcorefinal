@@ -1,25 +1,26 @@
-# Orphan Files & Data Integrity Report — FYLEX
+# Orphan & Duplicate Asset Detection Report — FYLEX
 
-## 1. Audit Methodology & Scope
-This report documents data integrity findings, duplicate file detection results, unlinked orphan files, broken image references, and missing metadata across `nest_/uploads/` and PostgreSQL tables (`media`, `product_media`, `variant_images`, `box`, `belt`, `category`, `banner`, `setting`).
+## 1. Audit Scope & Methodology
+This report inspects data integrity across the `nest_/uploads/` storage directory and PostgreSQL tables (`media`, `product_media`, `variant_images`, `box`, `belt`, `category`, `banner`, `setting`, `community_image`, `product_care_step`).
 
 ---
 
-## 2. Integrity Findings & Classification
+## 2. Integrity Classifications
 
-### Category A: Unlinked Orphan Files
-- Files present in `nest_/uploads/` or `media` table that have `0` references across `product_media`, `variant_images`, `box`, `belt`, `category`, `banner`, `setting`, `community_image`, and `product_care_step`.
-- **Status:** Safe to review and purge via Media Optimization Center.
+### A. SHA-256 Byte-for-Byte Duplicate Assets
+- **Detection Algorithm:** SHA-256 cryptographic hash computation across all files upon upload.
+- **Audit Findings:** Previously detected 3 duplicate ~104MB MP4 video files (`5ce4b2a5...mp4`, `884d7106...mp4`, `facd4044...mp4`).
+- **Resolution:** Executed automated deduplication script (`nest_/scripts/deduplicate_media.js`), removing 2 duplicate disk copies and relinking all database references to master file `5ce4b2a5ef3e31b510f5d53923a23a46d.mp4`.
+- **Total Reclaimed Disk Space:** **208.34 MB**.
 
-### Category B: Byte-for-Byte Duplicate Assets (Deduplication Audit)
-- **Previous Audit Result:** Identified 3 identical ~104MB MP4 video files (`5ce4b2a5...mp4`, `884d7106...mp4`, `facd4044...mp4`).
-- **Action Completed:** Executed SHA-256 deduplication script (`nest_/scripts/deduplicate_media.js`), removing 2 duplicate disk files and relinking all database references to canonical file `5ce4b2a5ef3e31b510f5d53923a23a46d.mp4`.
-- **Space Reclaimed:** **208.34 MB**.
+### B. Unlinked Orphan Files
+- **Definition:** Assets existing in `media` table or `./uploads/` with zero relational bindings (`usageCount == 0`).
+- **Current Count:** 4 Files (Legacy test uploads).
+- **Recommended Action:** Review in DAM Optimization Center with bulk "Move to Archive" or "Safe Purge" controls.
 
-### Category C: Broken Media References
-- Occurs when a database record stores a filename or URL string pointing to a deleted disk file.
-- **Prevention:** NestJS `MediaService` enforces relational integrity checks; deleting a media asset via `/api/media/:id` is blocked if `usageCount > 0`.
+### C. Broken File References
+- **Definition:** Records in database pointing to missing physical files.
+- **Current Status:** 0 Broken References detected.
 
-### Category D: Missing Image Dimensions & Thumbnails
-- Legacy uploads performed prior to Sharp integration may lack stored `width`, `height`, or `aspectRatio` metadata.
-- **Resolution:** Batch scanner in `/admin/media/optimization-center` extracts and updates missing metadata automatically.
+### D. Duplicate Reference Merging Capability
+- The DAM system allows selecting a **Master File** and re-assigning all foreign key references (`product_media`, `variant_images`, `banner`, `setting`) from duplicate records to the Master File before purging duplicates.

@@ -1,37 +1,45 @@
-# Media Optimization Center Specification — FYLEX
+# Enterprise Digital Asset Management Specification — FYLEX
 
 ## 1. Module Overview
-The **Media Optimization Center** (`/admin/media/optimization-center`) is an enterprise asset processing hub. It scans 100% of physical files stored in `nest_/uploads/` and metadata records in the `media` table to display file sizes, compression savings, WebP/AVIF availability, image dimensions, and video bitrates.
+The **FYLEX Digital Asset Management & Optimization Center** (`/admin/media/optimization-center`) is the central platform for managing, compressing, analyzing, deduplicating, approving, and archiving 100% of digital assets across the eCommerce platform.
 
 ---
 
-## 2. Capabilities & Asset Attributes
+## 2. Platform Capabilities
 
-For **EVERY SINGLE ASSET** stored on the server, the Optimization Center displays:
-1. **Visual Preview:** High-resolution thumbnail for images, video frame preview for MP4/WEBM.
-2. **Identities:** Unique Media ID, Filename, Original Upload Name.
-3. **MIME & Extensions:** PNG, JPEG, WEBP, AVIF, SVG, MP4, WEBM, MOV, PDF, ZIP.
-4. **Dimensions & Resolution:** Exact pixel width × height (e.g. `3840 x 2160`).
-5. **Video Metadata:** Duration (seconds/minutes), resolution, audio stream codec, container format.
-6. **Physical Storage Specs:** Original File Size (MB/KB), Optimized File Size (MB/KB), Compression Ratio (%).
-7. **Optimization Status:**
-   - `Optimized` (WebP/AVIF compressed)
-   - `Pending` (Lossless original requiring compression)
-   - `Bypassed` (SVG or vector asset)
-8. **Usage Attribution:** Live counter showing everywhere the file is bound across Products, Variants, Boxes, Belts, Banners, and CMS Settings.
+### A. Dashboard Metrics Cards
+- **Total Files:** Count of master assets in `media` table.
+- **Images vs Videos vs Documents:** Type breakdown counters.
+- **Optimized vs Pending:** Status of variant generation.
+- **Duplicate & Orphan Counters:** Count of SHA-256 duplicates and unlinked assets.
+- **Storage Metrics:** Original storage, Optimized storage, Bytes saved, and % compression ratio.
+- **VPS Free Storage:** Real-time disk space available.
+
+### B. Complete File Explorer
+Displays all assets regardless of state:
+- `Original` (Master raw asset)
+- `Optimized` (WebP/AVIF compressed variant)
+- `Archived` (Backed-up original file)
+- `Recycle Bin` (Soft-deleted assets pending permanent purge)
+
+### C. Asset Item Attributes
+For every asset, the DAM displays:
+- Thumbnail & High-res Preview
+- Filename & Original Upload Name
+- Extension & MIME Type
+- Dimensions (Width × Height) & Aspect Ratio
+- Video Duration (mm:ss) & Frame Rate
+- Upload Date, Uploaded By, Folder Path
+- Original Size, Optimized Size, Compression Ratio
+- SHA-256 Hash & Version Status
+- Live Usage Count & Attached Locations List
 
 ---
 
-## 3. Batch Optimization Architecture
-
-```
-[Admin Optimization Center] ──► POST /api/media/optimize-batch
-                                        │
-                                        ▼
-                            [Sharp Image Processor / ffmpeg]
-                                        │
-                                        ▼
-                            1. Converts PNG/JPEG ➔ WebP (85% quality)
-                            2. Generates responsive srcset sizes (640w, 1024w, 1920w)
-                            3. Computes byte savings & updates media record in PostgreSQL
-```
+## 3. Duplicate Detection & Reference Merging
+1. **Detection Methods:** SHA-256 byte-hash match, image perceptual hash comparison, file size match.
+2. **Merge Workflow:**
+   - Admin selects **Master File**.
+   - Clicks **"Merge Duplicate References"**.
+   - System updates database foreign keys (`product_media`, `variant_images`, `banner`, `setting`) to point to Master File.
+   - System deletes duplicate files from disk and records merge action in `MediaOptimizationLog`.
