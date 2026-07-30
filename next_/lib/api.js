@@ -9,8 +9,9 @@ if (typeof window !== 'undefined') {
     if (isLocalHost) {
       API_BASE_URL = `http://${window.location.hostname}:5000/api`;
     } else {
-      const url = new URL(API_BASE_URL);
-      API_BASE_URL = url.toString().replace(/\/$/, '');
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      API_BASE_URL = `${protocol}//${hostname}/api`;
     }
   } catch (e) {
     console.warn('Failed to parse API_BASE_URL', e);

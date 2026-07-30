@@ -11,8 +11,9 @@ if (typeof window !== 'undefined') {
     if (isLocalHost) {
       BASE_URL = `http://${window.location.hostname}:5000/api`;
     } else {
-      const url = new URL(BASE_URL);
-      BASE_URL = url.toString().replace(/\/$/, '');
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      BASE_URL = `${protocol}//${hostname}/api`;
     }
   } catch (e) {
     console.warn('Failed to parse BASE_URL', e);
