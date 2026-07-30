@@ -1973,3 +1973,29 @@ select.form-control {
     padding: 16px 14px !important;
 }
 
+/* ─── Settings Page Sidebar Override ─── */
+.settings-tab-sidebar {
+    width: 250px !important;
+    max-width: 250px !important;
+    flex-shrink: 0 !important;
+    padding: 14px !important;
+}
+
+.settings-container {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+@media (max-width: 768px) {
+    .settings-container {
+        flex-direction: column;
+    }
+
+    .settings-tab-sidebar {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+
