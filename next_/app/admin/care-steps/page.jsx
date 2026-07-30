@@ -14,6 +14,7 @@ import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
 import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
+import { getFileUrl } from '@/lib/utils';
 
 const CareStepsManagement = () => {
   const toast = useToast();
@@ -100,14 +101,6 @@ const CareStepsManagement = () => {
     } else {
       const uploaded = Array.isArray(res.data) ? res.data[0] : res.data;
       const path = uploaded?.filePath || uploaded?.file_path || uploaded?.path || uploaded?.fileName || '';
-      
-      const getFileUrl = (p) => {
-        if (!p) return '';
-        if (p.startsWith('http')) return p;
-        const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-        const root = base.replace(/\/api$/, '');
-        return `${root}/${p.replace(/^\//, '')}`;
-      };
 
       setFormData(prev => ({ ...prev, imageUrl: getFileUrl(path) }));
       toast?.success('Image uploaded');

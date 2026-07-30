@@ -32,6 +32,7 @@ const Checkout = () => {
   const [isServiceable, setIsServiceable] = useState(true);
   const [isCodAvailable, setIsCodAvailable] = useState(true);
   const [shippingMessage, setShippingMessage] = useState('');
+  const [isPincodeFetching, setIsPincodeFetching] = useState(false);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -85,16 +86,17 @@ const Checkout = () => {
   useEffect(() => {
     const fetchPincodeDetails = async () => {
       if (formData.postalCode.length === 6) {
+        setIsPincodeFetching(true);
         try {
           const res = await fetch(`https://api.postalpincode.in/pincode/${formData.postalCode}`);
           const result = await res.json();
-          if (result[0]?.Status === 'Success') {
+          if (result[0]?.Status === 'Success' && result[0]?.PostOffice?.length > 0) {
             const postOffice = result[0].PostOffice[0];
             setFormData(prev => ({
               ...prev,
-              city: postOffice.District,
-              area: postOffice.Name,
-              state: postOffice.State
+              city: postOffice.District || postOffice.Block || '',
+              area: postOffice.Name || '',
+              state: postOffice.State || ''
             }));
             setValidationErrors(prev => {
               const next = { ...prev };
@@ -106,16 +108,19 @@ const Checkout = () => {
              Swal.fire({
               icon: 'error',
               title: 'Invalid Pincode',
-              text: 'Please enter valid pincode',
+              text: 'Please enter a valid 6-digit Indian PIN code',
               confirmButtonColor: '#1C2E4A'
             });
             setFormData(prev => ({ ...prev, city: '', area: '', state: '' }));
           }
         } catch (err) {
           console.error('Failed to fetch pincode', err);
+        } finally {
+          setIsPincodeFetching(false);
         }
       } else {
         setFormData(prev => ({ ...prev, area: '', state: '' }));
+        setIsPincodeFetching(false);
       }
     };
     fetchPincodeDetails();
@@ -370,25 +375,77 @@ const Checkout = () => {
                 <div className="checkout-section fade-in">
                   <h2 className="section-title">Address Details</h2>
                   <div className="form-grid">
-                    <div className={`form-group full ${validationErrors.address ? 'error' : ''}`}>
-                      <label>Address Line 1</label>
-                      <input type="text" name="address" value={formData.address} onChange={updateFormData} placeholder="123 Luxury Lane" maxLength={200} />
-                      {validationErrors.address && <span className="error-msg">{validationErrors.address}</span>}
+                    {/* 1st FIELD: PIN CODE (FIRST) */}
+                    <div className={`form-group full ${validationErrors.postalCode ? 'error' : ''}`}>
+                      <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>PIN Code / Postal Code <span style={{ color: '#ef4444' }}>*</span></span>
+                        {isPincodeFetching && <span style={{ fontSize: 12, color: '#6366f1', fontWeight: 600 }}>⚡ Auto-fetching location...</span>}
+                      </label>
+                      <input 
+                        type="text" 
+                        name="postalCode" 
+                        value={formData.postalCode} 
+                        onChange={updateFormData} 
+                        placeholder="Enter 6-digit PIN Code (e.g. 380001 or 110001)" 
+                        maxLength={6} 
+                        autoFocus
+                      />
+                      {validationErrors.postalCode && <span className="error-msg">{validationErrors.postalCode}</span>}
+
+                      {/* LIVE DELIVERY SERVICEABILITY & LOCATION BADGE */}
+                      {formData.postalCode.length === 6 && !isPincodeFetching && (
+                        <div style={{ marginTop: 10 }}>
+                          {isServiceable ? (
+                            <div style={{ padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12, color: '#166534', fontSize: 13, fontWeight: 600, boxShadow: '0 2px 6px rgba(34, 197, 94, 0.08)' }}>
+                              <span style={{ width: 24, height: 24, borderRadius: '50%', background: '#22c55e', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0, fontWeight: 800 }}>✓</span>
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#14532d' }}>
+                                  Delivery Available to {formData.area ? `${formData.area}, ` : ''}{formData.city || 'your area'}{formData.state ? `, ${formData.state}` : ''}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#15803d', marginTop: 2, fontWeight: 500 }}>
+                                  Doorstep delivery within 3–5 business days. {isCodAvailable ? 'COD & Online payments enabled.' : 'Prepaid online payment enabled.'}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecdd3', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12, color: '#991b1b', fontSize: 13, fontWeight: 600, boxShadow: '0 2px 6px rgba(239, 68, 68, 0.08)' }}>
+                              <span style={{ width: 24, height: 24, borderRadius: '50%', background: '#ef4444', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0, fontWeight: 800 }}>✕</span>
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#7f1d1d' }}>
+                                  Delivery Currently Unavailable for Pincode {formData.postalCode}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 2, fontWeight: 500 }}>
+                                  Please enter a different delivery pincode to continue.
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div className="form-group full">
-                      <label>Apartment, suite, etc. (optional)</label>
-                      <input type="text" name="apartment" value={formData.apartment} onChange={updateFormData} placeholder="Apt 4B" maxLength={100} />
-                    </div>
+
+                    {/* 2nd & 3rd FIELDS: CITY & STATE */}
                     <div className={`form-group ${validationErrors.city ? 'error' : ''}`}>
-                      <label>City</label>
-                      <input type="text" name="city" value={formData.city} onChange={updateFormData} placeholder="New York" maxLength={50} />
+                      <label>City <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input type="text" name="city" value={formData.city} onChange={updateFormData} placeholder="City (Auto-filled from PIN)" maxLength={50} />
                       {validationErrors.city && <span className="error-msg">{validationErrors.city}</span>}
                     </div>
-                    <div className={`form-group ${validationErrors.postalCode ? 'error' : ''}`}>
-                      <label>Postal Code</label>
-                      <input type="text" name="postalCode" value={formData.postalCode} onChange={updateFormData} placeholder="100001" maxLength={6} />
-                      {validationErrors.postalCode && <span className="error-msg">{validationErrors.postalCode}</span>}
-                      {formData.area && formData.state && <span style={{ color: '#555555', fontWeight: 600, fontSize: '11px', marginTop: '6px', display: 'block' }}>Area: {formData.area}, {formData.state}</span>}
+
+                    <div className="form-group">
+                      <label>State</label>
+                      <input type="text" name="state" value={formData.state} onChange={updateFormData} placeholder="State (Auto-filled from PIN)" maxLength={50} />
+                    </div>
+
+                    {/* 4th & 5th FIELDS: ADDRESS LINE 1 & APARTMENT */}
+                    <div className={`form-group full ${validationErrors.address ? 'error' : ''}`}>
+                      <label>Address Line 1 <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input type="text" name="address" value={formData.address} onChange={updateFormData} placeholder="House / Flat No., Street, Landmark" maxLength={200} />
+                      {validationErrors.address && <span className="error-msg">{validationErrors.address}</span>}
+                    </div>
+
+                    <div className="form-group full">
+                      <label>Apartment, suite, etc. (optional)</label>
+                      <input type="text" name="apartment" value={formData.apartment} onChange={updateFormData} placeholder="Apt 4B, Building / Complex Name" maxLength={100} />
                     </div>
                   </div>
                 </div>
