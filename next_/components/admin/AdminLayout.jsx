@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import AdminHelpDrawer from './AdminHelpDrawer';
+import NavLoadingBar from './ui/NavLoadingBar';
 import { usePathname, useRouter } from 'next/navigation';
 
 const AdminLayout = ({ children }) => {
@@ -44,6 +45,9 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className={`admin-root ${sidebarExpanded ? 'sidebar-open' : ''}`}>
+      <React.Suspense fallback={null}>
+        <NavLoadingBar />
+      </React.Suspense>
       <Sidebar
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
