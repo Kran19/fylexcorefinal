@@ -52,8 +52,9 @@ export default function EnterpriseDAMOptimizationCenter() {
   const fetchStats = async () => {
     try {
       const res = await api.getOptimizationStats();
-      const statsObj = res?.data?.data || res?.data || res;
-      setStats(statsObj);
+      if (res.success && res.data) {
+        setStats(res.data);
+      }
     } catch (e) {
       console.error("Failed to fetch DAM stats:", e);
     } finally {
@@ -64,10 +65,7 @@ export default function EnterpriseDAMOptimizationCenter() {
   const fetchAssets = async (sortOrder) => {
     try {
       const res = await api.getOptimizationAssets(sortOrder);
-      const list = Array.isArray(res?.data?.data)
-        ? res.data.data
-        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
-      
+      const list = Array.isArray(res?.data) ? res.data : [];
       setAssets(list);
       if (tabulatorRef.current) {
         tabulatorRef.current.replaceData(list);
