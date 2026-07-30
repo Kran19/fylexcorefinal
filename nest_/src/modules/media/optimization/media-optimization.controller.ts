@@ -53,6 +53,19 @@ export class MediaOptimizationController {
     return this.service.bulkOptimize(format, quality);
   }
 
+  @Get('compare/:id')
+  async getComparisonMetadata(@Param('id') id: string) {
+    return this.service.getComparisonMetadata(Number(id));
+  }
+
+  @Post('merge-duplicates')
+  async mergeDuplicates(
+    @Body('masterId') masterId: number,
+    @Body('duplicateIds') duplicateIds: number[]
+  ) {
+    return this.service.mergeDuplicates(masterId, duplicateIds);
+  }
+
   @Put('serve-mode/:id')
   async updateServeMode(
     @Param('id') id: string,

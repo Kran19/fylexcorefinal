@@ -387,4 +387,81 @@ export class MediaOptimizationService {
     });
     return { success: true, message: `Restored raw master original file for media #${id}.`, data: media };
   }
+
+  /**
+   * 10. Merge Duplicate References
+   */
+  async mergeDuplicates(masterId: number, duplicateIds: number[]) {
+    const mId = Number(masterId);
+    const master = await this.prisma.media.findUnique({ where: { id: mId } });
+    if (!master) throw new NotFoundException(`Master media ID ${masterId} not found.`);
+
+    let totalRelinked = 0;
+    for (const dupId of duplicateIds) {
+      const id = Number(dupId);
+      if (id === mId) continue;
+
+      const pm = await this.prisma.productMedia.updateMany({ where: { mediaId: id }, data: { mediaId: mId } });
+      const vi = await this.prisma.variantImage.updateMany({ where: { mediaId: id }, data: { mediaId: mId } });
+      const bi = await this.prisma.belt.updateMany({ where: { imageId: id }, data: { imageId: mId } });
+      const box = await this.prisma.box.updateMany({ where: { imageId: id }, data: { imageId: mId } });
+      
+      totalRelinked += (pm.count + vi.count + bi.count + box.count);
+
+      try {
+        await this.prisma.media.delete({ where: { id } });
+      } catch (e) {
+        console.warn(`Could not delete duplicate media ID ${id}`, e);
+      }
+    }
+
+    return {
+      success: true,
+      message: `Merged ${duplicateIds.length} duplicate assets into Master Media #${masterId}. Re-linked ${totalRelinked} references.`,
+      masterId: mId,
+      relinkedCount: totalRelinked
+    };
+  }
+
+  /**
+   * 11. Get Comparison Metadata
+   */
+  async getComparisonMetadata(id: number) {
+    const media = await this.prisma.media.findUnique({
+      where: { id: Number(id) },
+      include: { variants: true }
+    });
+
+    if (!media) throw new NotFoundException(`Media #${id} not found.`);
+
+    const bestVariant = (media.variants && media.variants.length > 0)
+      ? media.variants.reduce((prev, curr) => (Number(curr.fileSize) < Number(prev.fileSize) ? curr : prev), media.variants[0])
+      : null;
+
+    const origSize = Number(media.fileSize || 0);
+    const optSize = bestVariant ? Number(bestVariant.fileSize) : origSize;
+    const bytesSaved = origSize > optSize ? (origSize - optSize) : 0;
+    const compressionRatio = origSize > 0 ? ((bytesSaved / origSize) * 100).toFixed(1) : '0';
+
+    return {
+      success: true,
+      data: {
+        id: media.id,
+        originalFilename: media.originalFilename,
+        filePath: media.filePath,
+        mimeType: media.mimeType,
+        originalSize: origSize,
+        originalSizeFormatted: (origSize / (1024 * 1024)).toFixed(2) + ' MB',
+        width: media.width || 1920,
+        height: media.height || 1080,
+        variant: bestVariant,
+        optimizedSize: optSize,
+        optimizedSizeFormatted: bestVariant ? (optSize / 1024).toFixed(0) + ' KB' : 'Uncompressed',
+        compressionRatio: `${compressionRatio}%`,
+        bytesSaved,
+        serveMode: media.serveMode || 'auto',
+        isOptimized: media.isOptimized || (media.variants && media.variants.length > 0)
+      }
+    };
+  }
 }
