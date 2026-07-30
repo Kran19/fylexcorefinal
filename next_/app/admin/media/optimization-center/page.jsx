@@ -25,11 +25,24 @@ export default function EnterpriseDAMOptimizationCenter() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState(null);
 
-  // Modals & Drawers
+  // Modals & Real-time Progress Tracking
   const [compareAsset, setCompareAsset] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [merging, setMerging] = useState(false);
+
+  // Live ETA & Progress Bar Modal State
+  const [progressState, setProgressState] = useState({
+    active: false,
+    currentAssetIndex: 0,
+    totalAssets: 0,
+    currentFilename: "",
+    startTime: 0,
+    elapsedSeconds: 0,
+    estimatedSecondsRemaining: 0,
+    completedCount: 0,
+    failedCount: 0,
+  });
 
   useEffect(() => {
     fetchStats();
@@ -195,28 +208,77 @@ export default function EnterpriseDAMOptimizationCenter() {
     }
   };
 
-  const handleBulkOptimize = async () => {
-    setIsProcessing(true);
-    setMessage(null);
-    try {
-      const res = await api.bulkOptimizeAssets({ format: selectedFormat, quality: qualityPreset });
-      setMessage(res?.message || "Bulk optimization completed successfully.");
-      Swal.fire({
-        icon: "success",
-        title: "Bulk Compression Complete!",
-        text: res?.message || "All uncompressed media assets optimized to WebP.",
-        timer: 2000,
-        showConfirmButton: false,
-        background: "#18181b",
-        color: "#ffffff"
-      });
-      fetchAssets(sortBy);
-      fetchStats();
-    } catch (e) {
-      console.error("Bulk optimization failed:", e);
-    } finally {
-      setIsProcessing(false);
+  // Real-time Batch Bulk Optimization with Live Progress & Countdown ETA
+  const handleBulkOptimizeWithETA = async () => {
+    const uncompressedList = assets.filter(a => selectedAssetIds.length > 0 ? selectedAssetIds.includes(a.id) : !a.isOptimized);
+    const targetList = uncompressedList.length > 0 ? uncompressedList : assets;
+    
+    if (targetList.length === 0) {
+      Swal.fire({ icon: "info", title: "All Assets Optimized", text: "Zero pending assets require compression.", background: "#18181b", color: "#fff" });
+      return;
     }
+
+    const startTime = Date.now();
+    setIsProcessing(true);
+    setProgressState({
+      active: true,
+      currentAssetIndex: 0,
+      totalAssets: targetList.length,
+      currentFilename: targetList[0].originalFilename || targetList[0].fileName || `Asset #${targetList[0].id}`,
+      startTime,
+      elapsedSeconds: 0,
+      estimatedSecondsRemaining: Math.round(targetList.length * 0.4),
+      completedCount: 0,
+      failedCount: 0,
+    });
+
+    let completed = 0;
+    let failed = 0;
+
+    for (let i = 0; i < targetList.length; i++) {
+      const item = targetList[i];
+      const filename = item.originalFilename || item.fileName || `Asset #${item.id}`;
+      
+      const elapsedSec = Math.max(1, Math.round((Date.now() - startTime) / 1000));
+      const avgPerItem = elapsedSec / Math.max(1, completed);
+      const remainingItems = targetList.length - i;
+      const estSec = Math.round(avgPerItem * remainingItems);
+
+      setProgressState({
+        active: true,
+        currentAssetIndex: i + 1,
+        totalAssets: targetList.length,
+        currentFilename: filename,
+        startTime,
+        elapsedSeconds: elapsedSec,
+        estimatedSecondsRemaining: estSec,
+        completedCount: completed,
+        failedCount: failed,
+      });
+
+      try {
+        await api.optimizeSingleAsset(item.id, { format: selectedFormat, quality: qualityPreset });
+        completed++;
+      } catch (e) {
+        console.warn(`Failed optimizing #${item.id}`, e);
+        failed++;
+      }
+    }
+
+    const finalElapsed = Math.round((Date.now() - startTime) / 1000);
+    setProgressState({ active: false, currentAssetIndex: 0, totalAssets: 0, currentFilename: "", startTime: 0, elapsedSeconds: 0, estimatedSecondsRemaining: 0, completedCount: 0, failedCount: 0 });
+    setIsProcessing(false);
+
+    Swal.fire({
+      icon: "success",
+      title: "Batch Compression Finished!",
+      text: `Optimized ${completed} assets in ${finalElapsed} seconds. (${failed} errors)`,
+      background: "#18181b",
+      color: "#ffffff"
+    });
+
+    fetchAssets(sortBy);
+    fetchStats();
   };
 
   // Duplicate Clusters Detection
@@ -352,13 +414,12 @@ export default function EnterpriseDAMOptimizationCenter() {
               return `<button class="btn-opt" data-action="optimize" title="Optimize Asset" style="background:#eab308;color:#000000;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:800;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px"><i class="fas fa-bolt"></i> Optimize</button>`;
             }
             const isAuto = d.serveMode === "auto";
-            const isOriginal = d.serveMode === "original";
 
             return `
               <div style="display:flex;gap:6px;justify-content:flex-end">
                 <button class="btn-opt" data-action="compare" title="Visual Side-by-Side Comparison" style="background:#3b82f6;color:#ffffff;width:34px;height:34px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-search-plus"></i></button>
-                <button class="btn-opt" data-action="accept" title="${isAuto ? "Accepted & Serving WebP" : "Accept WebP Variant"}" style="background:${isAuto ? "#166534" : "#27272a"};color:${isAuto ? "#86efac" : "#a1a1aa"};border:1px solid ${isAuto ? "#22c55e" : "#3f3f46"};width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-check"></i></button>
-                <button class="btn-opt" data-action="reject" title="${isOriginal ? "Restored Raw Master" : "Restore Raw Master"}" style="background:${isOriginal ? "#991b1b" : "#27272a"};color:${isOriginal ? "#fca5a5" : "#a1a1aa"};border:1px solid ${isOriginal ? "#ef4444" : "#3f3f46"};width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-undo"></i></button>
+                ${!isAuto ? `<button class="btn-opt" data-action="accept" title="Accept & Serve WebP Variant" style="background:#166534;color:#86efac;border:1px solid #22c55e;width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-check"></i></button>` : ""}
+                ${isAuto ? `<button class="btn-opt" data-action="reject" title="Restore Raw Master File" style="background:#27272a;color:#fca5a5;border:1px solid #7f1d1d;width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:13px"><i class="fas fa-undo"></i></button>` : ""}
               </div>
             `;
           },
@@ -412,7 +473,7 @@ export default function EnterpriseDAMOptimizationCenter() {
             </button>
           )}
           <button
-            onClick={handleBulkOptimize}
+            onClick={handleBulkOptimizeWithETA}
             disabled={isProcessing}
             style={{
               background: "#6366f1",
@@ -426,7 +487,7 @@ export default function EnterpriseDAMOptimizationCenter() {
               boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
             }}
           >
-            {isProcessing ? "⚡ Processing..." : "🚀 Bulk Compress All Assets"}
+            {isProcessing ? "⚡ Processing Batch..." : "🚀 Bulk Compress All Assets"}
           </button>
         </div>
       </div>
@@ -545,10 +606,10 @@ export default function EnterpriseDAMOptimizationCenter() {
             </span>
             <div style={{ display: "flex", gap: "8px" }}>
               <button
-                onClick={handleBulkOptimize}
+                onClick={handleBulkOptimizeWithETA}
                 style={{ background: "#6366f1", color: "#fff", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, border: "none", cursor: "pointer" }}
               >
-                ⚡ Compress Selected
+                ⚡ Compress Selected Batch
               </button>
               <button
                 onClick={() => { selectedAssetIds.forEach(id => handleAcceptVariant(id)); }}
@@ -571,6 +632,39 @@ export default function EnterpriseDAMOptimizationCenter() {
           <div ref={tableRef} style={{ width: "100%", minWidth: "850px" }}></div>
         </div>
       </div>
+
+      {/* Live Real-time Progress Bar & Countdown ETA Modal */}
+      {progressState.active && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9999999, background: "rgba(0,0,0,0.92)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ background: "#18181b", borderRadius: "20px", border: "1px solid #6366f1", width: "100%", maxWidth: "560px", padding: "32px", textAlign: "center", boxShadow: "0 25px 50px -12px rgba(99, 102, 241, 0.4)" }}>
+            <div style={{ width: "64px", height: "64px", borderRadius: "50%", background: "#312e81", color: "#818cf8", fontSize: "28px", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", border: "2px solid #6366f1" }}>
+              ⚡
+            </div>
+            <h3 style={{ fontSize: "22px", fontWeight: 800, color: "#ffffff", marginBottom: "4px" }}>
+              Optimizing Digital Assets...
+            </h3>
+            <p style={{ fontSize: "13px", color: "#a1a1aa", marginBottom: "24px" }}>
+              Processing {progressState.currentAssetIndex} of {progressState.totalAssets}: <strong style={{ color: "#6366f1" }}>{progressState.currentFilename}</strong>
+            </p>
+
+            {/* Progress Bar Container */}
+            <div style={{ width: "100%", height: "14px", background: "#27272a", borderRadius: "999px", overflow: "hidden", marginBottom: "16px", border: "1px solid #3f3f46" }}>
+              <div style={{ width: `${Math.round((progressState.currentAssetIndex / (progressState.totalAssets || 1)) * 100)}%`, height: "100%", background: "linear-gradient(90deg, #6366f1 0%, #38bdf8 100%)", transition: "width 0.3s ease-in-out" }} />
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#a1a1aa", fontWeight: 700, marginBottom: "20px" }}>
+              <span>Progress: {Math.round((progressState.currentAssetIndex / (progressState.totalAssets || 1)) * 100)}%</span>
+              <span style={{ color: "#eab308" }}>ETA: ~{progressState.estimatedSecondsRemaining}s remaining</span>
+            </div>
+
+            <div style={{ background: "#09090b", borderRadius: "12px", padding: "14px 18px", display: "flex", justifyContent: "space-around", fontSize: "12px", border: "1px solid #27272a" }}>
+              <div><span style={{ color: "#a1a1aa" }}>Elapsed:</span> <strong style={{ color: "#fff" }}>{progressState.elapsedSeconds}s</strong></div>
+              <div><span style={{ color: "#a1a1aa" }}>Completed:</span> <strong style={{ color: "#22c55e" }}>{progressState.completedCount}</strong></div>
+              <div><span style={{ color: "#a1a1aa" }}>Remaining:</span> <strong style={{ color: "#eab308" }}>{progressState.totalAssets - progressState.completedCount}</strong></div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Visual Side-by-Side Comparison Modal with Zoom Slider */}
       {compareAsset && (
@@ -666,24 +760,28 @@ export default function EnterpriseDAMOptimizationCenter() {
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: "10px" }}>
-                      <button
-                        onClick={async () => {
-                          await handleAcceptVariant(compareAsset.id);
-                          setCompareAsset(null);
-                        }}
-                        style={{ background: "#166534", color: "#ffffff", padding: "10px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: 800, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
-                      >
-                        <i className="fas fa-check" /> Approve &amp; Publish Variant
-                      </button>
-                      <button
-                        onClick={async () => {
-                          await handleRejectVariant(compareAsset.id);
-                          setCompareAsset(null);
-                        }}
-                        style={{ background: "#dc2626", color: "#ffffff", padding: "10px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: 800, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
-                      >
-                        <i className="fas fa-undo" /> Restore Raw Master
-                      </button>
+                      {compareAsset.serveMode !== "auto" && (
+                        <button
+                          onClick={async () => {
+                            await handleAcceptVariant(compareAsset.id);
+                            setCompareAsset(null);
+                          }}
+                          style={{ background: "#166534", color: "#ffffff", padding: "10px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: 800, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                        >
+                          <i className="fas fa-check" /> Approve &amp; Publish Variant
+                        </button>
+                      )}
+                      {compareAsset.serveMode === "auto" && (
+                        <button
+                          onClick={async () => {
+                            await handleRejectVariant(compareAsset.id);
+                            setCompareAsset(null);
+                          }}
+                          style={{ background: "#dc2626", color: "#ffffff", padding: "10px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: 800, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                        >
+                          <i className="fas fa-undo" /> Restore Raw Master
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -66,6 +66,16 @@ export class MediaOptimizationController {
     return this.service.mergeDuplicates(masterId, duplicateIds);
   }
 
+  @Get('purge-preview')
+  async getPurgePreview() {
+    return this.service.getPurgePreview();
+  }
+
+  @Post('purge')
+  async executePurge(@Body('targetType') targetType: 'master_originals' | 'orphans' | 'duplicates' | 'all' = 'all') {
+    return this.service.executePurge(targetType);
+  }
+
   @Put('serve-mode/:id')
   async updateServeMode(
     @Param('id') id: string,

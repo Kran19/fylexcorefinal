@@ -464,4 +464,147 @@ export class MediaOptimizationService {
       }
     };
   }
+
+  /**
+   * 12. Get Purge Preview & Recoverable Storage Breakdown
+   */
+  async getPurgePreview() {
+    const allMedia = await this.prisma.media.findMany({
+      include: {
+        variants: true,
+        _count: {
+          select: {
+            productMedia: true,
+            variantImages: true,
+            beltImages: true,
+            boxImages: true,
+            categoryImages: true,
+            brandLogos: true,
+            reviewImages: true
+          }
+        }
+      }
+    });
+
+    let masterOriginalsBytes = BigInt(0);
+    let masterOriginalsCount = 0;
+    let orphanBytes = BigInt(0);
+    let orphanCount = 0;
+    let duplicateBytes = BigInt(0);
+    let duplicateCount = 0;
+
+    const seenHashes = new Set<string>();
+
+    allMedia.forEach(m => {
+      const size = BigInt(m.fileSize || 0);
+
+      // Unneeded master originals: WebP variant accepted and serving live
+      if (m.serveMode === 'auto' && m.variants && m.variants.length > 0) {
+        masterOriginalsBytes += size;
+        masterOriginalsCount++;
+      }
+
+      // Orphans: 0 relational references
+      const totalUsage = Object.values(m._count || {}).reduce((a, b) => a + b, 0);
+      if (totalUsage === 0) {
+        orphanBytes += size;
+        orphanCount++;
+      }
+
+      // Duplicates
+      const fileKey = `${m.originalFilename}-${m.fileSize}`;
+      if (seenHashes.has(fileKey)) {
+        duplicateBytes += size;
+        duplicateCount++;
+      } else {
+        seenHashes.add(fileKey);
+      }
+    });
+
+    const totalRecoverableBytes = masterOriginalsBytes + orphanBytes + duplicateBytes;
+
+    return {
+      success: true,
+      data: {
+        totalRecoverableBytes: totalRecoverableBytes.toString(),
+        totalRecoverableFormatted: (Number(totalRecoverableBytes) / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
+        masterOriginals: {
+          count: masterOriginalsCount,
+          bytes: masterOriginalsBytes.toString(),
+          formatted: (Number(masterOriginalsBytes) / (1024 * 1024)).toFixed(2) + ' MB'
+        },
+        orphans: {
+          count: orphanCount,
+          bytes: orphanBytes.toString(),
+          formatted: (Number(orphanBytes) / (1024 * 1024)).toFixed(2) + ' MB'
+        },
+        duplicates: {
+          count: duplicateCount,
+          bytes: duplicateBytes.toString(),
+          formatted: (Number(duplicateBytes) / (1024 * 1024)).toFixed(2) + ' MB'
+        }
+      }
+    };
+  }
+
+  /**
+   * 13. Execute Purge Action
+   */
+  async executePurge(targetType: 'master_originals' | 'orphans' | 'duplicates' | 'all') {
+    const preview = await this.getPurgePreview();
+    const allMedia = await this.prisma.media.findMany({
+      include: {
+        variants: true,
+        _count: {
+          select: {
+            productMedia: true,
+            variantImages: true,
+            beltImages: true,
+            boxImages: true,
+            categoryImages: true,
+            brandLogos: true,
+            reviewImages: true
+          }
+        }
+      }
+    });
+
+    let purgedCount = 0;
+    let purgedBytes = BigInt(0);
+
+    for (const m of allMedia) {
+      const size = BigInt(m.fileSize || 0);
+      const isMasterOriginal = m.serveMode === 'auto' && m.variants && m.variants.length > 0;
+      const isOrphan = Object.values(m._count || {}).reduce((a, b) => a + b, 0) === 0;
+
+      let shouldPurge = false;
+      if (targetType === 'all') shouldPurge = isMasterOriginal || isOrphan;
+      else if (targetType === 'master_originals') shouldPurge = isMasterOriginal;
+      else if (targetType === 'orphans') shouldPurge = isOrphan;
+
+      if (shouldPurge && m.filePath) {
+        const fullPath = join(process.cwd(), m.filePath.replace(/^\//, ''));
+        try {
+          if (fs.existsSync(fullPath)) {
+            fs.unlinkSync(fullPath);
+          }
+          purgedBytes += size;
+          purgedCount++;
+
+          if (isOrphan) {
+            await this.prisma.media.delete({ where: { id: m.id } });
+          }
+        } catch (e) {
+          console.warn(`Purge failed for media #${m.id}`, e);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Successfully purged ${purgedCount} assets and reclaimed ${(Number(purgedBytes) / (1024 * 1024)).toFixed(2)} MB VPS storage space.`,
+      purgedCount,
+      reclaimedMb: (Number(purgedBytes) / (1024 * 1024)).toFixed(2)
+    };
+  }
 }

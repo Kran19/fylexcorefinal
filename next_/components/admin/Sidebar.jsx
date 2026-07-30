@@ -79,12 +79,16 @@ const navItems = [
   },
   {
     key: 'speed-booster',
-    title: 'Speed Booster',
+    title: 'Speed Booster & DAM',
     icon: 'fas fa-bolt',
     path: '/admin/media/optimization-center',
     submenu: [
       { title: 'Media Library', path: '/admin/media' },
       { title: 'Optimization Center', path: '/admin/media/optimization-center' },
+      { title: 'Storage Purge & Cleaner', path: '/admin/media/purge-cleanup' },
+      { title: 'VPS Storage Analytics', path: '/admin/media/storage-analytics' },
+      { title: 'Optimization Logs', path: '/admin/media/optimization-history' },
+      { title: 'Recycle Bin', path: '/admin/media/deleted-assets' },
     ],
   },
   {

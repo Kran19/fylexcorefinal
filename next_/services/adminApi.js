@@ -299,4 +299,6 @@ export const rejectOptimizationVariant = (id) => post(`/media/optimization/rejec
 export const bulkOptimizeAssets = (data) => post('/media/optimization/bulk', data);
 export const getMediaComparison = (id) => get(`/media/optimization/compare/${id}`);
 export const mergeDuplicateMedia = (data) => post('/media/optimization/merge-duplicates', data);
+export const getPurgePreview = () => get('/media/optimization/purge-preview');
+export const executePurgeMedia = (data) => post('/media/optimization/purge', data);
 
