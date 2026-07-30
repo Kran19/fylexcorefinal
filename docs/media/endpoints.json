@@ -1,0 +1,49 @@
+{
+  "endpoints": [
+    {
+      "path": "/api/media",
+      "method": "GET",
+      "controller": "MediaController",
+      "serviceMethod": "getAllMedia",
+      "returnsMediaObject": true,
+      "returnsLegacyString": false,
+      "status": "Safe"
+    },
+    {
+      "path": "/api/products",
+      "method": "GET",
+      "controller": "ProductController",
+      "serviceMethod": "findAll",
+      "returnsMediaObject": true,
+      "returnsLegacyString": true,
+      "status": "Mixed"
+    },
+    {
+      "path": "/api/products/configurable",
+      "method": "GET",
+      "controller": "ProductController",
+      "serviceMethod": "findConfigurable",
+      "returnsMediaObject": true,
+      "returnsLegacyString": true,
+      "status": "Mixed"
+    },
+    {
+      "path": "/api/discover",
+      "method": "GET",
+      "controller": "ProductController",
+      "serviceMethod": "getDiscoverProducts",
+      "returnsMediaObject": false,
+      "returnsLegacyString": true,
+      "status": "Legacy"
+    },
+    {
+      "path": "/api/settings",
+      "method": "GET",
+      "controller": "SettingController",
+      "serviceMethod": "findAll",
+      "returnsMediaObject": false,
+      "returnsLegacyString": true,
+      "status": "Legacy"
+    }
+  ]
+}
