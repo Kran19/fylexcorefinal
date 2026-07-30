@@ -1027,7 +1027,7 @@ const Home = () => {
                                 <div className="f-price" style={{ margin: '4px 0 14px', fontSize: '1.1rem', fontWeight: 500 }}>
                                   {display.isConfigurable ? 'From ' : ''}{display.formattedPrice}
                                 </div>
-                                <Link href={`/discover?watch=${p.id}`} className="f-shop-btn">Shop</Link>
+                                <Link href={`/explore?watch=${p.id}`} className="f-shop-btn">Shop</Link>
                               </div>
                             </div>
                           </SwiperSlide>
