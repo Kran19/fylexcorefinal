@@ -10,6 +10,7 @@ import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
 import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
+import MediaPickerModal from '@/components/admin/MediaPickerModal';
 
 const inputStyle = { width: '100%', padding: '12px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, outline: 'none', background: '#f8fafc', fontSize: 13, fontFamily: 'monospace' };
 const inputStyleNormal = { ...inputStyle, fontFamily: 'inherit' };
@@ -61,6 +62,28 @@ const HomeSections = () => {
     const fileInputRefs = useRef({});
     const [activeTab, setActiveTab] = useState('structure');
     const [refreshKey, setRefreshKey] = useState(0);
+    const [pickerTarget, setPickerTarget] = useState(null); // 'home_hero_video' | 'home_s2_img' | 'home_s3_img' | 'home_legacy_video'
+
+    const handleMediaSelect = (selection) => {
+        if (!selection || !selection.length) return;
+        const item = selection[0];
+        const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
+        
+        if (pickerTarget === 'home_hero_video') {
+            handleSettingChange('home_hero_video', url);
+            toast?.success('Hero video selected from Media Library');
+        } else if (pickerTarget === 'home_s2_img') {
+            handleBannerChange('home_s2', 'image', url);
+            toast?.success('Movement banner image selected from Media Library');
+        } else if (pickerTarget === 'home_s3_img') {
+            handleBannerChange('home_s3', 'image', url);
+            toast?.success('Design banner image selected from Media Library');
+        } else if (pickerTarget === 'home_legacy_video') {
+            handleSettingChange('home_legacy_video', url);
+            toast?.success('Legacy video selected from Media Library');
+        }
+        setPickerTarget(null);
+    };
 
     useEffect(() => {
         loadContentData();
@@ -369,8 +392,9 @@ const HomeSections = () => {
                                 <label style={labelStyle}>Background Video (URL or path)</label>
                                 <div style={{ display: 'flex', gap: 12 }}>
                                     <input type="text" value={settings.home_hero_video} onChange={e => handleSettingChange('home_hero_video', e.target.value)} placeholder="/assets/Fylexxx.mp4" style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
-                                    <input type="file" ref={el => fileInputRefs.current['home_hero_video'] = el} onChange={e => handleFileUpload('home_hero_video', e)} accept="video/*" style={{ display: 'none' }} />
-                                    <button type="button" onClick={() => fileInputRefs.current['home_hero_video']?.click()} style={{ padding: '0 20px', background: '#0e1726', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, border: 'none', cursor: 'pointer' }}>Upload</button>
+                                    <button type="button" onClick={() => setPickerTarget('home_hero_video')} style={{ padding: '0 20px', background: '#0e1726', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <i className="fas fa-folder-open"></i> Media Library
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -403,8 +427,9 @@ const HomeSections = () => {
                                     {bannerS2.image && <img src={getFileUrl(bannerS2.image)} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} alt="Preview" />}
                                     <div style={{ display: 'flex', gap: 8 }}>
                                         <input type="text" value={bannerS2.image || ''} onChange={e => handleBannerChange('home_s2', 'image', e.target.value)} placeholder="/Rim.png" style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
-                                        <input type="file" ref={el => fileInputRefs.current['home_s2_img'] = el} onChange={e => handleFileUpload('image', e, 'home_s2')} accept="image/*" style={{ display: 'none' }} />
-                                        <button type="button" onClick={() => fileInputRefs.current['home_s2_img']?.click()} style={{ padding: '0 16px', background: '#0e1726', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }}>Upload</button>
+                                        <button type="button" onClick={() => setPickerTarget('home_s2_img')} style={{ padding: '0 16px', background: '#0e1726', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <i className="fas fa-folder-open"></i> Media Library
+                                        </button>
                                         {bannerS2.image && (
                                             <button type="button" onClick={() => handleBannerChange('home_s2', 'image', '')} style={{ padding: '0 14px', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }} title="Remove Image">Remove</button>
                                         )}
@@ -449,8 +474,9 @@ const HomeSections = () => {
                                     {bannerS3.image && <img src={getFileUrl(bannerS3.image)} style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 12 }} alt="Preview" />}
                                     <div style={{ display: 'flex', gap: 8 }}>
                                         <input type="text" value={bannerS3.image || ''} onChange={e => handleBannerChange('home_s3', 'image', e.target.value)} placeholder="/Watch_1.png" style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
-                                        <input type="file" ref={el => fileInputRefs.current['home_s3_img'] = el} onChange={e => handleFileUpload('image', e, 'home_s3')} accept="image/*" style={{ display: 'none' }} />
-                                        <button type="button" onClick={() => fileInputRefs.current['home_s3_img']?.click()} style={{ padding: '0 16px', background: '#0e1726', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }}>Upload</button>
+                                        <button type="button" onClick={() => setPickerTarget('home_s3_img')} style={{ padding: '0 16px', background: '#0e1726', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <i className="fas fa-folder-open"></i> Media Library
+                                        </button>
                                         {bannerS3.image && (
                                             <button type="button" onClick={() => handleBannerChange('home_s3', 'image', '')} style={{ padding: '0 14px', background: '#ef4444', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }} title="Remove Image">Remove</button>
                                         )}
@@ -488,8 +514,9 @@ const HomeSections = () => {
                                 <label style={labelStyle}>Background Video (URL or path)</label>
                                 <div style={{ display: 'flex', gap: 12 }}>
                                     <input type="text" value={settings.home_legacy_video} onChange={e => handleSettingChange('home_legacy_video', e.target.value)} placeholder="/assets/Fylexx.mp4" style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
-                                    <input type="file" ref={el => fileInputRefs.current['home_legacy_video'] = el} onChange={e => handleFileUpload('home_legacy_video', e)} accept="video/*" style={{ display: 'none' }} />
-                                    <button type="button" onClick={() => fileInputRefs.current['home_legacy_video']?.click()} style={{ padding: '0 20px', background: '#0e1726', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, border: 'none', cursor: 'pointer' }}>Upload</button>
+                                    <button type="button" onClick={() => setPickerTarget('home_legacy_video')} style={{ padding: '0 20px', background: '#0e1726', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <i className="fas fa-folder-open"></i> Media Library
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -568,6 +595,13 @@ const HomeSections = () => {
                     />
                 </div>
             </div>
+
+            <MediaPickerModal
+                isOpen={!!pickerTarget}
+                onClose={() => setPickerTarget(null)}
+                onSelect={handleMediaSelect}
+                multiple={false}
+            />
         </div>
     );
 };

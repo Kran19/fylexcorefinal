@@ -8,6 +8,8 @@ import FormField from '@/components/admin/ui/FormField';
 import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import { useToast } from '@/context/ToastContext';
+import { getFileUrl } from '@/lib/utils';
+import MediaPickerModal from '@/components/admin/MediaPickerModal';
 
 const LoginSettingsPage = () => {
     const toast = useToast();
@@ -18,10 +20,19 @@ const LoginSettingsPage = () => {
         loginButtonTextColor: '#ffffff'
     });
     const [saving, setSaving] = useState(false);
-    const [uploading, setUploading] = useState(false);
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [saveError, setSaveError] = useState(null);
     const [isDirty, setIsDirty] = useState(false);
-    const fileInputRef = useRef(null);
+
+    const handleMediaSelect = (selection) => {
+        if (!selection || !selection.length) return;
+        const item = selection[0];
+        const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
+        setSettings(prev => ({ ...prev, loginPageImage: url }));
+        setIsDirty(true);
+        toast?.success('Login banner image selected from Media Library');
+        setIsPickerOpen(false);
+    };
 
     const remoteSettings = React.useMemo(() => {
         if (!data.settings) return {};
@@ -151,12 +162,12 @@ const LoginSettingsPage = () => {
                             
                             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: 32 }}>
                                 <div 
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={() => setIsPickerOpen(true)}
                                     style={{ 
                                         flex: '1 1 300px',
                                         height: 200, 
                                         borderRadius: 16, 
-                                        border: '2px dashed #e2e8f0', 
+                                        border: '2px dashed #cbd5e1', 
                                         background: '#f8fafc',
                                         display: 'flex', 
                                         flexDirection: 'column',
@@ -168,18 +179,8 @@ const LoginSettingsPage = () => {
                                     }}
                                     className="hover:border-indigo-400 hover:bg-indigo-50/10"
                                 >
-                                    {uploading ? (
-                                        <><i className="fas fa-spinner fa-spin text-2xl text-indigo-500 mb-2"></i><span style={{ fontSize: 14, fontWeight: 600 }}>Uploading...</span></>
-                                    ) : (
-                                        <><i className="fas fa-cloud-upload-alt text-3xl text-slate-300 mb-2"></i><span style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>Click to browse image</span></>
-                                    )}
-                                    <input 
-                                        type="file" 
-                                        ref={fileInputRef} 
-                                        onChange={handleImageUpload} 
-                                        accept="image/*" 
-                                        style={{ display: 'none' }} 
-                                    />
+                                    <i className="fas fa-folder-open text-3xl text-indigo-400 mb-2"></i>
+                                    <span style={{ fontSize: 14, color: '#475569', fontWeight: 700 }}>Click to select from Media Library</span>
                                 </div>
 
                                 <div style={{ flex: '0 0 auto', width: 300 }}>
@@ -276,6 +277,13 @@ const LoginSettingsPage = () => {
                     </form>
                 </div>
             </div>
+
+            <MediaPickerModal
+                isOpen={isPickerOpen}
+                onClose={() => setIsPickerOpen(false)}
+                onSelect={handleMediaSelect}
+                multiple={false}
+            />
         </div>
     );
 };

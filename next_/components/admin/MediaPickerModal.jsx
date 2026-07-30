@@ -8,6 +8,8 @@ import { useMediaLibrary } from '@/hooks/useMediaLibrary';
 
 const MediaItem = memo(({ m, isSelected, onToggle }) => {
     const showUrl = getFileUrl(m.fileName);
+    const isVideo = m.mimeType?.startsWith('video') || /\.(mp4|webm|mov)$/i.test(m.fileName || '');
+
     return (
         <div
             onClick={() => onToggle(m)}
@@ -16,13 +18,28 @@ const MediaItem = memo(({ m, isSelected, onToggle }) => {
                     : 'border-gray-100 hover:border-indigo-200 hover:shadow-md'
                 }`}
         >
-            <img
-                src={showUrl}
-                alt={m.originalFilename || 'Media'}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-            />
+            {isVideo ? (
+                <video
+                    src={showUrl}
+                    preload="metadata"
+                    muted
+                    className="w-full h-full object-cover"
+                />
+            ) : (
+                <img
+                    src={showUrl}
+                    alt={m.originalFilename || 'Media'}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                />
+            )}
+
+            {isVideo && (
+                <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/70 text-white rounded-md text-[10px] font-bold backdrop-blur-sm flex items-center gap-1">
+                    <i className="fas fa-video text-[9px]"></i> VIDEO
+                </div>
+            )}
 
             {isSelected && (
                 <div className="absolute top-3 right-3 w-7 h-7 bg-indigo-600 text-white rounded-xl flex items-center justify-center text-xs shadow-lg animate-fade-in">
@@ -45,8 +62,9 @@ const MediaItem = memo(({ m, isSelected, onToggle }) => {
  * @param {function} onClose - Close callback
  * @param {function} onSelect - Callback receiving selected URL(s)
  * @param {boolean} multiple - Allow multiple selection
+ * @param {boolean} onlyImages - Filter strictly images
  */
-const MediaPickerModal = ({ isOpen, onClose, onSelect, multiple = false }) => {
+const MediaPickerModal = ({ isOpen, onClose, onSelect, multiple = false, onlyImages = false }) => {
     const { data, loading } = useAdminData();
     const media = data.media || [];
     const [selected, setSelected] = useState([]);
@@ -59,7 +77,7 @@ const MediaPickerModal = ({ isOpen, onClose, onSelect, multiple = false }) => {
         navigateUp,
         allItems,
         isSearching
-    } = useMediaLibrary(media, { onlyImages: true });
+    } = useMediaLibrary(media, { onlyImages });
 
     React.useEffect(() => {
         if (isOpen) {

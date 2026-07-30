@@ -9,6 +9,7 @@ import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import PageHeader from '@/components/admin/ui/PageHeader';
 import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
+import MediaPickerModal from '@/components/admin/MediaPickerModal';
 
 const CommunityPage = () => {
   const toast = useToast();
@@ -19,11 +20,18 @@ const CommunityPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ title: '', image: '', sortOrder: 0, isActive: true });
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
-
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const handleMediaSelect = (selection) => {
+    if (!selection || !selection.length) return;
+    const item = selection[0];
+    const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
+    setFormData(prev => ({ ...prev, image: url }));
+    toast?.success('Community wristshot image selected from Media Library');
+    setIsPickerOpen(false);
+  };
 
   const fetchImages = useCallback(async () => {
     setLoading(true);
@@ -377,33 +385,32 @@ const CommunityPage = () => {
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                 Image *
               </label>
-              <div style={{
-                position: 'relative', width: '100%', height: 200,
-                borderRadius: 12, border: '2px dashed #d1d5db',
-                overflow: 'hidden', background: '#f9fafb',
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                {(imagePreview || formData.image) ? (
-                  <img
-                    src={imagePreview || getFileUrl(formData.image)}
-                    alt="Preview"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+              <div 
+                onClick={() => setIsPickerOpen(true)}
+                style={{
+                  position: 'relative', width: '100%', height: 200,
+                  borderRadius: 12, border: '2px dashed #cbd5e1',
+                  overflow: 'hidden', background: '#f9fafb',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer'
+                }}
+              >
+                {formData.image ? (
+                  <>
+                    <img
+                      src={getFileUrl(formData.image)}
+                      alt="Preview"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', opacity: 0, transition: '0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13 }} className="hover:opacity-100 opacity-hover">
+                      <i className="fas fa-folder-open mr-2"></i> Select from Media Library
+                    </div>
+                  </>
                 ) : (
-                  <div style={{ textAlign: 'center', color: '#9ca3af' }}>
-                    <i className="fas fa-cloud-upload-alt" style={{ fontSize: 32, marginBottom: 8 }}></i>
-                    <p style={{ fontSize: 13, fontWeight: 500 }}>Click to upload an image</p>
+                  <div style={{ textAlign: 'center', color: '#475569' }}>
+                    <i className="fas fa-folder-open text-3xl text-indigo-400 mb-2" style={{ fontSize: 32, marginBottom: 8 }}></i>
+                    <p style={{ fontSize: 13, fontWeight: 700 }}>Click to select from Media Library</p>
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  style={{
-                    position: 'absolute', inset: 0, opacity: 0,
-                    cursor: 'pointer', width: '100%', height: '100%'
-                  }}
-                />
               </div>
             </div>
 
@@ -485,7 +492,6 @@ const CommunityPage = () => {
           </div>
         </AdminModal>
 
-        {/* Delete Confirmation */}
         <ConfirmModal
           isOpen={!!deleteTarget}
           onClose={() => setDeleteTarget(null)}
@@ -495,6 +501,13 @@ const CommunityPage = () => {
           confirmLabel="Delete"
           isDanger
           loading={deleting}
+        />
+
+        <MediaPickerModal
+          isOpen={isPickerOpen}
+          onClose={() => setIsPickerOpen(false)}
+          onSelect={handleMediaSelect}
+          multiple={false}
         />
       </div>
     </div>

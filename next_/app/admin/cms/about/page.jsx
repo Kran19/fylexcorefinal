@@ -7,6 +7,7 @@ import Loader from '@/components/admin/ui/Loader';
 import { useToast } from '@/context/ToastContext';
 import { useAdminData } from '@/context/AdminDataContext';
 import { getFileUrl } from '@/lib/utils';
+import MediaPickerModal from '@/components/admin/MediaPickerModal';
 
 const DEFAULT_SETTINGS = {
     shop_hero_video: '',
@@ -37,7 +38,18 @@ export default function AboutPageManager() {
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const fileInputRefs = useRef({});
+    const [pickerTarget, setPickerTarget] = useState(null); // 'shop_hero_video' | 'shop_deepsea_video' | 'shop_dial_image'
+
+    const handleMediaSelect = (selection) => {
+        if (!selection || !selection.length) return;
+        const item = selection[0];
+        const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
+        if (pickerTarget) {
+            handleChange(pickerTarget, url);
+            toast?.success('Asset selected from Media Library');
+        }
+        setPickerTarget(null);
+    };
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -142,10 +154,9 @@ export default function AboutPageManager() {
                             <div style={{ display: 'flex', gap: 12 }}>
                                 <input type="text" value={settings.shop_hero_video} onChange={e => handleChange('shop_hero_video', e.target.value)} placeholder="Video URL or path..." style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
                                 {settings.shop_hero_video_is_iframe === 'false' && (
-                                    <>
-                                        <input type="file" ref={el => fileInputRefs.current['shop_hero_video'] = el} onChange={e => handleFileUpload('shop_hero_video', e)} accept="video/*" style={{ display: 'none' }} />
-                                        <button type="button" onClick={() => fileInputRefs.current['shop_hero_video']?.click()} style={{ padding: '0 20px', background: '#0e1726', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, border: 'none', cursor: 'pointer' }}>Upload</button>
-                                    </>
+                                    <button type="button" onClick={() => setPickerTarget('shop_hero_video')} style={{ padding: '0 20px', background: '#0e1726', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <i className="fas fa-folder-open"></i> Media Library
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -170,10 +181,9 @@ export default function AboutPageManager() {
                             <div style={{ display: 'flex', gap: 12 }}>
                                 <input type="text" value={settings.shop_deepsea_video} onChange={e => handleChange('shop_deepsea_video', e.target.value)} placeholder="Video URL or path..." style={{...inputStyleNormal, flex: 1, background: '#fff'}} />
                                 {settings.shop_deepsea_video_is_iframe === 'false' && (
-                                    <>
-                                        <input type="file" ref={el => fileInputRefs.current['shop_deepsea_video'] = el} onChange={e => handleFileUpload('shop_deepsea_video', e)} accept="video/*" style={{ display: 'none' }} />
-                                        <button type="button" onClick={() => fileInputRefs.current['shop_deepsea_video']?.click()} style={{ padding: '0 20px', background: '#0e1726', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, border: 'none', cursor: 'pointer' }}>Upload</button>
-                                    </>
+                                    <button type="button" onClick={() => setPickerTarget('shop_deepsea_video')} style={{ padding: '0 20px', background: '#0e1726', color: '#fff', fontSize: 13, fontWeight: 700, borderRadius: 10, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <i className="fas fa-folder-open"></i> Media Library
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -196,8 +206,9 @@ export default function AboutPageManager() {
                                 )}
                                 <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
                                     <input type="text" value={settings.shop_dial_image} onChange={e => handleChange('shop_dial_image', e.target.value)} style={{...inputStyleNormal, flex: 1, background: '#fff'}} placeholder="Image URL..." />
-                                    <input type="file" ref={el => fileInputRefs.current['shop_dial_image'] = el} onChange={e => handleFileUpload('shop_dial_image', e)} accept="image/*" style={{ display: 'none' }} />
-                                    <button type="button" onClick={() => fileInputRefs.current['shop_dial_image']?.click()} style={{ padding: '0 16px', background: '#0e1726', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer' }}>Upload</button>
+                                    <button type="button" onClick={() => setPickerTarget('shop_dial_image')} style={{ padding: '0 16px', background: '#0e1726', color: '#fff', fontSize: 12, fontWeight: 700, borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <i className="fas fa-folder-open"></i> Media Library
+                                    </button>
                                 </div>
                                 <label style={{...labelStyle, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--admin-text-muted)'}}>Image Caption</label>
                                 <input type="text" value={settings.shop_dial_caption} onChange={e => handleChange('shop_dial_caption', e.target.value)} style={inputStyleNormal} />
@@ -292,6 +303,13 @@ export default function AboutPageManager() {
                     </button>
                 </div>
             </form>
+
+            <MediaPickerModal
+                isOpen={!!pickerTarget}
+                onClose={() => setPickerTarget(null)}
+                onSelect={handleMediaSelect}
+                multiple={false}
+            />
         </div>
     );
 }

@@ -13,6 +13,7 @@ import ConfirmModal from '@/components/admin/ui/ConfirmModal';
 import AdminModal from '@/components/admin/AdminModal';
 import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
+import MediaPickerModal from '@/components/admin/MediaPickerModal';
 
 const BannerList = () => {
     const toast = useToast();
@@ -22,9 +23,18 @@ const BannerList = () => {
     const [showModal, setShowModal] = useState(false);
     const [formData, setFormData] = useState({ title: '', subtitle: '', content: '', position: 'Section 2', status: 'active', image: '', textColor: '#ffffff' });
     const [submitting, setSubmitting] = useState(false);
-    const [uploading, setUploading] = useState(false);
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    const handleMediaSelect = (selection) => {
+        if (!selection || !selection.length) return;
+        const item = selection[0];
+        const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
+        setFormData(prev => ({ ...prev, image: url }));
+        toast?.success('Banner image selected from Media Library');
+        setIsPickerOpen(false);
+    };
     
     const fileInputRef = useRef(null);
     
@@ -311,9 +321,9 @@ const BannerList = () => {
                             <label style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 12, display: 'block' }}>Banner Media</label>
                             
                             <div 
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={() => setIsPickerOpen(true)}
                                 style={{ 
-                                    width: '100%', height: 160, borderRadius: 12, border: '2px dashed #e2e8f0', 
+                                    width: '100%', height: 160, borderRadius: 12, border: '2px dashed #cbd5e1', 
                                     background: '#f8fafc', display: 'flex', flexDirection: 'column', 
                                     alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
                                     position: 'relative', overflow: 'hidden', transition: 'all 0.2s'
@@ -322,26 +332,17 @@ const BannerList = () => {
                                 {formData.image ? (
                                     <>
                                         <img src={getFileUrl(formData.image)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Preview" />
-                                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, transition: '0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }} className="hover:opacity-100 opacity-hover">
-                                            <i className="fas fa-camera mr-2"></i> Change Image
+                                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', opacity: 0, transition: '0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13 }} className="hover:opacity-100 opacity-hover">
+                                            <i className="fas fa-folder-open mr-2"></i> Select from Media Library
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        {uploading ? (
-                                            <><i className="fas fa-spinner fa-spin text-2xl text-indigo-500 mb-2"></i><span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Uploading...</span></>
-                                        ) : (
-                                            <><i className="fas fa-cloud-upload-alt text-3xl text-slate-300 mb-2"></i><span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Click to select banner image</span><span style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Recommended: 1920x800px</span></>
-                                        )}
+                                        <i className="fas fa-folder-open text-3xl text-indigo-400 mb-2"></i>
+                                        <span style={{ fontSize: 13, color: '#475569', fontWeight: 700 }}>Click to select from Media Library</span>
+                                        <span style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Recommended: 1920x800px image or video</span>
                                     </>
                                 )}
-                                <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
-                                    onChange={handleImageUpload} 
-                                    accept="image/*" 
-                                    style={{ display: 'none' }} 
-                                />
                             </div>
 
                             {formData.image && (
@@ -370,6 +371,13 @@ const BannerList = () => {
                 message={`Are you sure you want to delete "${deleteTarget?.title}"?`}
                 loading={deleting}
                 danger
+            />
+
+            <MediaPickerModal
+                isOpen={isPickerOpen}
+                onClose={() => setIsPickerOpen(false)}
+                onSelect={handleMediaSelect}
+                multiple={false}
             />
         </div>
     );

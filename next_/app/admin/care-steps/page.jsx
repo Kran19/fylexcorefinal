@@ -15,6 +15,7 @@ import AdminModal from '@/components/admin/AdminModal';
 import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
+import MediaPickerModal from '@/components/admin/MediaPickerModal';
 
 const CareStepsManagement = () => {
   const toast = useToast();
@@ -30,9 +31,18 @@ const CareStepsManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const handleMediaSelect = (selection) => {
+    if (!selection || !selection.length) return;
+    const item = selection[0];
+    const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
+    setFormData(prev => ({ ...prev, imageUrl: url }));
+    toast?.success('Care step illustration selected from Media Library');
+    setIsPickerOpen(false);
+  };
 
   const [formData, setFormData] = useState({
     productId: '',
@@ -231,10 +241,13 @@ const CareStepsManagement = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-4">
-                  <label className="cursor-pointer bg-white px-4 py-2 border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">
-                    <i className="fas fa-upload mr-2"></i> Upload Image
-                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                  </label>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsPickerOpen(true)}
+                    className="cursor-pointer bg-white px-4 py-2 border border-slate-300 rounded-lg text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2"
+                  >
+                    <i className="fas fa-folder-open text-indigo-600"></i> Select from Media Library
+                  </button>
                   <span className="text-xs text-slate-400">or enter URL below</span>
                 </div>
               )}
@@ -272,6 +285,13 @@ const CareStepsManagement = () => {
         confirmLabel="Confirm Deletion"
         loading={deleting}
         danger
+      />
+
+      <MediaPickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onSelect={handleMediaSelect}
+        multiple={false}
       />
     </div>
   );
