@@ -260,13 +260,13 @@ function ConfigureContent() {
       const match = findMatchingVariant(userSelections);
       if (match) {
         const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media;
-        const vPath = getFileUrl(vImg?.path || vImg?.url || (vImg?.fileName ? `/uploads/${vImg.fileName}` : null));
+        const vPath = getFileUrl(vImg);
         updatePreviewImage(vPath || stepsData[prevStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
         setDisplayPrice(`₹${Number(match.sellingPrice || 0).toLocaleString('en-IN')}`);
 
         const vBgPath = resolveProductBackground(product, match);
         const matchGallery = (match.variantImages || []).map(vi =>
-          getFileUrl(vi.media?.path || vi.media?.url || (vi.media?.fileName ? `/uploads/${vi.media.fileName}` : null))
+          getFileUrl(vi.media || vi)
         ).filter(Boolean);
         setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath }));
       } else {

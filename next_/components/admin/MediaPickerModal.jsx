@@ -88,7 +88,15 @@ const MediaPickerModal = ({ isOpen, onClose, onSelect, multiple = false, onlyIma
     }, [isOpen, navigateToPath, setSearch]);
 
     const toggleSelect = useCallback((m) => {
-        const item = { id: m.id.toString(), url: `/uploads/${m.fileName}` };
+        let bestUrl = m.filePath || `/uploads/${m.fileName}`;
+        if (m.serveMode !== 'original') {
+            if (m.bestVariant?.filePath) bestUrl = m.bestVariant.filePath;
+            else if (m.variants && Array.isArray(m.variants) && m.variants.length > 0) {
+                const best = m.variants.reduce((prev, curr) => (Number(curr.fileSize) < Number(prev.fileSize) ? curr : prev), m.variants[0]);
+                if (best?.filePath) bestUrl = best.filePath;
+            }
+        }
+        const item = { id: m.id.toString(), url: bestUrl, media: m, rawUrl: `/uploads/${m.fileName}` };
         if (multiple) {
             setSelected(prev =>
                 prev.find(u => u.id === item.id) ? prev.filter(u => u.id !== item.id) : [...prev, item]

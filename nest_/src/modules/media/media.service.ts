@@ -40,6 +40,7 @@ export class MediaService {
     const media = await this.prisma.media.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
+        variants: true,
         _count: {
           select: {
             attributeValues: true,

@@ -1,4 +1,4 @@
-﻿ "use client";
+ "use client";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import "@/app/admin/css/custom.css";
 import * as api from "@/services/adminApi";
@@ -151,7 +151,7 @@ const SettingsPage = () => {
   const handleMediaSelect = (selection) => {
     if (!selection || !selection.length) return;
     const item = selection[0];
-    const url = item.filePath || item.url || (item.fileName ? `/uploads/${item.fileName}` : "");
+    const url = getFileUrl(item.media || item.url || item.filePath || item);
 
     if (pickerTarget === "logo") {
       setSettings((prev) => ({ ...prev, logo: url }));

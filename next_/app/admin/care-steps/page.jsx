@@ -38,7 +38,7 @@ const CareStepsManagement = () => {
   const handleMediaSelect = (selection) => {
     if (!selection || !selection.length) return;
     const item = selection[0];
-    const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
+    const url = getFileUrl(item.media || item.url || item.filePath || item);
     setFormData(prev => ({ ...prev, imageUrl: url }));
     toast?.success('Care step illustration selected from Media Library');
     setIsPickerOpen(false);

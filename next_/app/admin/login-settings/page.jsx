@@ -27,7 +27,7 @@ const LoginSettingsPage = () => {
     const handleMediaSelect = (selection) => {
         if (!selection || !selection.length) return;
         const item = selection[0];
-        const url = item.url || (item.fileName ? `/uploads/${item.fileName}` : '');
+        const url = getFileUrl(item.media || item.url || item.filePath || item);
         setSettings(prev => ({ ...prev, loginPageImage: url }));
         setIsDirty(true);
         toast?.success('Login banner image selected from Media Library');
@@ -73,8 +73,7 @@ const LoginSettingsPage = () => {
         }
 
         if (resData && Array.isArray(resData) && resData[0]) {
-            const fileName = resData[0].fileName;
-            const imageUrl = `http://localhost:3001/uploads/${fileName}`;
+            const imageUrl = getFileUrl(resData[0]);
             setSettings(prev => ({ ...prev, loginPageImage: imageUrl }));
             setIsDirty(true);
             toast?.success?.('Image uploaded successfully');
