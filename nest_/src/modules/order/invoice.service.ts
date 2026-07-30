@@ -135,18 +135,33 @@ export class InvoiceService {
     this.generateHr(doc, customerInfoTop + 45, '#e5e7eb', 1);
 
     // Billed To / Shipped To
+    // Billed To / Shipped To
     const billingAddress = order.addresses?.find(a => a.type === 'billing') || order.addresses?.[0];
 
-    let billingText = order.customerFirstName 
-      ? `${order.customerFirstName} ${order.customerLastName || ''}` 
+    const customerNameParts = [order.customerFirstName, order.customerLastName]
+      .filter(p => p && p !== 'undefined' && p !== 'null');
+    let billingText = customerNameParts.length > 0 
+      ? customerNameParts.join(' ') 
       : (order.customer?.name || 'Customer');
 
     if (billingAddress) {
-      billingText += `\n${billingAddress.line1 || billingAddress.address}`;
-      if (billingAddress.line2) billingText += `\n${billingAddress.line2}`;
-      billingText += `\n${billingAddress.city}, ${billingAddress.state} ${billingAddress.pincode || billingAddress.zip}`;
-      if (billingAddress.country) billingText += `\n${billingAddress.country}`;
-      if (billingAddress.phone || order.customerMobile) billingText += `\nPhone: ${billingAddress.phone || order.customerMobile}`;
+      const line1 = (billingAddress.line1 || billingAddress.address || '').toString().trim();
+      const line2 = (billingAddress.line2 || billingAddress.address2 || '').toString().trim();
+      const city = (billingAddress.city || '').toString().trim();
+      const state = (billingAddress.state || '').toString().trim();
+      const pincode = (billingAddress.pincode || billingAddress.zip || billingAddress.postalCode || '').toString().trim();
+      const country = (billingAddress.country || '').toString().trim();
+      const phone = (billingAddress.phone || order.customerMobile || order.customerPhone || '').toString().trim();
+
+      if (line1 && line1 !== 'undefined' && line1 !== 'null') billingText += `\n${line1}`;
+      if (line2 && line2 !== 'undefined' && line2 !== 'null') billingText += `\n${line2}`;
+
+      const cityStateZip = [city, state, pincode]
+        .filter(p => p && p !== 'undefined' && p !== 'null' && p !== 'Unknown')
+        .join(', ');
+      if (cityStateZip) billingText += `\n${cityStateZip}`;
+      if (country && country !== 'undefined' && country !== 'null') billingText += `\n${country}`;
+      if (phone && phone !== 'undefined' && phone !== 'null') billingText += `\nPhone: ${phone}`;
     }
 
     doc
@@ -181,10 +196,13 @@ export class InvoiceService {
 
     for (i = 0; i < order.items.length; i++) {
       const item = order.items[i];
-      const itemName = item.product?.title || 'Product';
-      const itemSku = item.productVariant?.sku || 'N/A';
-      const unitCost = Number(item.price);
-      const lineTotal = unitCost * item.quantity;
+      const itemName = item.productName || item.product?.title || item.product?.name || 'Product';
+      const itemSku = item.sku || item.productVariant?.sku || 'N/A';
+      
+      const rawPrice = item.unitPrice ?? item.price ?? (item.total && item.quantity ? item.total / item.quantity : 0);
+      const unitCost = Number(rawPrice) || 0;
+      const quantity = Number(item.quantity) || 1;
+      const lineTotal = Number(item.total) || (unitCost * quantity);
 
       this.generateTableRow(
         doc,
@@ -192,7 +210,7 @@ export class InvoiceService {
         itemName,
         itemSku,
         this.formatCurrency(unitCost),
-        item.quantity.toString(),
+        quantity.toString(),
         this.formatCurrency(lineTotal)
       );
 
@@ -292,7 +310,11 @@ export class InvoiceService {
       .stroke();
   }
 
-  private formatCurrency(amount: number) {
-    return 'Rs. ' + Math.round(amount).toLocaleString('en-IN');
+  private formatCurrency(amount: any) {
+    const num = Number(amount);
+    if (isNaN(num) || num === null || num === undefined) {
+      return 'Rs. 0';
+    }
+    return 'Rs. ' + Math.round(num).toLocaleString('en-IN');
   }
 }
