@@ -65,11 +65,13 @@ export default function EnterpriseDAMOptimizationCenter() {
   const fetchAssets = async (sortOrder) => {
     try {
       const res = await api.getOptimizationAssets(sortOrder);
-      if (res?.data) {
-        setAssets(res.data);
-        if (tabulatorRef.current) {
-          tabulatorRef.current.replaceData(res.data);
-        }
+      const list = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+      
+      setAssets(list);
+      if (tabulatorRef.current) {
+        tabulatorRef.current.replaceData(list);
       }
     } catch (e) {
       console.error("Failed to fetch DAM assets:", e);
