@@ -45,7 +45,17 @@ async function bootstrap() {
               : null;
 
             if (bestVariant && bestVariant.filePath) {
-              const absVariantPath = join(process.cwd(), bestVariant.filePath.replace(/^\//, ''));
+              let absVariantPath = join(process.cwd(), bestVariant.filePath.replace(/^\//, ''));
+              if (!fs.existsSync(absVariantPath)) {
+                const webpFolder = join(process.cwd(), 'uploads/optimized/webp');
+                if (fs.existsSync(webpFolder)) {
+                  const diskFiles = fs.readdirSync(webpFolder);
+                  const match = diskFiles.find(f => f.startsWith(`${media.id}_`) && f.endsWith('.webp'));
+                  if (match) {
+                    absVariantPath = join(webpFolder, match);
+                  }
+                }
+              }
               if (fs.existsSync(absVariantPath)) {
                 return res.sendFile(absVariantPath);
               }
