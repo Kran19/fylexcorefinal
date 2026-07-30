@@ -1,7 +1,7 @@
 /**
- * FYLEX SERVER UPLOADS SYNC SCRIPT
- * Scans uploads/ directory and ensures every physical file on disk 
- * is registered in PostgreSQL Media and MediaVariant tables.
+ * FYLEX SERVER UPLOADS SYNC SCRIPT (ENHANCED VARIANT PAIRING)
+ * Scans uploads/ and uploads/optimized/webp/ directories and ensures
+ * PostgreSQL Media and MediaVariant records match EXACT physical filenames on disk.
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -11,8 +11,10 @@ const path = require('path');
 const prisma = new PrismaClient();
 
 async function syncUploads() {
-  console.log('🔍 Scanning uploads directory for media files...');
+  console.log('🔍 Starting comprehensive disk & database media sync...');
   const uploadsDir = path.join(__dirname, '../uploads');
+  const webpDir = path.join(uploadsDir, 'optimized', 'webp');
+
   if (!fs.existsSync(uploadsDir)) {
     console.log('⚠️ Uploads directory does not exist:', uploadsDir);
     return;
@@ -20,8 +22,9 @@ async function syncUploads() {
 
   const files = fs.readdirSync(uploadsDir);
   let synced = 0;
-  let skipped = 0;
+  let variantsUpdated = 0;
 
+  // STEP 1: Ensure all physical files in uploads/ are in Media table
   for (const fileName of files) {
     if (fileName === 'optimized' || fileName === 'archive' || fileName.startsWith('.')) continue;
 
@@ -37,8 +40,7 @@ async function syncUploads() {
 
     const relPath = `uploads/${fileName}`;
 
-    // Check if media already exists
-    const existing = await prisma.media.findFirst({
+    let media = await prisma.media.findFirst({
       where: {
         OR: [
           { fileName: fileName },
@@ -47,54 +49,84 @@ async function syncUploads() {
       }
     });
 
-    if (existing) {
-      skipped++;
-      continue;
+    if (!media) {
+      media = await prisma.media.create({
+        data: {
+          originalFilename: fileName,
+          fileName: fileName,
+          filePath: relPath,
+          mimeType: isVideo ? `video/${ext}` : `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          extension: ext,
+          fileSize: stat.size,
+          disk: 'local',
+          fileType: isVideo ? 'video' : 'image',
+          folderPath: '/'
+        }
+      });
+      synced++;
+      console.log(`✅ Registered missing media #${media.id}: ${fileName}`);
     }
-
-    // Register missing media
-    const media = await prisma.media.create({
-      data: {
-        originalFilename: fileName,
-        fileName: fileName,
-        filePath: relPath,
-        mimeType: isVideo ? `video/${ext}` : `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-        extension: ext,
-        fileSize: stat.size,
-        disk: 'local',
-        fileType: isVideo ? 'video' : 'image',
-        folderPath: '/'
-      }
-    });
-
-    // Check if optimized variant exists
-    const webpPath = path.join(uploadsDir, 'optimized', 'webp');
-    if (fs.existsSync(webpPath)) {
-      const variantFiles = fs.readdirSync(webpPath);
-      const matchingVariant = variantFiles.find(vf => vf.startsWith(`${media.id}_`));
-      if (matchingVariant) {
-        const varStat = fs.statSync(path.join(webpPath, matchingVariant));
-        const savedRatio = stat.size > 0 ? (((stat.size - varStat.size) / stat.size) * 100) : 0;
-
-        await prisma.mediaVariant.create({
-          data: {
-            mediaId: media.id,
-            format: 'webp',
-            preset: 'balanced',
-            quality: 80,
-            filePath: `/uploads/optimized/webp/${matchingVariant}`,
-            fileSize: varStat.size,
-            compressionRatio: Math.max(0, savedRatio)
-          }
-        }).catch(() => {});
-      }
-    }
-
-    synced++;
-    console.log(`✅ Synced asset #${media.id}: ${fileName} (${(stat.size / 1024 / 1024).toFixed(2)} MB)`);
   }
 
-  console.log(`\n✨ UPLOADS SYNC COMPLETED: ${synced} new assets registered, ${skipped} existing assets verified.`);
+  // STEP 2: Match every Media entity with actual .webp variant files present on disk
+  if (fs.existsSync(webpDir)) {
+    const variantFiles = fs.readdirSync(webpDir);
+    const allMedia = await prisma.media.findMany({
+      include: { variants: true }
+    });
+
+    for (const media of allMedia) {
+      // Look for any WebP file starting with `${media.id}_`
+      const matchingFile = variantFiles.find(vf => vf.startsWith(`${media.id}_`) && vf.endsWith('.webp'));
+      if (matchingFile) {
+        const fullVariantPath = path.join(webpDir, matchingFile);
+        const varStat = fs.statSync(fullVariantPath);
+        const relVariantPath = `/uploads/optimized/webp/${matchingFile}`;
+        const savedRatio = Number(media.fileSize) > 0 ? (((Number(media.fileSize) - varStat.size) / Number(media.fileSize)) * 100) : 0;
+
+        // Check if existing variant matches exact filename on disk
+        const existingVariant = media.variants.find(v => v.format === 'webp');
+        if (existingVariant) {
+          if (existingVariant.filePath !== relVariantPath || Number(existingVariant.fileSize) !== varStat.size) {
+            await prisma.mediaVariant.update({
+              where: { id: existingVariant.id },
+              data: {
+                filePath: relVariantPath,
+                fileSize: varStat.size,
+                compressionRatio: Math.max(0, savedRatio)
+              }
+            });
+            variantsUpdated++;
+            console.log(`🔄 Corrected variant path for media #${media.id} ➔ ${matchingFile}`);
+          }
+        } else {
+          await prisma.mediaVariant.create({
+            data: {
+              mediaId: media.id,
+              format: 'webp',
+              preset: 'balanced',
+              quality: 80,
+              filePath: relVariantPath,
+              fileSize: varStat.size,
+              compressionRatio: Math.max(0, savedRatio)
+            }
+          });
+          variantsUpdated++;
+          console.log(`✨ Created missing variant record for media #${media.id} ➔ ${matchingFile}`);
+        }
+
+        // Ensure serveMode is auto
+        if (media.serveMode !== 'auto') {
+          await prisma.media.update({
+            where: { id: media.id },
+            data: { serveMode: 'auto' }
+          });
+        }
+      }
+    }
+  }
+
+  console.log(`\n✨ MEDIA & VARIANT SYNC FINISHED: ${synced} new media registered, ${variantsUpdated} WebP variant paths paired to disk files.`);
 }
 
 syncUploads()
