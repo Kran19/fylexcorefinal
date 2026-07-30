@@ -3,13 +3,15 @@
  * All API calls go through here. Never call fetch/axios directly in pages.
  */
 
-let BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+let BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 if (typeof window !== 'undefined') {
   try {
-    const url = new URL(BASE_URL);
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-      url.hostname = window.location.hostname;
+    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocalHost) {
+      BASE_URL = `http://${window.location.hostname}:5000/api`;
+    } else {
+      const url = new URL(BASE_URL);
       BASE_URL = url.toString().replace(/\/$/, '');
     }
   } catch (e) {

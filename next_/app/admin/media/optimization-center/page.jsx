@@ -516,17 +516,17 @@ export default function EnterpriseDAMOptimizationCenter() {
         <div style={{ background: "#18181b", borderRadius: "12px", padding: "16px 20px", border: "1px solid #27272a" }}>
           <span style={{ fontSize: "11px", color: "#a1a1aa", fontWeight: 700, textTransform: "uppercase" }}>Assets Count</span>
           <div style={{ fontSize: "26px", fontWeight: 800, color: "#ffffff", marginTop: "6px" }}>
-            {stats?.imagesTotal || assets.length || 0}
+            {stats?.imagesTotal ?? assets.length ?? 0}
           </div>
           <span style={{ fontSize: "11px", color: "#22c55e", marginTop: "2px", display: "block", fontWeight: 600 }}>
-            ✓ {stats?.optimizedCount || 0} Optimized
+            ✓ {stats?.optimizedCount ?? 0} Optimized
           </span>
         </div>
 
         <div style={{ background: "#18181b", borderRadius: "12px", padding: "16px 20px", border: "1px solid #27272a" }}>
           <span style={{ fontSize: "11px", color: "#a1a1aa", fontWeight: 700, textTransform: "uppercase" }}>Space Saved</span>
           <div style={{ fontSize: "26px", fontWeight: 800, color: "#eab308", marginTop: "6px" }}>
-            {stats?.savedPercentage || "77.4%"}
+            {stats?.savedPercentage ?? (loading ? "..." : "0.0%")}
           </div>
           <span style={{ fontSize: "11px", color: "#eab308", marginTop: "2px", display: "block", fontWeight: 600 }}>
             🔥 Raw Masters Preserved
@@ -536,10 +536,10 @@ export default function EnterpriseDAMOptimizationCenter() {
         <div style={{ background: "#18181b", borderRadius: "12px", padding: "16px 20px", border: "1px solid #27272a" }}>
           <span style={{ fontSize: "11px", color: "#a1a1aa", fontWeight: 700, textTransform: "uppercase" }}>Avg Compressed Size</span>
           <div style={{ fontSize: "26px", fontWeight: 800, color: "#38bdf8", marginTop: "6px" }}>
-            {stats?.avgOptimizedSizeKb || 486} KB
+            {stats?.avgOptimizedSizeKb ?? (loading ? "..." : 0)} KB
           </div>
           <span style={{ fontSize: "11px", color: "#a1a1aa", marginTop: "2px", display: "block" }}>
-            Original Avg: {stats?.avgOriginalSizeMb || "3.2"} MB
+            Original Avg: {stats?.avgOriginalSizeMb ?? (loading ? "..." : "0")} MB
           </span>
         </div>
 
