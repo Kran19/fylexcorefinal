@@ -265,11 +265,15 @@ const Home = () => {
       }
 
       try {
-        const { data: settings } = await cmsService.getVideoSettings();
-        if (settings) {
+        const rawRes: any = await cmsService.getVideoSettings();
+        const settingsList = Array.isArray(rawRes?.data)
+          ? rawRes.data
+          : (Array.isArray(rawRes?.data?.data) ? rawRes.data.data : (Array.isArray(rawRes) ? rawRes : []));
+
+        if (settingsList && settingsList.length > 0) {
           const videoMap: Record<string, any> = {};
-          settings.forEach((s: any) => {
-            videoMap[s.key] = s.value;
+          settingsList.forEach((s: any) => {
+            if (s.key) videoMap[s.key] = s.value;
           });
           setVideoSettings(videoMap);
         }
@@ -278,11 +282,18 @@ const Home = () => {
       }
 
       try {
-        const { data: hSections } = await cmsService.getHomeSections();
-        if (hSections && Array.isArray(hSections) && hSections.length > 0) {
+        const res: any = await cmsService.getHomeSections();
+        const hSections = res?.data ?? res;
+        const sectionList = Array.isArray(hSections) ? hSections : (Array.isArray(hSections?.data) ? hSections.data : []);
+        if (sectionList && sectionList.length > 0) {
           const sectionMap: Record<string, boolean> = {};
-          hSections.forEach((s: any) => {
-            sectionMap[s.type] = s.isActive === true || s.isActive === 'true' || s.isActive === 1 || s.isActive === '1' || s.status === true || s.status === 'true' || s.status === 1 || s.status === '1';
+          sectionList.forEach((s: any) => {
+            const isVis = s.isActive === true || s.isActive === 'true' || s.isActive === 1 || s.isActive === '1' || s.status === true || s.status === 'true' || s.status === 1 || s.status === '1';
+            sectionMap[s.type] = isVis;
+            if (s.type === 'home_s1' || s.type === 's1' || s.type === 'Section 1') sectionMap.s1 = isVis;
+            if (s.type === 'home_s2' || s.type === 's2' || s.type === 'Section 2') sectionMap.s2 = isVis;
+            if (s.type === 'home_s3' || s.type === 's3' || s.type === 'Section 3') sectionMap.s3 = isVis;
+            if (s.type === 'home_s4' || s.type === 's4' || s.type === 'Section 4') sectionMap.s4 = isVis;
           });
           setHomeSections(sectionMap);
         } else {
@@ -895,7 +906,7 @@ const Home = () => {
       ) : (
         <>
           {/* ── Hero Section 1 ── */}
-          {homeSections.s1 && (
+          {(homeSections.s1 || homeSections.home_s1 || homeSections['Section 1'] || homeSections.s1 === undefined) && (
             <div className="section s1" ref={el => { sectionsRef.current[0] = el; }}>
               <div className="video-container">
                 <video
@@ -917,7 +928,7 @@ const Home = () => {
           )}
 
           {/* ── Hero Section 2 ── */}
-          {homeSections.s2 && (
+          {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
             <div
               className="section s2"
               style={{ backgroundImage: `url('${s2Bg}')` }}
@@ -933,7 +944,7 @@ const Home = () => {
           )}
 
           {/* ── Hero Section 3 ── */}
-          {homeSections.s3 && (
+          {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
             <div
               className="section s3"
               style={{ backgroundImage: `url('${s3Bg}')` }}
@@ -949,7 +960,7 @@ const Home = () => {
           )}
 
           {/* ── Hero Section 4 (video) ── */}
-          {homeSections.s4 && (
+          {(homeSections.s4 || homeSections.home_s4 || homeSections['Section 4'] || homeSections.s4 === undefined) && (
             <div className="section s4" ref={el => { sectionsRef.current[3] = el; }}>
               <div className="video-container">
                 <video
