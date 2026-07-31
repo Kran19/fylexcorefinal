@@ -302,12 +302,13 @@ const Profile = () => {
               <p className="section-subtitle">Select an order to view its real-time progress.</p>
 
               {trackingOrders.length > 1 ? (
-                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', paddingBottom: '8px', marginBottom: '24px', maxWidth: '100%' }}>
                   {trackingOrders.map(order => (
                     <button
                       key={order.orderId}
                       onClick={() => setSelectedTrackingOrderId(order.orderId)}
                       style={{
+                        flexShrink: 0,
                         padding: '8px 16px',
                         borderRadius: '999px',
                         background: selectedTrackingOrderId === order.orderId ? '#ffffff' : '#111111',

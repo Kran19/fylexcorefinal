@@ -546,7 +546,7 @@ const Checkout = () => {
             </div>
           </main>
 
-          <aside className="checkout-sidebar">
+          <aside className={`checkout-sidebar ${activeStep > 1 ? 'hide-on-mobile-step' : ''}`}>
             <div className="order-summary-card glassmorphism">
               <h3 className="summary-title">Order Summary</h3>
               <div className="summary-items">
@@ -860,6 +860,7 @@ const Checkout = () => {
           .checkout-container { width: 100% !important; max-width: 100% !important; margin: 0 !important; }
           .checkout-layout { grid-template-columns: 1fr !important; gap: 20px !important; }
           .checkout-sidebar { order: -1; width: 100% !important; }
+          .checkout-sidebar.hide-on-mobile-step { display: none !important; }
           .checkout-card { padding: 20px 16px !important; border-radius: 16px !important; width: 100% !important; box-sizing: border-box !important; }
           .order-summary-card { padding: 20px 16px !important; border-radius: 16px !important; position: static !important; width: 100% !important; box-sizing: border-box !important; }
           .form-grid { grid-template-columns: 1fr !important; gap: 14px !important; }

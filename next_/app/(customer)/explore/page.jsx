@@ -2151,15 +2151,23 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   {product.formattedPrice || (typeof product.price === 'number' ? `₹ ${product.price.toLocaleString()}` : product.price) || '₹ 25,000'}
                 </div>
 
-                <div className="cfg-actions-group">
+                <div className="cfg-actions-group" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   {hasConfig && (
                     <button 
                       className={`cfg-add-now-btn cfg-book-btn ${isAdded ? 'btn-added' : ''}`} 
-                      style={{}} 
                       onClick={handleBookNow}
                     >
-                      {isAdded ? 'Added to Cart' : 'Add to Cart'}
+                      {isAdded ? '✓ Added' : 'Add to Cart'}
                     </button>
+                  )}
+                  {isAdded && (
+                    <Link 
+                      href="/cart" 
+                      className="cfg-add-now-btn" 
+                      style={{ background: '#22c55e', color: '#ffffff', textDecoration: 'none', border: '1px solid #22c55e', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}
+                    >
+                      Go to Cart →
+                    </Link>
                   )}
                   {hasConfig && (
                     <div className="cfg-details-right" style={{ color: product.heroBgImage ? '#ffffff' : (product.textColor || '#1a1a1a') }}>

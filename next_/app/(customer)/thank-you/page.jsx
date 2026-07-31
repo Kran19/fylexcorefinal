@@ -29,7 +29,7 @@ const ThankYouPage = () => {
         </p>
 
         <div className="actions">
-          <Link href="/my-purchases" className="btn btn-primary">
+          <Link href="/profile" className="btn btn-primary">
             View My Orders
           </Link>
           <Link href="/discover" className="btn btn-secondary">

@@ -920,80 +920,83 @@ const Home = () => {
         </div>
       ) : (
         <>
-          {/* ── Hero Section 1 ── */}
-          {(homeSections.s1 || homeSections.home_s1 || homeSections['Section 1'] || homeSections.s1 === undefined) && (
-            <div className="section s1" ref={el => { sectionsRef.current[0] = el; }}>
-              <div className="video-container">
-                <video
-                  src={getFileUrl(videoSettings.home_hero_video) || "/assets/Fylexxx.mp4"}
-                  autoPlay muted loop playsInline
-                  preload={isMobile ? "metadata" : "auto"}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
-              <div className="hero-center">
-                <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: videoSettings.home_hero_video_title || "FYLEX" }} />
-                <p className="hero-subtitle">{videoSettings.home_hero_video_subtitle || "Wear Your Choice."}</p>
-                <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
-                  <Link href="/products">
-                    <button className="cta-button">Explore</button>
-                  </Link>
+          {/* ── Sticky Hero Sections Group (Sections 1-4) ── */}
+          <div className="sticky-hero-group" style={{ position: 'relative', width: '100%' }}>
+            {/* ── Hero Section 1 ── */}
+            {(homeSections.s1 || homeSections.home_s1 || homeSections['Section 1'] || homeSections.s1 === undefined) && (
+              <div className="section s1" ref={el => { sectionsRef.current[0] = el; }}>
+                <div className="video-container">
+                  <video
+                    src={getFileUrl(videoSettings.home_hero_video) || "/assets/Fylexxx.mp4"}
+                    autoPlay muted loop playsInline
+                    preload={isMobile ? "metadata" : "auto"}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+                <div className="hero-center">
+                  <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: videoSettings.home_hero_video_title || "FYLEX" }} />
+                  <p className="hero-subtitle">{videoSettings.home_hero_video_subtitle || "Wear Your Choice."}</p>
+                  <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+                    <Link href="/products">
+                      <button className="cta-button">Explore</button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Hero Section 2 ── */}
-          {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
-            <div
-              className="section s2"
-              style={{ backgroundImage: `url('${s2Bg}')` }}
-              ref={el => { sectionsRef.current[1] = el; }}
-            >
-              <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
-                <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
-                <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
-                <div className="divider"></div>
-                <p style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.content || 'Hundreds of hand-finished bridges and jewels.<br />A calibre beating 28,800 times each hour.' }} />
-              </div>
-            </div>
-          )}
-
-          {/* ── Hero Section 3 ── */}
-          {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
-            <div
-              className="section s3"
-              style={{ backgroundImage: `url('${s3Bg}')` }}
-              ref={el => { sectionsRef.current[2] = el; }}
-            >
-              <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
-                <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
-                <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
-                <div className="divider"></div>
-                <p style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.content || 'Sapphire crystal, polished steel, supple leather.<br />Every element chosen for eternity, not fashion.' }} />
-              </div>
-            </div>
-          )}
-
-          {/* ── Hero Section 4 (video) ── */}
-          {(homeSections.s4 || homeSections.home_s4 || homeSections['Section 4'] || homeSections.s4 === undefined) && (
-            <div className="section s4" ref={el => { sectionsRef.current[3] = el; }}>
-              <div className="video-container">
-                <video
-                  src={getFileUrl(videoSettings.home_legacy_video) || "/assets/Fylexx.mp4"}
-                  autoPlay muted loop playsInline
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              </div>
-              <div className="card" style={{ zIndex: 10 }}>
-                <h1 dangerouslySetInnerHTML={{ __html: (videoSettings.home_legacy_video_title || "Not Everyone Follows The Same Path.").replace(/Same Path\./g, '<em>Same Path.</em>') }}></h1>
-                <p className="legacy-text" dangerouslySetInnerHTML={{ __html: videoSettings.home_legacy_video_subtitle || "Different Ambitions. Different Routines. Different Stories." }}></p>
-                <div style={{ marginTop: '40px', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.2em', color: '#fff', textTransform: 'uppercase' }}>
-                  IT'S YOUR TIME.
+            {/* ── Hero Section 2 ── */}
+            {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
+              <div
+                className="section s2"
+                style={{ backgroundImage: `url('${s2Bg}')` }}
+                ref={el => { sectionsRef.current[1] = el; }}
+              >
+                <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
+                  <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
+                  <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
+                  <div className="divider"></div>
+                  <p style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.content || 'Hundreds of hand-finished bridges and jewels.<br />A calibre beating 28,800 times each hour.' }} />
                 </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* ── Hero Section 3 ── */}
+            {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
+              <div
+                className="section s3"
+                style={{ backgroundImage: `url('${s3Bg}')` }}
+                ref={el => { sectionsRef.current[2] = el; }}
+              >
+                <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
+                  <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
+                  <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
+                  <div className="divider"></div>
+                  <p style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.content || 'Sapphire crystal, polished steel, supple leather.<br />Every element chosen for eternity, not fashion.' }} />
+                </div>
+              </div>
+            )}
+
+            {/* ── Hero Section 4 (video) ── */}
+            {(homeSections.s4 || homeSections.home_s4 || homeSections['Section 4'] || homeSections.s4 === undefined) && (
+              <div className="section s4" ref={el => { sectionsRef.current[3] = el; }}>
+                <div className="video-container">
+                  <video
+                    src={getFileUrl(videoSettings.home_legacy_video) || "/assets/Fylexx.mp4"}
+                    autoPlay muted loop playsInline
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                </div>
+                <div className="card" style={{ zIndex: 10 }}>
+                  <h1 dangerouslySetInnerHTML={{ __html: (videoSettings.home_legacy_video_title || "Not Everyone Follows The Same Path.").replace(/Same Path\./g, '<em>Same Path.</em>') }}></h1>
+                  <p className="legacy-text" dangerouslySetInnerHTML={{ __html: videoSettings.home_legacy_video_subtitle || "Different Ambitions. Different Routines. Different Stories." }}></p>
+                  <div style={{ marginTop: '40px', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.2em', color: '#fff', textTransform: 'uppercase' }}>
+                    IT'S YOUR TIME.
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
 
 
