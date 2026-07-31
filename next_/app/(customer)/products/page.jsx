@@ -953,7 +953,7 @@ const Products = () => {
 
       {/* ═══ NAVIGATION ═══ */}
       <nav className={`products-top-nav ${scrollDir === 'down' && isScrolled ? 'hidden' : ''}`} style={{ justifyContent: 'flex-end' }}>
-        <Link href="/configure" className="btn-config-pill">Configure</Link>
+        <Link href="/pre-configure" className="btn-config-pill">Configure</Link>
       </nav>
 
       {/* ═══ HERO ═══ */}
