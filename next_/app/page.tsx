@@ -349,7 +349,7 @@ const Home = () => {
 
   // ── ScrollTrigger setup ────────────────────────────────────────
   useEffect(() => {
-    // Reveal cards on scroll and apply parallax background movement
+    // Reveal cards on scroll and apply hardware-accelerated parallax background movement
     const sections = gsap.utils.toArray('.section');
     sections.forEach((section: any) => {
       const card = section.querySelector('.card');
@@ -371,12 +371,13 @@ const Home = () => {
         }
       }
 
-      // Parallax effect on Section 2 & Section 3
-      if (section.classList.contains('s2') || section.classList.contains('s3')) {
-        gsap.fromTo(section, 
-          { backgroundPositionY: "0%" },
+      // Hardware-accelerated Parallax effect for Mobile & Desktop via GPU transform
+      const bg = section.querySelector('.section-parallax-bg');
+      if (bg) {
+        gsap.fromTo(bg, 
+          { yPercent: -15 },
           {
-            backgroundPositionY: "45%",
+            yPercent: 15,
             ease: "none",
             scrollTrigger: {
               trigger: section,
@@ -462,12 +463,23 @@ const Home = () => {
         /* ── Hero sections ── */
         .section {
           height: 100svh; min-height: 500px; width: 100%;
-          background-attachment: fixed; background-size: cover; background-position: center;
           display: flex; align-items: center; justify-content: center;
           padding-left: 0;
           position: relative; overflow: hidden;
         }
-        .section::before { content: ''; position: absolute; inset: 0; z-index: 0; }
+        .section-parallax-bg {
+          position: absolute;
+          top: -20%;
+          left: 0;
+          width: 100%;
+          height: 140%;
+          background-size: cover;
+          background-position: center;
+          z-index: 0;
+          will-change: transform;
+          pointer-events: none;
+        }
+        .section::before { content: ''; position: absolute; inset: 0; z-index: 1; }
         .s1::before { background: linear-gradient(135deg, rgba(10,8,4,0), rgba(40,28,10,.40)); }
         .s2::before { background: linear-gradient(160deg, rgba(6,4,1,0), rgba(22,14,4,0)); }
         .s1::after, .s4::after {
@@ -955,9 +967,9 @@ const Home = () => {
           {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
             <div
               className="section s2"
-              style={{ backgroundImage: `url('${s2Bg}')` }}
               ref={el => { sectionsRef.current[1] = el; }}
             >
+              <div className="section-parallax-bg" style={{ backgroundImage: `url('${s2Bg}')` }} />
               <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
                 <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
                 <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
@@ -971,9 +983,9 @@ const Home = () => {
           {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
             <div
               className="section s3"
-              style={{ backgroundImage: `url('${s3Bg}')` }}
               ref={el => { sectionsRef.current[2] = el; }}
             >
+              <div className="section-parallax-bg" style={{ backgroundImage: `url('${s3Bg}')` }} />
               <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
                 <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
                 <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
