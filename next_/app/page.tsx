@@ -349,15 +349,15 @@ const Home = () => {
 
   // ── ScrollTrigger setup ────────────────────────────────────────
   useEffect(() => {
-    // Reveal cards on scroll and apply hardware-accelerated parallax background movement
+    // Reveal cards on scroll as sections overlap each other
     const sections = gsap.utils.toArray('.section');
     sections.forEach((section: any) => {
       const card = section.querySelector('.card');
       if (card) {
         ScrollTrigger.create({
           trigger: section,
-          start: "top 85%",
-          end: "bottom 15%",
+          start: "top 75%",
+          end: "bottom 25%",
           onEnter: () => card.classList.add('in'),
           onEnterBack: () => card.classList.add('in'),
           onLeave: () => card.classList.remove('in'),
@@ -369,24 +369,6 @@ const Home = () => {
         if (rect.top < window.innerHeight && rect.bottom > 0) {
           card.classList.add('in');
         }
-      }
-
-      // Hardware-accelerated Parallax effect for Mobile & Desktop via GPU transform
-      const bg = section.querySelector('.section-parallax-bg');
-      if (bg) {
-        gsap.fromTo(bg, 
-          { yPercent: -15 },
-          {
-            yPercent: 15,
-            ease: "none",
-            scrollTrigger: {
-              trigger: section,
-              start: "top bottom",
-              end: "bottom top",
-              scrub: true
-            }
-          }
-        );
       }
     });
 
@@ -458,28 +440,25 @@ const Home = () => {
   return (
     <div className="v1-home" ref={containerRef}>
       <style>{`
-        .v1-home { background: #F9F9F7; }
+        .v1-home { background: #F9F9F7; position: relative; }
 
-        /* ── Hero sections ── */
+        /* ── Sticky Overlapping Hero Sections ── */
         .section {
-          height: 100svh; min-height: 500px; width: 100%;
+          height: 100vh; min-height: 500px; width: 100%;
+          position: sticky; top: 0;
           display: flex; align-items: center; justify-content: center;
           padding-left: 0;
-          position: relative; overflow: hidden;
+          overflow: hidden;
+          background-size: cover; background-position: center; background-repeat: no-repeat;
+          box-shadow: 0 -10px 30px rgba(0,0,0,0.25);
         }
-        .section-parallax-bg {
-          position: absolute;
-          top: -20%;
-          left: 0;
-          width: 100%;
-          height: 140%;
-          background-size: cover;
-          background-position: center;
-          z-index: 0;
-          will-change: transform;
-          pointer-events: none;
-        }
-        .section::before { content: ''; position: absolute; inset: 0; z-index: 1; }
+        .s1 { z-index: 1; }
+        .s2 { z-index: 2; }
+        .s3 { z-index: 3; }
+        .s4 { z-index: 4; }
+        .s5, .featured-grid-wrap { position: relative; z-index: 5; background: #fff; }
+
+        .section::before { content: ''; position: absolute; inset: 0; z-index: 0; }
         .s1::before { background: linear-gradient(135deg, rgba(10,8,4,0), rgba(40,28,10,.40)); }
         .s2::before { background: linear-gradient(160deg, rgba(6,4,1,0), rgba(22,14,4,0)); }
         .s1::after, .s4::after {
@@ -967,9 +946,9 @@ const Home = () => {
           {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
             <div
               className="section s2"
+              style={{ backgroundImage: `url('${s2Bg}')` }}
               ref={el => { sectionsRef.current[1] = el; }}
             >
-              <div className="section-parallax-bg" style={{ backgroundImage: `url('${s2Bg}')` }} />
               <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
                 <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
                 <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
@@ -983,9 +962,9 @@ const Home = () => {
           {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
             <div
               className="section s3"
+              style={{ backgroundImage: `url('${s3Bg}')` }}
               ref={el => { sectionsRef.current[2] = el; }}
             >
-              <div className="section-parallax-bg" style={{ backgroundImage: `url('${s3Bg}')` }} />
               <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
                 <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
                 <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
