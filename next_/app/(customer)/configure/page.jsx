@@ -422,19 +422,53 @@ function ConfigureContent() {
         .close-btn:hover { transform: scale(1.1); }
         .c-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 55vh; }
         .watch-preview { max-width: 80%; max-height: 52vh; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.25)); transition: transform 0.3s; }
-        .thumbnails { position: absolute; bottom: 30px; left: 30px; display: flex; gap: 12px; }
-        .thumb { width: 50px; height: 50px; border-radius: 10px; border: 2px solid transparent; overflow: hidden; cursor: pointer; background: rgba(255,255,255,0.7); backdrop-filter: blur(6px); transition: all 0.2s; }
-        .thumb.active { border-color: #008767; transform: scale(1.08); }
-        .thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .side-thumbnails-bar {
+          position: absolute;
+          right: 28px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          z-index: 15;
+        }
+        .side-thumb-item {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: #121212;
+          border: 1px solid rgba(255,255,255,0.2);
+          padding: 6px;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          overflow: hidden;
+        }
+        .side-thumb-item.active {
+          border: 2px solid #008767;
+          box-shadow: 0 0 14px rgba(0, 135, 103, 0.5);
+          transform: scale(1.06);
+        }
+        .side-thumb-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          border-radius: 50%;
+        }
         @media (max-width: 768px) {
           .thumbnails { right: 15px; gap: 10px; }
           .thumb { width: 42px; height: 42px; }
           .top-actions { top: 25px; right: 20px; }
           .top-left-actions { top: 25px; left: 20px; }
-          .c-main { padding-bottom: 240px; }
-          .watch-preview { height: 50vh; }
-          .c-selection-controls { padding: 20px 15px; }
-          .options-row { gap: 20px; font-size: 14px; }
+          .c-main { padding-bottom: 220px; min-height: 48vh; }
+          .watch-preview { max-height: 40vh; max-width: 75%; }
+          .side-thumbnails-bar { right: 12px; top: 40%; transform: translateY(-50%); gap: 8px; z-index: 20; }
+          .side-thumb-item { width: 38px; height: 38px; padding: 4px; }
+          .c-selection-controls { padding: 16px 16px 12px; }
+          .options-row { gap: 16px; font-size: 14px; }
           .c-summary-footer { padding: 20px; flex-direction: column; align-items: flex-start; gap: 15px; }
           .f-add-cart-btn { align-self: flex-end; margin-top: -30px; }
         }
@@ -534,44 +568,18 @@ function ConfigureContent() {
             if (sideList.length <= 1) return null;
 
             return (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: '28px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  zIndex: 15
-                }}
-              >
+              <div className="side-thumbnails-bar">
                 {sideList.slice(0, 5).map((imgUrl, idx) => {
                   const isActive = previewSrc && normalizeKey(previewSrc) === normalizeKey(imgUrl);
                   return (
                     <div
                       key={idx}
                       onClick={() => updatePreviewImage(imgUrl)}
-                      style={{
-                        width: '52px',
-                        height: '52px',
-                        borderRadius: '50%',
-                        background: '#121212',
-                        border: isActive ? '2px solid #008767' : '1px solid rgba(255,255,255,0.2)',
-                        padding: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 0.25s ease',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: isActive ? '0 0 14px rgba(0, 135, 103, 0.5)' : '0 4px 12px rgba(0,0,0,0.3)',
-                        overflow: 'hidden'
-                      }}
+                      className={`side-thumb-item ${isActive ? 'active' : ''}`}
                     >
                       <img
                         src={imgUrl}
                         alt={`Angle ${idx + 1}`}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '50%' }}
                       />
                     </div>
                   );
