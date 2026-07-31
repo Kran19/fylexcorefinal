@@ -467,8 +467,8 @@ function ConfigureContent() {
           .watch-preview { max-height: 48vh; max-width: 90%; transform: scale(1.16); }
           .side-thumbnails-bar { right: 12px; top: 38%; transform: translateY(-50%); gap: 10px; z-index: 20; }
           .side-thumb-item { width: 40px; height: 40px; padding: 4px; }
-          .c-selection-controls { padding: 12px 20px 8px; gap: 12px; }
-          .options-row { gap: 20px; font-size: 15px; }
+          .c-selection-controls { padding: 12px 16px 8px; gap: 10px; }
+          .options-row { gap: 12px; font-size: 14px; }
           .c-summary-footer { padding: 16px 20px; flex-direction: column; align-items: flex-start; gap: 12px; }
           .f-add-cart-btn { align-self: flex-end; margin-top: -30px; }
         }
