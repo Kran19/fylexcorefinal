@@ -343,12 +343,13 @@ const PreConfigure = () => {
 
         @media (max-width: 768px) {
           .product-image {
-            transform: scale(0.92) translateY(-30px) !important;
-            max-height: 50vh !important;
+            transform: scale(1.38) translateY(-25px) !important;
+            max-height: 64vh !important;
+            width: auto !important;
           }
           .product-info {
             padding: 0 24px !important;
-            bottom: 45px !important;
+            bottom: 30px !important;
           }
           .btn-container {
             justify-content: flex-start !important;

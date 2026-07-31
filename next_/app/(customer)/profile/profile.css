@@ -903,6 +903,21 @@
   }
 }
 
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .profile-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    margin-bottom: 16px !important;
+  }
+}
+
 @media (max-width: 640px) {
   .stats-cluster { grid-template-columns: 1fr 1fr; }
 }

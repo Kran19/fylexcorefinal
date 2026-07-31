@@ -463,13 +463,13 @@ function ConfigureContent() {
           .thumb { width: 42px; height: 42px; }
           .top-actions { top: 25px; right: 20px; }
           .top-left-actions { top: 25px; left: 20px; }
-          .c-main { padding-bottom: 220px; min-height: 48vh; }
-          .watch-preview { max-height: 40vh; max-width: 75%; }
-          .side-thumbnails-bar { right: 12px; top: 40%; transform: translateY(-50%); gap: 8px; z-index: 20; }
-          .side-thumb-item { width: 38px; height: 38px; padding: 4px; }
-          .c-selection-controls { padding: 16px 16px 12px; }
-          .options-row { gap: 16px; font-size: 14px; }
-          .c-summary-footer { padding: 20px; flex-direction: column; align-items: flex-start; gap: 15px; }
+          .c-main { padding-top: 5px; padding-bottom: 200px; min-height: 42vh; }
+          .watch-preview { max-height: 48vh; max-width: 90%; transform: scale(1.16); }
+          .side-thumbnails-bar { right: 12px; top: 38%; transform: translateY(-50%); gap: 10px; z-index: 20; }
+          .side-thumb-item { width: 40px; height: 40px; padding: 4px; }
+          .c-selection-controls { padding: 12px 20px 8px; gap: 12px; }
+          .options-row { gap: 20px; font-size: 15px; }
+          .c-summary-footer { padding: 16px 20px; flex-direction: column; align-items: flex-start; gap: 12px; }
           .f-add-cart-btn { align-self: flex-end; margin-top: -30px; }
         }
         .c-bottom-panel { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 30; background: transparent; }

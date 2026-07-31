@@ -99,6 +99,13 @@ const Profile = () => {
     { id: 'settings', label: 'Settings', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg> },
   ];
 
+  const resolveOrderImg = (order) => {
+    const raw = order?.preview?.image || order?.items?.[0]?.productVariant?.image || order?.items?.[0]?.product?.image || order?.items?.[0]?.image;
+    const path = typeof raw === 'object' ? (raw?.url || raw?.path || raw?.filePath) : raw;
+    if (!path || typeof path !== 'string' || path.trim() === '') return '/Rim.webp';
+    return getFileUrl(path);
+  };
+
   return (
     <div className="profile-page-wrapper">
       <div className="profile-bg-blob blob-1"></div>
@@ -115,33 +122,6 @@ const Profile = () => {
             <div className="mobile-status">Heritage Member</div>
           </div>
         </header>
-
-        {/* MOBILE TOP TAB BAR */}
-        <div className="mobile-top-tab-bar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '12px 16px', background: '#0a0a0a', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '16px' }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '999px',
-                fontSize: '12px',
-                fontWeight: 600,
-                border: '1px solid ' + (activeTab === tab.id ? '#ffffff' : 'rgba(255,255,255,0.15)'),
-                background: activeTab === tab.id ? '#ffffff' : 'transparent',
-                color: activeTab === tab.id ? '#000000' : '#ffffff',
-                whiteSpace: 'nowrap',
-                cursor: 'pointer'
-              }}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
 
         {/* MOBILE BOTTOM NAV */}
         <nav className="mobile-nav">
@@ -211,7 +191,12 @@ const Profile = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {recentOrders.length > 0 ? recentOrders.map(order => (
                   <div key={order.id} className="order-card-premium">
-                    <img src={getFileUrl(order.preview?.image) || '/assets/fylex-watch-v2/premium.png'} alt="Product" className="item-thumb" />
+                    <img
+                      src={resolveOrderImg(order)}
+                      alt="Product"
+                      className="item-thumb"
+                      onError={(e) => { e.currentTarget.src = '/Rim.webp'; }}
+                    />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)' }}>#{order.orderNumber || order.id}</span>
                       <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#ffffff', marginTop: '2px' }}>{order.preview?.title || 'Bespoke Timepiece'}</h4>
@@ -231,16 +216,20 @@ const Profile = () => {
           {/* ── ORDERS ── */}
           {activeTab === 'orders' && (
             <div className="tab-pane">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <h1 className="section-title" style={{ marginBottom: 0 }}>Acquisition History</h1>
-                <button 
-                  onClick={() => setDashboard(prev => ({ ...prev, orderHistory: [] }))}
-                  style={{ background: 'transparent', border: '1px solid #e2e8f0', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', color: '#64748b' }}
-                >
-                  Clear History
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: 16 }}>
+                <div>
+                  <h1 className="section-title" style={{ marginBottom: 4 }}>Acquisition History</h1>
+                  <p className="section-subtitle" style={{ marginBottom: 0 }}>A complete record of all {stats.totalOrders} orders.</p>
+                </div>
+                {orderHistory.length > 0 && (
+                  <button 
+                    onClick={() => setDashboard(prev => ({ ...prev, orderHistory: [] }))}
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.18)', padding: '6px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', color: '#ffffff' }}
+                  >
+                    Clear History
+                  </button>
+                )}
               </div>
-              <p className="section-subtitle">A complete record of all {stats.totalOrders} orders.</p>
 
               {/* Desktop table */}
               <div className="hidden md:block" style={{ overflowX: 'auto' }}>
@@ -312,17 +301,34 @@ const Profile = () => {
               <h1 className="section-title">Timeline & Tracking</h1>
               <p className="section-subtitle">Select an order to view its real-time progress.</p>
 
-              {trackingOrders.length > 0 && (
-                <select
-                  value={selectedTrackingOrderId}
-                  onChange={e => setSelectedTrackingOrderId(e.target.value)}
-                  className="tracking-select"
-                >
+              {trackingOrders.length > 1 ? (
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '24px' }}>
                   {trackingOrders.map(order => (
-                    <option key={order.orderId} value={order.orderId}>{order.orderNumber} | {order.preview?.title || 'Watch'}</option>
+                    <button
+                      key={order.orderId}
+                      onClick={() => setSelectedTrackingOrderId(order.orderId)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '999px',
+                        background: selectedTrackingOrderId === order.orderId ? '#ffffff' : '#111111',
+                        color: selectedTrackingOrderId === order.orderId ? '#000000' : '#ffffff',
+                        border: '1px solid ' + (selectedTrackingOrderId === order.orderId ? '#ffffff' : 'rgba(255,255,255,0.15)'),
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      #{order.orderNumber || order.orderId} · {order.preview?.title || 'Watch'}
+                    </button>
                   ))}
-                </select>
-              )}
+                </div>
+              ) : trackingOrders.length === 1 ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#111111', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', marginBottom: '24px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff' }}>#{trackingOrders[0].orderNumber || trackingOrders[0].orderId}</span>
+                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>{trackingOrders[0].preview?.title || 'Bespoke Timepiece'}</span>
+                </div>
+              ) : null}
 
               {tracking ? (
                 <div className="tracking-viz">
@@ -419,7 +425,7 @@ const Profile = () => {
               <p className="section-subtitle">Maintain your profile and secure your experience.</p>
 
               <div className="settings-card">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px', marginBottom: '24px' }}>
+                <div className="profile-form-grid">
                   <div className="form-field">
                     <label className="form-label">Full Name</label>
                     <input type="text" value={settingsForm.name} onChange={e => setSettingsForm(p => ({ ...p, name: e.target.value }))} className="form-input" placeholder="Enter full name" />
@@ -430,7 +436,7 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px', marginBottom: '24px' }}>
+                <div className="profile-form-grid">
                   <div className="form-field">
                     <label className="form-label form-label-muted">Digital Address</label>
                     <input type="email" value={profile?.email || ''} className="form-input" disabled />

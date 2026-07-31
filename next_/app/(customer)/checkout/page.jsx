@@ -856,9 +856,17 @@ const Checkout = () => {
         }
 
         @media (max-width: 860px) {
-          .checkout-layout { grid-template-columns: 1fr; }
-          .checkout-sidebar { order: -1; }
-          .checkout-card { padding: 24px; }
+          .checkout-page { padding: 60px 12px 60px !important; }
+          .checkout-container { width: 100% !important; max-width: 100% !important; margin: 0 !important; }
+          .checkout-layout { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .checkout-sidebar { order: -1; width: 100% !important; }
+          .checkout-card { padding: 20px 16px !important; border-radius: 16px !important; width: 100% !important; box-sizing: border-box !important; }
+          .order-summary-card { padding: 20px 16px !important; border-radius: 16px !important; position: static !important; width: 100% !important; box-sizing: border-box !important; }
+          .form-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+          .form-group.full { grid-column: span 1 !important; }
+          .payment-card { padding: 14px 12px !important; width: 100% !important; box-sizing: border-box !important; }
+          .checkout-progress { gap: 14px !important; }
+          .step-name { font-size: 9px !important; letter-spacing: 0.05em !important; }
         }
       `}</style>
     </div>
