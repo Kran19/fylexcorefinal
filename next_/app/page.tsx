@@ -431,11 +431,11 @@ const Home = () => {
 
   const s2Bg = (section2Banner?.image && typeof section2Banner.image === 'string' && section2Banner.image.trim() !== '')
     ? getFileUrl(section2Banner.image)
-    : '/Rim.png';
+    : '/Rim.webp';
 
   const s3Bg = (section3Banner?.image && typeof section3Banner.image === 'string' && section3Banner.image.trim() !== '')
     ? getFileUrl(section3Banner.image)
-    : '/Watch_1.png';
+    : '/Watch_1.webp';
 
   return (
     <div className="v1-home" ref={containerRef}>
@@ -927,6 +927,7 @@ const Home = () => {
                 <video
                   src={getFileUrl(videoSettings.home_hero_video) || "/assets/Fylexxx.mp4"}
                   autoPlay muted loop playsInline
+                  preload={isMobile ? "metadata" : "auto"}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
