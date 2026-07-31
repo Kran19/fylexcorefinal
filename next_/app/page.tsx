@@ -349,26 +349,50 @@ const Home = () => {
 
   // ── ScrollTrigger setup ────────────────────────────────────────
   useEffect(() => {
-    // Reveal cards on scroll
+    // Reveal cards on scroll and apply parallax background movement
     const sections = gsap.utils.toArray('.section');
     sections.forEach((section: any) => {
       const card = section.querySelector('.card');
       if (card) {
         ScrollTrigger.create({
           trigger: section,
-          start: "top 60%",
-          end: "bottom 30%",
+          start: "top 85%",
+          end: "bottom 15%",
           onEnter: () => card.classList.add('in'),
           onEnterBack: () => card.classList.add('in'),
           onLeave: () => card.classList.remove('in'),
           onLeaveBack: () => card.classList.remove('in')
         });
+
+        // Ensure card reveals immediately if section is already in viewport
+        const rect = section.getBoundingClientRect();
+        if (rect.top < window.innerHeight && rect.bottom > 0) {
+          card.classList.add('in');
+        }
+      }
+
+      // Parallax effect on Section 2 & Section 3
+      if (section.classList.contains('s2') || section.classList.contains('s3')) {
+        gsap.fromTo(section, 
+          { backgroundPositionY: "0%" },
+          {
+            backgroundPositionY: "45%",
+            ease: "none",
+            scrollTrigger: {
+              trigger: section,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: true
+            }
+          }
+        );
       }
     });
 
-    ScrollTrigger.refresh();
+    const timer = setTimeout(() => ScrollTrigger.refresh(), 200);
 
     return () => {
+      clearTimeout(timer);
       ScrollTrigger.getAll().forEach((t: any) => t.kill());
     };
   }, [homeSections]);
