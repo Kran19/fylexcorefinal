@@ -116,7 +116,34 @@ const Profile = () => {
           </div>
         </header>
 
-        {/* MOBILE NAV */}
+        {/* MOBILE TOP TAB BAR */}
+        <div className="mobile-top-tab-bar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '12px 16px', background: '#0a0a0a', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '16px' }}>
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '999px',
+                fontSize: '12px',
+                fontWeight: 600,
+                border: '1px solid ' + (activeTab === tab.id ? '#ffffff' : 'rgba(255,255,255,0.15)'),
+                background: activeTab === tab.id ? '#ffffff' : 'transparent',
+                color: activeTab === tab.id ? '#000000' : '#ffffff',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* MOBILE BOTTOM NAV */}
         <nav className="mobile-nav">
           {tabs.map(tab => (
             <button key={tab.id} className={`mobile-nav-item ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>

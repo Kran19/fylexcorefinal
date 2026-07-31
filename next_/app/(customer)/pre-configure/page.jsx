@@ -343,11 +343,12 @@ const PreConfigure = () => {
 
         @media (max-width: 768px) {
           .product-image {
-            transform: scale(2.05) translateY(-15px) !important;
+            transform: scale(0.92) translateY(-30px) !important;
+            max-height: 50vh !important;
           }
           .product-info {
             padding: 0 24px !important;
-            bottom: 60px !important;
+            bottom: 45px !important;
           }
           .btn-container {
             justify-content: flex-start !important;
@@ -571,8 +572,8 @@ const PreConfigure = () => {
         }
 
         @media (max-width: 768px) {
-          .category-nav { top: 90px; gap: 20px; }
-          .category-item { font-size: 0.8rem; }
+          .category-nav { top: 70px; gap: 16px; z-index: 70; }
+          .category-item { font-size: 0.78rem; }
         }
 
         /* ═══════════ SOLD CONFIGS MODAL ═══════════ */
