@@ -588,6 +588,10 @@ const EditProductPage = () => {
             preConfigureTextColor: form.preConfigureTextColor || form.textColor || '#1a1a1a',
             preConfigureAccentColor: form.preConfigureAccentColor || form.accentColor || '#c4a35a',
         });
+        const activeCatId = (form.categoryId && categories.some(c => c.id.toString() === form.categoryId.toString()))
+            ? form.categoryId
+            : (categories[0]?.id?.toString() || form.categoryId || null);
+
         const payload = {
             ...formData,
             configuredImageCount: configuredImageNum,
@@ -599,7 +603,7 @@ const EditProductPage = () => {
             shortDescription: form.shortDesc,
             videoUrl: form.videoUrl,
             discoverHeroBgImage: form.discoverHeroBgImage,
-            mainCategoryId: form.categoryId,
+            mainCategoryId: activeCatId,
             sku: form.sku || form.productCode || `SKU-${Date.now()}`,
             price: variants.length > 0 
                 ? Math.min(...variants.map(v => parseFloat(v.price) || Infinity)).toString()
@@ -608,34 +612,34 @@ const EditProductPage = () => {
                 ? variants.reduce((acc, v) => acc + (parseInt(v.stock) || 0), 0)
                 : (parseInt(form.qty) || 0),
             isFeatured: form.isFeatured,
-            tagIds: form.tagIds,
+            tagIds: Array.isArray(form.tagIds) ? form.tagIds.filter(id => id != null && id !== '') : [],
             heroImage: form.heroImage?.url,
-            heroImageId: form.heroImage?.id,
-            galleryIds: form.gallery.map(g => g.id),
+            heroImageId: form.heroImage?.id || null,
+            galleryIds: (form.gallery || []).map(g => g.id).filter(id => id != null),
             images: [form.heroImage?.url, ...form.gallery.map(g => g.url)].filter(Boolean),
-            beltIds: form.canSellBelts ? form.beltIds : [],
-            boxIds: form.canShowBoxes ? form.boxIds : [],
+            beltIds: form.canSellBelts ? (form.beltIds || []).filter(id => id != null) : [],
+            boxIds: form.canShowBoxes ? (form.boxIds || []).filter(id => id != null) : [],
             specifications: Object.entries(form.specifications || {}).map(([id, val]) => {
                 const specItem = categoryDetails?.specGroups?.flatMap(sg => sg.specGroup.specifications).find(s => s.specification.id.toString() === id);
-                const isDropdown = specItem?.specification.type === 'select';
+                const isDropdown = specItem?.specification?.type === 'select';
                 return {
                     specificationId: id,
-                    value: isDropdown ? (specItem.specification.values.find(v => v.id.toString() === val)?.value || '') : (val || ''),
+                    value: isDropdown ? (specItem?.specification?.values?.find(v => v.id.toString() === val)?.value || '') : (val || ''),
                     specificationValueId: isDropdown ? val : null
                 };
-            }),
+            }).filter(s => s.specificationId != null && s.specificationId !== ''),
             variants: variants.map(v => ({
                 ...(v.id?.toString().startsWith('new') ? {} : { id: v.id }),
                 sku: v.sku,
                 comparePrice: parseFloat(v.comparePrice) || null,
                 price: parseFloat(v.price) || 0,
                 stock: parseInt(v.stock) || 0,
-                attributeValues: v.attributeValues,
+                attributeValues: Array.isArray(v.attributeValues) ? v.attributeValues.filter(av => av && av.attributeId != null && av.attributeValueId != null) : [],
                 heroImageId: v.heroImage?.id || undefined,
                 heroBgImageId: v.heroBgImage?.id || undefined,
                 isSoldConfiguration: v.isSoldConfiguration || false,
                 fakeSoldCount: parseInt(v.fakeSoldCount) || 0,
-                galleryIds: v.gallery?.map(g => g.id).filter(id => id != null) || []
+                galleryIds: (v.gallery || []).map(g => g.id).filter(id => id != null) || []
             }))
         };
 

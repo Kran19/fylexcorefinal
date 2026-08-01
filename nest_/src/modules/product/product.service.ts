@@ -33,6 +33,83 @@ export class ProductService {
     }
   }
 
+  private async validateAndSanitizeCategory(catId: any): Promise<number | null> {
+    const numId = this.safeNumber(catId, 'mainCategoryId');
+    if (!numId) return null;
+    try {
+      const exists = await this.prisma.category.findUnique({ where: { id: numId } });
+      if (exists) return numId;
+      const firstCat = await this.prisma.category.findFirst({ select: { id: true } });
+      return firstCat ? firstCat.id : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  private async sanitizeTagIds(tagIds: any[]): Promise<number[]> {
+    if (!Array.isArray(tagIds) || tagIds.length === 0) return [];
+    const validIds = tagIds.map(id => this.safeNumber(id, 'tagId')).filter((id): id is number => id !== null);
+    if (validIds.length === 0) return [];
+    try {
+      const existingTags = await this.prisma.tag.findMany({
+        where: { id: { in: validIds } },
+        select: { id: true }
+      });
+      const existingSet = new Set(existingTags.map(t => t.id));
+      return validIds.filter(id => existingSet.has(id));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  private async sanitizeMediaIds(mediaIds: any[]): Promise<number[]> {
+    if (!Array.isArray(mediaIds) || mediaIds.length === 0) return [];
+    const validIds = mediaIds.map(id => this.safeNumber(id, 'mediaId')).filter((id): id is number => id !== null);
+    if (validIds.length === 0) return [];
+    try {
+      const existingMedia = await this.prisma.media.findMany({
+        where: { id: { in: validIds } },
+        select: { id: true }
+      });
+      const existingSet = new Set(existingMedia.map(m => m.id));
+      return validIds.filter(id => existingSet.has(id));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  private async sanitizeBeltIds(beltIds: any[]): Promise<number[]> {
+    if (!Array.isArray(beltIds) || beltIds.length === 0) return [];
+    const validIds = beltIds.map(id => this.safeNumber(id, 'beltId')).filter((id): id is number => id !== null);
+    if (validIds.length === 0) return [];
+    try {
+      const existing = await this.prisma.belt.findMany({
+        where: { id: { in: validIds } },
+        select: { id: true }
+      });
+      const existingSet = new Set(existing.map(b => b.id));
+      return validIds.filter(id => existingSet.has(id));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  private async sanitizeBoxIds(boxIds: any[]): Promise<number[]> {
+    if (!Array.isArray(boxIds) || boxIds.length === 0) return [];
+    const validIds = boxIds.map(id => this.safeNumber(id, 'boxId')).filter((id): id is number => id !== null);
+    if (validIds.length === 0) return [];
+    try {
+      const existing = await this.prisma.box.findMany({
+        where: { id: { in: validIds } },
+        select: { id: true }
+      });
+      const existingSet = new Set(existing.map(b => b.id));
+      return validIds.filter(id => existingSet.has(id));
+    } catch (e) {
+      return [];
+    }
+  }
+
   private handlePrismaError(error: any, context: string): never {
     console.error(`[${context}] Error:`, error);
     
@@ -46,7 +123,8 @@ export class ProductService {
         case 'P2025':
           throw new NotFoundException(`${context} target record not found.`);
         case 'P2003':
-          throw new BadRequestException(`Foreign key constraint failed. One of the referenced IDs (category, etc.) does not exist.`);
+          const fieldName = (error.meta?.field_name as string) || (error.meta?.target as string) || 'referenced relation ID';
+          throw new BadRequestException(`Foreign key constraint failed on ${fieldName}. One of the referenced IDs does not exist.`);
         default:
           throw new BadRequestException(`Database Error (${error.code}): ${error.message}`);
       }
@@ -127,7 +205,7 @@ export class ProductService {
       metaKeywords: data.metaKeywords,
       images: typeof data.images === 'string' ? data.images : JSON.stringify(data.images || (dto as any).gallery?.map((g: any) => g.url) || []),
 
-      mainCategoryId: data.mainCategoryId || (dto as any).categoryId,
+      mainCategoryId: await this.validateAndSanitizeCategory(data.mainCategoryId || (dto as any).categoryId),
       taxClassId: data.taxClassId,
       theme: data.theme,
       subtitle: data.subtitle,
@@ -719,7 +797,7 @@ export class ProductService {
       if (taxClassId !== undefined) prismaData.taxClassId = this.safeNumber(taxClassId, 'taxClassId');
       if (mainCategoryId !== undefined || categoryId !== undefined) {
         const catId = mainCategoryId || categoryId;
-        prismaData.mainCategoryId = this.safeNumber(catId, 'mainCategoryId');
+        prismaData.mainCategoryId = await this.validateAndSanitizeCategory(catId);
       }
 
       if (shortDesc && !rest.shortDescription) {
@@ -795,15 +873,11 @@ export class ProductService {
         if (tagIds !== undefined) {
           await tx.productTag.deleteMany({ where: { productId } });
           if (tagIds.length > 0) {
-            const tagData = tagIds
-              .map((tagId: any) => ({
-                productId,
-                tagId: this.safeNumber(tagId, 'tagId'),
-              }))
-              .filter((t: any) => t.tagId !== null);
-
-            if (tagData.length > 0) {
-              await tx.productTag.createMany({ data: tagData as any });
+            const cleanTagIds = await this.sanitizeTagIds(tagIds);
+            if (cleanTagIds.length > 0) {
+              await tx.productTag.createMany({
+                data: cleanTagIds.map(tagId => ({ productId, tagId }))
+              });
             }
           }
         }
@@ -847,11 +921,16 @@ export class ProductService {
         const galleryIds = (dto as any).galleryIds;
 
         if (heroImageId !== undefined || galleryIds !== undefined) {
+          const rawMediaIds: any[] = [];
+          if (heroImageId) rawMediaIds.push(heroImageId);
+          if (galleryIds && Array.isArray(galleryIds)) rawMediaIds.push(...galleryIds);
+          
+          const validMediaSet = new Set(await this.sanitizeMediaIds(rawMediaIds));
           const incomingMedia: { mediaId: number, type: string, sortOrder: number }[] = [];
           
           if (heroImageId) {
             const bmid = this.safeNumber(heroImageId, 'heroImageId');
-            if (bmid) {
+            if (bmid && validMediaSet.has(bmid)) {
               incomingMedia.push({ mediaId: bmid, type: 'MAIN', sortOrder: 0 });
             }
           }
@@ -859,7 +938,7 @@ export class ProductService {
           if (galleryIds && Array.isArray(galleryIds)) {
             galleryIds.forEach((mid: any) => {
               const bmid = this.safeNumber(mid, 'mediaId');
-              if (bmid) {
+              if (bmid && validMediaSet.has(bmid)) {
                 // Avoid duplication if already MAIN
                 if (!incomingMedia.find(m => m.mediaId === bmid)) {
                   incomingMedia.push({ mediaId: bmid, type: 'GALLERY', sortOrder: incomingMedia.length });
@@ -964,13 +1043,23 @@ export class ProductService {
               });
             }
 
+            // Collect candidate variant media IDs for sanitization
+            const rawVMediaIds: any[] = [];
+            if (variant.heroImageId) rawVMediaIds.push(variant.heroImageId);
+            if (variant.heroBgImageId) rawVMediaIds.push(variant.heroBgImageId);
+            if (variant.galleryIds && Array.isArray(variant.galleryIds)) rawVMediaIds.push(...variant.galleryIds);
+            if (variant.gallery && Array.isArray(variant.gallery)) {
+              variant.gallery.forEach((img: any) => { if (img.id || img.mediaId) rawVMediaIds.push(img.id || img.mediaId); });
+            }
+            const validVMediaSet = new Set(await this.sanitizeMediaIds(rawVMediaIds));
+
             // Sync Images (Unify and ensure uniqueness)
             const mediaMap = new Map<number, any>();
 
             // 1. Handle Hero Image (Priority: MAIN type)
             if (variant.heroImageId) {
               const mid = this.safeNumber(variant.heroImageId, 'heroImageId', true);
-              if (mid) {
+              if (mid && validVMediaSet.has(mid)) {
                 mediaMap.set(mid, {
                   variantId: v.id,
                   mediaId: mid,
@@ -983,7 +1072,7 @@ export class ProductService {
             // 1.5 Handle Background Image (Type: HERO_BG)
             if (variant.heroBgImageId) {
               const mid = this.safeNumber(variant.heroBgImageId, 'heroBgImageId', true);
-              if (mid && !mediaMap.has(mid)) {
+              if (mid && validVMediaSet.has(mid) && !mediaMap.has(mid)) {
                 mediaMap.set(mid, {
                   variantId: v.id,
                   mediaId: mid,
@@ -997,7 +1086,7 @@ export class ProductService {
             if (variant.galleryIds && Array.isArray(variant.galleryIds)) {
               variant.galleryIds.forEach((mid: any) => {
                 const id = this.safeNumber(mid, 'mediaId', true);
-                if (id && !mediaMap.has(id)) {
+                if (id && validVMediaSet.has(id) && !mediaMap.has(id)) {
                   mediaMap.set(id, {
                     variantId: v.id,
                     mediaId: id,
@@ -1012,7 +1101,7 @@ export class ProductService {
             if (variant.gallery && Array.isArray(variant.gallery)) {
               variant.gallery.forEach((img: any) => {
                 const id = this.safeNumber(img.id || img.mediaId, 'mediaId', true);
-                if (id && !mediaMap.has(id)) {
+                if (id && validVMediaSet.has(id) && !mediaMap.has(id)) {
                   mediaMap.set(id, {
                     variantId: v.id,
                     mediaId: id,
@@ -1033,15 +1122,11 @@ export class ProductService {
         if (dto.beltIds !== undefined) {
           await tx.productBelt.deleteMany({ where: { productId } });
           if (dto.beltIds.length > 0) {
-            const beltData = dto.beltIds
-              .map((beltId: any) => ({
-                productId,
-                beltId: this.safeNumber(beltId, 'beltId'),
-              }))
-              .filter((b: any) => b.beltId !== null);
-            
-            if (beltData.length > 0) {
-              await tx.productBelt.createMany({ data: beltData as any });
+            const cleanBeltIds = await this.sanitizeBeltIds(dto.beltIds);
+            if (cleanBeltIds.length > 0) {
+              await tx.productBelt.createMany({
+                data: cleanBeltIds.map((beltId: any) => ({ productId, beltId }))
+              });
             }
           }
         }
@@ -1050,15 +1135,11 @@ export class ProductService {
         if (dto.boxIds !== undefined) {
           await tx.productBox.deleteMany({ where: { productId } });
           if (dto.boxIds.length > 0) {
-            const boxData = dto.boxIds
-              .map((boxId: any) => ({
-                productId,
-                boxId: this.safeNumber(boxId, 'boxId'),
-              }))
-              .filter((b: any) => b.boxId !== null);
-            
-            if (boxData.length > 0) {
-              await tx.productBox.createMany({ data: boxData as any });
+            const cleanBoxIds = await this.sanitizeBoxIds(dto.boxIds);
+            if (cleanBoxIds.length > 0) {
+              await tx.productBox.createMany({
+                data: cleanBoxIds.map((boxId: any) => ({ productId, boxId }))
+              });
             }
           }
         }
