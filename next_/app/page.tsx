@@ -219,7 +219,15 @@ const GalleryCarousel = ({ items }: { items?: any[] }) => {
                 className="fylex-gallery-item"
                 key={i}
               >
-                <img src={g.src} alt={g.alt || 'Atelier'} draggable={false} />
+                <img 
+                  src={g.src} 
+                  alt={g.alt || 'Atelier'} 
+                  draggable={false} 
+                  onError={(e: any) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1920';
+                  }}
+                />
                 <div className="fylex-overlay" />
               </div>
             ))}
@@ -490,14 +498,16 @@ const Home = () => {
         }
         .featured-grid-wrap {
           display: flex; flex-direction: column;
-          padding: 40px 0 0 !important;
+          padding: 60px 0 40px !important;
           margin: 0 auto !important;
           width: 100%;
           max-width: 1920px;
-          height: 100vh;
-          min-height: 800px;
+          height: auto !important;
+          min-height: auto;
           border-radius: 0;
-          overflow: hidden;
+          position: relative;
+          z-index: 5;
+          overflow: visible;
           box-sizing: border-box;
           background: #fff;
         }
@@ -767,40 +777,25 @@ const Home = () => {
         .flip-top  { clip-path: inset(0 0 50% 0); }
         .flip-bottom { clip-path: inset(50% 0 0 0); background: #152238; color: #ddd; }
         .flip-flap {
-          clip-path: inset(0 0 50% 0); background: var(--navy);
-          transform-origin: center; z-index: 3;
-          backface-visibility: hidden; transform-style: preserve-3d;
-        }
-        .flip-flap.animate { animation: flipDown 0.35s forwards; }
-        @keyframes flipDown { to { transform: rotateX(-180deg); } }
-        .flip-flap::after {
-          content: attr(data-next); position: absolute; inset: 0;
-          background: #152238; color: #ddd;
-          display: flex; justify-content: center; align-items: center;
-          transform: rotateX(180deg); backface-visibility: hidden;
-          clip-path: inset(50% 0 0 0);
-        }
-        .flip-digits { display: flex; gap: 4px; }
-        .flip-group  { display: flex; gap: 4px; }
-        .flip-group + .flip-group { margin-left: 8px; position: relative; }
-        .flip-group + .flip-group::before {
-          content: ''; position: absolute; left: -6px;
-          top: 10%; height: 80%; width: 1px;
-          background: rgba(0,0,0,0.1);
-        }
-
-        /* ── Gallery (new RAFmarquee) ── */
+          /* ── Gallery (new RAF marquee) ── */
         .fylex-gallery-section {
+          position: relative;
+          z-index: 10;
           padding: 80px 0 60px;
           background: #F9F9F7;
           border-top: 1px solid rgba(0,0,0,0.06);
           border-radius: var(--curve, 24px) var(--curve, 24px) 0 0;
           overflow: hidden;
+          width: 100%;
+          clear: both;
+          margin-top: 0;
         }
         .fylex-gallery-header {
           text-align: center;
           margin-bottom: 52px;
           padding: 0 40px;
+          position: relative;
+          z-index: 2;
         }
         .fylex-gallery-header h2 {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
@@ -817,6 +812,38 @@ const Home = () => {
           cursor: grab; user-select: none;
           -webkit-user-select: none;
           touch-action: pan-y;
+          padding: 20px 0 32px;
+          position: relative;
+          z-index: 2;
+        }
+        .fylex-gallery-viewport:active { cursor: grabbing; }
+        .fylex-gallery-track {
+          display: flex; gap: 16px;
+          width: max-content;
+          will-change: transform;
+        }
+        .fylex-gallery-col {
+          display: flex; flex-direction: column;
+          gap: 16px; width: 240px;
+          flex-shrink: 0; align-self: center;
+        }
+        .fylex-gallery-item {
+          position: relative; border-radius: 14px;
+          overflow: hidden;
+          border: 1px solid rgba(0,0,0,0.05);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+          transition: transform 0.4s cubic-bezier(0.165,0.84,0.44,1),
+                      box-shadow 0.4s cubic-bezier(0.165,0.84,0.44,1);
+          background: #1a1a1a;
+          height: 260px;
+          width: 100%;
+        }
+        .fylex-gallery-item img {
+          width: 100%; height: 100%; object-fit: cover;
+          display: block;
+          transition: transform 0.7s cubic-bezier(0.165,0.84,0.44,1);
+          pointer-events: none; -webkit-user-drag: none;
+        }action: pan-y;
           padding: 20px 0 32px;
         }
         .fylex-gallery-viewport:active { cursor: grabbing; }
