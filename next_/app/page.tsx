@@ -518,7 +518,7 @@ const Home = () => {
         }
         .featured-container {
           width: 100%;
-          flex: 1;
+          height: 600px;
           display: block;
           position: relative;
           overflow: hidden;
@@ -530,7 +530,7 @@ const Home = () => {
         .featured-item-v2 {
           position: relative; overflow: hidden;
           background: #f5f5f5;
-          height: 100%;
+          height: 600px;
           width: 100%;
         }
         .featured-item-v2 img {
@@ -617,8 +617,8 @@ const Home = () => {
           }
           .featured-grid-header { padding: 40px 24px 24px; text-align: center; }
           .featured-title { font-size: 2.2rem; }
-          .featured-container { display: block; }
-          .featured-item-v2 { height: 60vh; border-radius: 0; }
+          .featured-container { display: block; height: 500px; }
+          .featured-item-v2 { height: 500px; border-radius: 0; }
           .featured-content { bottom: 80px; left: 24px; }
           .featured-swiper .swiper-pagination { bottom: 20px !important; }
           
@@ -1037,44 +1037,49 @@ const Home = () => {
                   </div>
                 ) : (
                   <>
-                    <Swiper
-                      modules={[Autoplay, Pagination]}
-                      spaceBetween={0}
-                      slidesPerView={isMobile ? 1 : 2}
-                      autoplay={{ delay: 5000, disableOnInteraction: false }}
-                      pagination={{
-                        clickable: true,
-                        dynamicBullets: false
-                      }}
-                      loop={featuredProducts.length >= (isMobile ? 1 : 2)}
-                      className="featured-swiper"
-                    >
-                      {featuredProducts.map((p) => {
-                        const display = getDisplayData(p);
+                    {(() => {
+                      const displayList = (featuredProducts && featuredProducts.length > 0) ? featuredProducts : productsData;
+                      return (
+                        <Swiper
+                          modules={[Autoplay, Pagination]}
+                          spaceBetween={0}
+                          slidesPerView={isMobile ? 1 : 2}
+                          autoplay={{ delay: 5000, disableOnInteraction: false }}
+                          pagination={{
+                            clickable: true,
+                            dynamicBullets: false
+                          }}
+                          loop={displayList.length >= (isMobile ? 1 : 2)}
+                          className="featured-swiper"
+                        >
+                          {displayList.map((p) => {
+                            const display = getDisplayData(p);
 
-                        return (
-                          <SwiperSlide key={p.id}>
-                            <div className="featured-item-v2" style={{ background: p.gradient || p.bgColor || '#f5f5f5' }}>
-                              {display.image && (
-                                <img
-                                  src={display.image}
-                                  alt={display.name}
-                                  style={{ position: 'absolute', top: '-40px', left: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 1 }}
-                                />
-                              )}
-                              <div className="featured-content" style={{ color: p.textColor || '#111', zIndex: 2 }}>
-                                <div className="f-label" style={{ color: p.accentColor || '#666' }}>{p.subtitle || p.tagline}</div>
-                                <div className="f-title" style={{ color: 'inherit' }}>{display.name} <em>{p.titleAccent || ''}</em></div>
-                                <div className="f-price" style={{ margin: '4px 0 14px', fontSize: '1.1rem', fontWeight: 500 }}>
-                                  {display.isConfigurable ? 'From ' : ''}{display.formattedPrice}
+                            return (
+                              <SwiperSlide key={p.id}>
+                                <div className="featured-item-v2" style={{ background: p.gradient || p.bgColor || '#f5f5f5' }}>
+                                  {display.image && (
+                                    <img
+                                      src={display.image}
+                                      alt={display.name}
+                                      style={{ position: 'absolute', top: '-40px', left: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 1 }}
+                                    />
+                                  )}
+                                  <div className="featured-content" style={{ color: p.textColor || '#111', zIndex: 2 }}>
+                                    <div className="f-label" style={{ color: p.accentColor || '#666' }}>{p.subtitle || p.tagline}</div>
+                                    <div className="f-title" style={{ color: 'inherit' }}>{display.name} <em>{p.titleAccent || ''}</em></div>
+                                    <div className="f-price" style={{ margin: '4px 0 14px', fontSize: '1.1rem', fontWeight: 500 }}>
+                                      {display.isConfigurable ? 'From ' : ''}{display.formattedPrice}
+                                    </div>
+                                    <Link href={`/explore?watch=${p.id}`} className="f-shop-btn">Shop</Link>
+                                  </div>
                                 </div>
-                                <Link href={`/explore?watch=${p.id}`} className="f-shop-btn">Shop</Link>
-                              </div>
-                            </div>
-                          </SwiperSlide>
-                        );
-                      })}
-                    </Swiper>
+                              </SwiperSlide>
+                            );
+                          })}
+                        </Swiper>
+                      );
+                    })()}
                   </>
                 )}
               </div>
