@@ -1079,20 +1079,34 @@ const EditProductPage = () => {
 
                                             {/* Tab 1: Explore Page Theme & Showcase Images Controls */}
                                             {(pageThemeTab === 'explore' || pageThemeTab === 'discover') && (
-                                                <div className="space-y-4 bg-gray-50/70 !p-4 rounded-xl border border-gray-200">
-                                                    <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                                                        <i className="fas fa-compass text-indigo-600"></i> Explore Page Theme &amp; 3 Showcase Photos
-                                                    </h4>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        <FormField label="Explore Hero Background Color" name="discoverBg" type="color" value={form.discoverBg || form.bgColor || '#ffffff'} onChange={handleChange} />
-                                                        <FormField label="Explore Text Color (Title, Price)" name="discoverTextColor" type="color" value={form.discoverTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
-                                                        <FormField label="Explore Accent Color" name="discoverAccentColor" type="color" value={form.discoverAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
+                                                <div className="space-y-6">
+                                                    {/* Section 1: Explore Page Color Palette */}
+                                                    <div className="space-y-4 bg-gray-50/80 !p-5 rounded-2xl border border-gray-200 shadow-xs">
+                                                        <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                                                            <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                                                <i className="fas fa-palette text-indigo-600"></i> Section 1: Explore Page Color Palette
+                                                            </h4>
+                                                            <span className="text-[10px] font-extrabold uppercase bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">Styling Tokens</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                            <FormField label="Hero Background Color" name="discoverBg" type="color" value={form.discoverBg || form.bgColor || '#ffffff'} onChange={handleChange} />
+                                                            <FormField label="Text Color (Title & Price)" name="discoverTextColor" type="color" value={form.discoverTextColor || form.textColor || '#1a1a1a'} onChange={handleChange} />
+                                                            <FormField label="Accent Color (Badges)" name="discoverAccentColor" type="color" value={form.discoverAccentColor || form.accentColor || '#c4a35a'} onChange={handleChange} />
+                                                        </div>
                                                     </div>
 
-                                                    <div className="pt-3 border-t border-gray-200 space-y-3">
-                                                        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                                                            Explicit 3 Explore Showcase Images
-                                                        </label>
+                                                    {/* Section 2: Explore Page 3 Showcase Photos Studio */}
+                                                    <div className="space-y-4 bg-indigo-50/40 !p-5 rounded-2xl border border-indigo-100 shadow-xs">
+                                                        <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
+                                                            <div>
+                                                                <h4 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
+                                                                    <i className="fas fa-images text-indigo-600"></i> Section 2: Explore Page 3 Showcase Photos
+                                                                </h4>
+                                                                <p className="text-[11px] text-indigo-600/80 mt-0.5">Select 3 high-resolution showcase photos (Hero, Story, Specs) for full-page Explore experience.</p>
+                                                            </div>
+                                                            <span className="text-[10px] font-extrabold uppercase bg-indigo-600 text-white px-2.5 py-1 rounded-md shadow-xs">3 Photos Studio</span>
+                                                        </div>
+
                                                         {(() => {
                                                             const resolveImgObj = (img) => {
                                                                 if (!img) return null;
@@ -1110,113 +1124,122 @@ const EditProductPage = () => {
                                                             const specsDisplayUrl = resolveImgObj(form.exploreSpecsImage) || resolveImgObj(defaultSpecs);
 
                                                             return (
-                                                                <div className="grid grid-cols-3 gap-3">
-                                                                    {/* Image 1: Hero */}
-                                                                    <div>
-                                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 1: Hero</label>
+                                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                                                                    {/* Photo 1: Hero Visual */}
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <label className="block text-xs font-bold text-gray-700">Photo 1: Hero Visual</label>
+                                                                            <span className="text-[10px] font-medium text-gray-400">Main View</span>
+                                                                        </div>
                                                                         <div 
                                                                             onClick={() => setPickerTarget('exploreHeroImage')} 
-                                                                            className="relative group/box h-28 rounded-xl border-2 border-slate-200 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500 transition-all shadow-xs"
+                                                                            className="relative group/box h-32 rounded-xl border-2 border-indigo-200/80 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-600 transition-all shadow-xs"
                                                                         >
                                                                             {heroDisplayUrl ? (
                                                                                 <>
-                                                                                    <img src={heroDisplayUrl} className="w-full h-full object-contain p-1.5" alt="Explore Hero" />
-                                                                                    <span className={`absolute top-1 left-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-xs ${form.exploreHeroImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
+                                                                                    <img src={heroDisplayUrl} className="w-full h-full object-contain p-2" alt="Explore Hero" />
+                                                                                    <span className={`absolute top-1.5 left-1.5 text-[9px] font-extrabold px-2 py-0.5 rounded shadow-xs ${form.exploreHeroImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
                                                                                         {form.exploreHeroImage ? 'CUSTOM' : 'DEFAULT'}
                                                                                     </span>
                                                                                     {form.exploreHeroImage ? (
                                                                                         <button 
                                                                                             type="button" 
                                                                                             onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreHeroImage: null })); }} 
-                                                                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
+                                                                                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
                                                                                             title="Reset to default"
                                                                                         >
                                                                                             <i className="fas fa-times"></i>
                                                                                         </button>
                                                                                     ) : (
-                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[10px] font-bold">
-                                                                                            Change Hero
+                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[11px] font-bold">
+                                                                                            Change Photo 1
                                                                                         </div>
                                                                                     )}
                                                                                 </>
                                                                             ) : (
-                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
-                                                                                    <i className="fas fa-plus text-gray-300 text-lg mb-1"></i>
-                                                                                    <span className="text-[10px] text-gray-400 font-bold">+ Pick Hero</span>
+                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center">
+                                                                                    <i className="fas fa-plus text-indigo-400 text-xl mb-1"></i>
+                                                                                    <span className="text-[11px] text-indigo-600 font-bold">+ Pick Hero Photo</span>
                                                                                 </div>
                                                                             )}
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* Image 2: Story */}
-                                                                    <div>
-                                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 2: Story</label>
+                                                                    {/* Photo 2: Story & Craftsmanship */}
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <label className="block text-xs font-bold text-gray-700">Photo 2: Story &amp; Craft</label>
+                                                                            <span className="text-[10px] font-medium text-gray-400">Movement</span>
+                                                                        </div>
                                                                         <div 
                                                                             onClick={() => setPickerTarget('exploreStoryImage')} 
-                                                                            className="relative group/box h-28 rounded-xl border-2 border-slate-200 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500 transition-all shadow-xs"
+                                                                            className="relative group/box h-32 rounded-xl border-2 border-indigo-200/80 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-600 transition-all shadow-xs"
                                                                         >
                                                                             {storyDisplayUrl ? (
                                                                                 <>
-                                                                                    <img src={storyDisplayUrl} className="w-full h-full object-contain p-1.5" alt="Explore Story" />
-                                                                                    <span className={`absolute top-1 left-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-xs ${form.exploreStoryImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
+                                                                                    <img src={storyDisplayUrl} className="w-full h-full object-contain p-2" alt="Explore Story" />
+                                                                                    <span className={`absolute top-1.5 left-1.5 text-[9px] font-extrabold px-2 py-0.5 rounded shadow-xs ${form.exploreStoryImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
                                                                                         {form.exploreStoryImage ? 'CUSTOM' : 'DEFAULT'}
                                                                                     </span>
                                                                                     {form.exploreStoryImage ? (
                                                                                         <button 
                                                                                             type="button" 
                                                                                             onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreStoryImage: null })); }} 
-                                                                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
+                                                                                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
                                                                                             title="Reset to default"
                                                                                         >
                                                                                             <i className="fas fa-times"></i>
                                                                                         </button>
                                                                                     ) : (
-                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[10px] font-bold">
-                                                                                            Change Story
+                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[11px] font-bold">
+                                                                                            Change Photo 2
                                                                                         </div>
                                                                                     )}
                                                                                 </>
                                                                             ) : (
-                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
-                                                                                    <i className="fas fa-plus text-gray-300 text-lg mb-1"></i>
-                                                                                    <span className="text-[10px] text-gray-400 font-bold">+ Pick Story</span>
+                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center">
+                                                                                    <i className="fas fa-plus text-indigo-400 text-xl mb-1"></i>
+                                                                                    <span className="text-[11px] text-indigo-600 font-bold">+ Pick Story Photo</span>
                                                                                 </div>
                                                                             )}
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* Image 3: Specs */}
-                                                                    <div>
-                                                                        <label className="block text-[10px] font-bold text-gray-500 mb-1">Image 3: Specs</label>
+                                                                    {/* Photo 3: Specs & Dial Details */}
+                                                                    <div className="space-y-1.5">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <label className="block text-xs font-bold text-gray-700">Photo 3: Specs &amp; Dial</label>
+                                                                            <span className="text-[10px] font-medium text-gray-400">Close-Up</span>
+                                                                        </div>
                                                                         <div 
                                                                             onClick={() => setPickerTarget('exploreSpecsImage')} 
-                                                                            className="relative group/box h-28 rounded-xl border-2 border-slate-200 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-500 transition-all shadow-xs"
+                                                                            className="relative group/box h-32 rounded-xl border-2 border-indigo-200/80 bg-white flex items-center justify-center cursor-pointer overflow-hidden hover:border-indigo-600 transition-all shadow-xs"
                                                                         >
                                                                             {specsDisplayUrl ? (
                                                                                 <>
-                                                                                    <img src={specsDisplayUrl} className="w-full h-full object-contain p-1.5" alt="Explore Specs" />
-                                                                                    <span className={`absolute top-1 left-1 text-[8px] font-extrabold px-1.5 py-0.5 rounded shadow-xs ${form.exploreSpecsImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
+                                                                                    <img src={specsDisplayUrl} className="w-full h-full object-contain p-2" alt="Explore Specs" />
+                                                                                    <span className={`absolute top-1.5 left-1.5 text-[9px] font-extrabold px-2 py-0.5 rounded shadow-xs ${form.exploreSpecsImage ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-100'}`}>
                                                                                         {form.exploreSpecsImage ? 'CUSTOM' : 'DEFAULT'}
                                                                                     </span>
                                                                                     {form.exploreSpecsImage ? (
                                                                                         <button 
                                                                                             type="button" 
                                                                                             onClick={(e) => { e.stopPropagation(); setForm(prev => ({ ...prev, exploreSpecsImage: null })); }} 
-                                                                                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
+                                                                                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] shadow-md hover:bg-red-600 cursor-pointer z-10" 
                                                                                             title="Reset to default"
                                                                                         >
                                                                                             <i className="fas fa-times"></i>
                                                                                         </button>
                                                                                     ) : (
-                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[10px] font-bold">
-                                                                                            Change Specs
+                                                                                        <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/box:opacity-100 transition-all flex items-center justify-center text-white text-[11px] font-bold">
+                                                                                            Change Photo 3
                                                                                         </div>
                                                                                     )}
                                                                                 </>
                                                                             ) : (
-                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
-                                                                                    <i className="fas fa-plus text-gray-300 text-lg mb-1"></i>
-                                                                                    <span className="text-[10px] text-gray-400 font-bold">+ Pick Specs</span>
+                                                                                <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center">
+                                                                                    <i className="fas fa-plus text-indigo-400 text-xl mb-1"></i>
+                                                                                    <span className="text-[11px] text-indigo-600 font-bold">+ Pick Specs Photo</span>
                                                                                 </div>
                                                                             )}
                                                                         </div>
