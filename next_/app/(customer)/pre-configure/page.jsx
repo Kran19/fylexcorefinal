@@ -286,8 +286,8 @@ const PreConfigure = () => {
           border-radius: 999px;
           border: 1px solid #000000;
           box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-          align-self: flex-start;
-          margin-left: 0;
+          align-self: center;
+          margin: 0 auto;
         }
         .btn-configure:hover, .btn-configure:active {
           background: #222222 !important;
@@ -514,19 +514,23 @@ const PreConfigure = () => {
           }
           .btn-container {
             display: flex !important;
-            flex-direction: column !important;
-            align-items: stretch !important;
+            flex-direction: row !important;
+            justify-content: center !important;
+            align-items: center !important;
             width: 100% !important;
+            padding: 0 !important;
             gap: 8px !important;
             margin-top: 15px !important;
           }
           .btn-configure, .btn-explore {
-            width: 100% !important;
+            width: auto !important;
+            max-width: fit-content !important;
             text-align: center !important;
             justify-content: center !important;
-            padding: 10px 16px !important;
+            padding: 10px 24px !important;
             font-size: 0.72rem !important;
             box-sizing: border-box !important;
+            margin: 0 auto !important;
           }
           .swiper-pagination {
             bottom: 15px !important;

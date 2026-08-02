@@ -503,3 +503,17 @@
 - **Testing Completed:** Verified info button layout, contrast color adaptation, and modal popup trigger on `/products`.
 - **Rollback Strategy:** Revert `p-price-row` and modal markup in `products/page.jsx`.
 - **Status:** Complete
+
+## Task 43: Remove Container Padding & Center CONFIGURE Button in Pre-Configure Page
+- **Task Number:** 43
+- **Task Name:** Remove Container Padding & Center CONFIGURE Button in Pre-Configure Page
+- **Files Modified:** `next_/app/(customer)/pre-configure/page.jsx`
+- **Reason:** Remove full-width stretching and container padding from the CONFIGURE button on `/pre-configure` so it sits perfectly centered as a compact pill button across desktop and mobile viewports.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Centered CONFIGURE button with compact width (`width: auto`, `margin: 0 auto`, `padding: 10px 24px`) without container padding offset.
+- **Backend Impact:** None
+- **Testing Completed:** Verified button centering and layout across desktop and mobile media queries.
+- **Rollback Strategy:** Revert `.btn-container` and `.btn-configure` CSS rules in `next_/app/(customer)/pre-configure/page.jsx`.
+- **Status:** Complete
