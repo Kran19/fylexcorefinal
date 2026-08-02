@@ -278,6 +278,12 @@ const PreConfigure = () => {
         .btn-read-more:hover {
           opacity: 0.8;
         }
+        .btn-container {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          width: 100%;
+        }
         .btn-configure {
           display: inline-flex;
           align-items: center;
@@ -294,8 +300,9 @@ const PreConfigure = () => {
           border-radius: 999px;
           border: 1px solid #000000;
           box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-          align-self: center;
-          margin: 0 auto;
+          align-self: flex-start;
+          margin-left: 0;
+          margin-right: auto;
         }
         .btn-configure:hover, .btn-configure:active {
           background: #222222 !important;
@@ -508,10 +515,11 @@ const PreConfigure = () => {
 
         @media (max-width: 768px) {
           .product-image { transform: scale(0.95); }
-          .product-info { bottom: 70px; padding: 0 20px; }
-          .product-name { font-size: 1.6rem; }
+          .product-info { bottom: 70px; padding: 0 20px; text-align: center; }
+          .product-name { font-size: 1.6rem; text-align: center; }
           .product-price { font-size: 1rem; margin: 2px 0 10px; }
-          .btn-configure { padding: 10px 24px; font-size: 0.75rem; }
+          .btn-container { justify-content: center !important; width: 100% !important; }
+          .btn-configure { padding: 10px 24px !important; font-size: 0.75rem !important; align-self: center !important; margin: 0 auto !important; }
           .swiper-pagination { bottom: 30px !important; }
         }
 
@@ -722,7 +730,7 @@ const PreConfigure = () => {
                           i
                         </button>
                       </div>
-                      <div className="flex items-center justify-center mt-3 btn-container" style={{ width: '100%' }}>
+                      <div className="btn-container mt-3" style={{ width: '100%' }}>
                         <Link href={`/configure?watch=${product.id}`} className="btn-configure">
                           CONFIGURE
                         </Link>
