@@ -2224,7 +2224,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   }}></div>
                   <div className="cfg-desc-content" style={{ position: 'relative', zIndex: 2 }}>
                     <span className="cfg-heritage-eyebrow" style={{ color: product.heroBgImage ? '#aaaaaa' : '#666666' }}>your timepiece.</span>
-                    <h2 className="cfg-desc-heading" style={{ color: product.heroBgImage ? '#ffffff' : (product.textColor || '#111111') }}>{product.subtitle || 'Crafted with passion'}</h2>
+                    <h2 className="cfg-desc-heading" style={{ color: product.heroBgImage ? '#ffffff' : (product.textColor || '#111111') }}>{product.variantName || product.subtitle || 'Crafted with passion'}</h2>
                     {product.longDesc.startsWith('<') ? (
                       <div className="cfg-desc-text" dangerouslySetInnerHTML={{ __html: product.longDesc }} />
                     ) : (

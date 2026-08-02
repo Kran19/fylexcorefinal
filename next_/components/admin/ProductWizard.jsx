@@ -178,61 +178,6 @@ const ProductWizard = () => {
                     <FormField label="Model Stories" type="textarea" value={coreForm.description} onChange={e => setCoreForm({...coreForm, description: e.target.value})} />
                     <FormField label="Heritage Text" type="textarea" value={coreForm.heritageText} onChange={e => setCoreForm({...coreForm, heritageText: e.target.value})} />
                 </div>
-                
-                {/* Default Product Media */}
-                <div style={{ gridColumn: 'span 2', borderTop: '1px solid #eee', paddingTop: 20 }}>
-                    <h4 style={{ marginBottom: 5 }}>Default Product Media</h4>
-                    <p style={{ fontSize: 10, color: '#888', marginBottom: 15 }}>Shown on the Discover page before any variant attributes are selected.</p>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 20 }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Primary Image</label>
-                            <div 
-                                onClick={() => setPickerTarget('primary')}
-                                style={{ 
-                                    height: 150, borderRadius: 8, border: '2px dashed #ddd', background: '#f9f9f9',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden'
-                                }}
-                            >
-                                {coreForm.heroImage ? (
-                                    <img src={getFileUrl(coreForm.heroImage.url)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Preview" />
-                                ) : (
-                                    <div style={{ textAlign: 'center', color: '#aaa' }}>
-                                        <i className="fas fa-image" style={{ fontSize: 24, marginBottom: 5 }}></i>
-                                        <div style={{ fontSize: 10 }}>SELECT</div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 5 }}>Gallery</label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                                {coreForm.gallery.map((img, i) => (
-                                    <div key={i} style={{ width: 80, height: 80, borderRadius: 8, border: '1px solid #eee', overflow: 'hidden', position: 'relative' }}>
-                                        <img src={getFileUrl(img.url)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Gallery" />
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setCoreForm(prev => ({ ...prev, gallery: prev.gallery.filter((_, idx) => idx !== i) }))}
-                                            style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(255,0,0,0.7)', color: 'white', border: 'none', borderRadius: '50%', width: 16, height: 16, fontSize: 8, cursor: 'pointer' }}
-                                        >
-                                            <i className="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                ))}
-                                <button 
-                                    type="button"
-                                    onClick={() => setPickerTarget('gallery')}
-                                    style={{ 
-                                        width: 80, height: 80, borderRadius: 8, border: '2px dashed #ddd', background: '#f9f9f9',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#aaa'
-                                    }}
-                                >
-                                    <i className="fas fa-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
             <div className="admin-card-footer">
                 <button type="submit" className="btn-primary" disabled={isSubmitting}>

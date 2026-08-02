@@ -1027,8 +1027,20 @@ const Products = () => {
                   <span className="p-tagline" style={{ color: autoTextColor, opacity: 0.9 }}>{col.tagline}</span>
                   <p className="p-description" style={{ color: autoTextColor, opacity: 0.7 }}>{col.description}</p>
 
-                  <div className="p-price-row">
+                  <div className="p-price-row flex items-center gap-3">
                     <span className="p-price-tag" style={{ color: autoTextColor }}>{col.price}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openInfoModal(col);
+                      }}
+                      className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-serif italic font-bold cursor-pointer bg-transparent opacity-85 hover:opacity-100 transition-all"
+                      title="View Details"
+                      style={{ color: autoTextColor, borderColor: autoTextColor }}
+                    >
+                      i
+                    </button>
                   </div>
                   <div className="p-actions-row">
                     <Link href={`/explore?watch=${col.id}`} className="p-link-luxury">
@@ -1055,6 +1067,74 @@ const Products = () => {
           );
         })}
       </div>
+
+      {/* ═══ SOLD CONFIGS INFO MODAL ═══ */}
+      {activeModalData && (
+        <div 
+          onClick={closeInfoModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#111',
+              border: '1px solid rgba(255,255,255,0.08)',
+              width: '100%',
+              maxWidth: '520px',
+              borderRadius: '16px',
+              padding: '32px',
+              position: 'relative',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 30px 60px rgba(0,0,0,0.5)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '16px' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 500, letterSpacing: '0.05em', color: '#fff', margin: 0, fontFamily: 'Avenir, sans-serif' }}>
+                Sold Configurations
+              </h3>
+              <button 
+                onClick={closeInfoModal}
+                style={{ background: 'none', border: 'none', color: '#888', fontSize: '1.2rem', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '8px', textAlign: 'left' }}>
+              {activeModalData.combinations && activeModalData.combinations.length > 0 ? (
+                activeModalData.combinations.map((combo) => (
+                  <div key={combo.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px', borderBottom: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                    <div style={{ width: '56px', height: '56px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <img src={combo.img} alt={`Combo ${combo.id}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#fff' }}>{combo.name}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#888' }}>Sold on {combo.soldAt || 'Recently'}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#888', fontSize: '0.9rem' }}>
+                  No configurations have been registered yet.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

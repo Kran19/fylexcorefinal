@@ -405,3 +405,101 @@
 - **Testing Completed:** Docker configuration syntax and health check sequence verified.
 - **Rollback Strategy:** Delete `docker-compose.yml` and `Dockerfile`s.
 - **Status:** Complete
+
+## Task 36: Add Heritage & Legacy Section and Configurations Sold Card to Configured Page
+- **Task Number:** 36
+- **Task Name:** Add Heritage & Legacy Section and Configurations Sold Card to Configured Page
+- **Files Modified:** `next_/app/(customer)/explore/page.jsx`
+- **Reason:** Add "HERITAGE & LEGACY" eyebrow, "A Story Written in Time" heading, descriptive paragraph, and the interactive "CONFIGURATIONS SOLD" card (`2/50` with `SEE VARIANTS (i)` modal trigger) to the configured outcome view.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Rendered high-end Heritage & Legacy story section and interactive Configurations Sold card with `SEE VARIANTS (i)` modal trigger on `/configured` page.
+- **Backend Impact:** None
+- **Testing Completed:** Verified section rendering, typography, card layout, and `openInfoModal` trigger logic.
+- **Rollback Strategy:** Revert `#heritage-story` section in `next_/app/(customer)/explore/page.jsx`.
+- **Status:** Complete
+
+## Task 37: Remove Default Product Media Section from Admin Panel
+- **Task Number:** 37
+- **Task Name:** Remove Default Product Media Section from Admin Panel
+- **Files Modified:** `next_/app/admin/products/edit/[id]/page.jsx`, `next_/components/admin/ProductWizard.jsx`
+- **Reason:** Remove redundant "Default Product Media" upload controls from the admin product creation/edit views per user request.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Clean Admin Product Editor UI transitioning directly to Category Specifications.
+- **Backend Impact:** None
+- **Testing Completed:** Verified admin product edit and wizard views without Default Product Media blocks.
+- **Rollback Strategy:** Restore Default Product Media JSX blocks in admin files.
+- **Status:** Complete
+
+## Task 38: Center CONFIGURE Button & Optimize Spacing on Pre-Configure Page
+- **Task Number:** 38
+- **Task Name:** Center CONFIGURE Button & Optimize Spacing on Pre-Configure Page
+- **Files Modified:** `next_/app/(customer)/pre-configure/page.jsx`
+- **Reason:** Change `.btn-container` layout from left-aligned (`justify-start`) to centered (`justify-center`) and optimize padding on `/pre-configure`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Perfectly centered CONFIGURE button with compact, balanced spacing.
+- **Backend Impact:** None
+- **Testing Completed:** Verified button alignment on `/pre-configure` page.
+- **Rollback Strategy:** Revert `.btn-container` in `next_/app/(customer)/pre-configure/page.jsx`.
+- **Status:** Complete
+
+## Task 39: Dynamic Active Variant Subtitle Title Update
+- **Task Number:** 39
+- **Task Name:** Dynamic Active Variant Subtitle Title Update
+- **Files Modified:** `next_/app/(customer)/explore/page.jsx`
+- **Reason:** Bind `cfg-desc-heading` to `{product.variantName || product.subtitle}` so the secondary section heading dynamically updates when different watch variants are configured.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Display heading dynamically updates (e.g. `Midnight • Blue`) whenever a specific variant configuration is selected.
+- **Backend Impact:** None
+- **Testing Completed:** Verified heading title updates across variant parameter changes.
+- **Rollback Strategy:** Revert `cfg-desc-heading` expression in `next_/app/(customer)/explore/page.jsx`.
+- **Status:** Complete
+
+## Task 40: Dynamic Contrast for Pre-Configure Category Filter
+- **Task Number:** 40
+- **Task Name:** Dynamic Contrast for Pre-Configure Category Filter
+- **Files Modified:** `next_/app/(customer)/pre-configure/page.jsx`
+- **Reason:** Bind `.category-item` and `.category-dot` color to `var(--theme-text)` so top category links (`All • Luxury Watches`) dynamically switch between high-contrast black on light backgrounds and high-contrast white on dark backgrounds.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** High-contrast category names on `/pre-configure` page regardless of theme background color.
+- **Backend Impact:** None
+- **Testing Completed:** Verified category nav text readability on white and dark slides.
+- **Rollback Strategy:** Revert CSS rules for `.category-item` in `next_/app/(customer)/pre-configure/page.jsx`.
+- **Status:** Complete
+
+## Task 41: Remove Bullet Indicator from Pre-Configure Sold Configurations Modal
+- **Task Number:** 41
+- **Task Name:** Remove Bullet Indicator from Pre-Configure Sold Configurations Modal
+- **Files Modified:** `next_/app/(customer)/pre-configure/page.jsx`
+- **Reason:** Remove the redundant blue/colored bullet indicator (`.info-combo-num`) from list items in the pre-configure "Sold Configurations" modal per design feedback.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Clean layout for modal items starting directly with the watch thumbnail image.
+- **Backend Impact:** None
+- **Testing Completed:** Verified modal list item alignment without bullet indicator.
+- **Rollback Strategy:** Restore `<span className="info-combo-num">•</span>` in `pre-configure/page.jsx`.
+- **Status:** Complete
+
+## Task 42: Add Info (i) Button Beside Price in Products Page
+- **Task Number:** 42
+- **Task Name:** Add Info (i) Button Beside Price in Products Page
+- **Files Modified:** `next_/app/(customer)/products/page.jsx`
+- **Reason:** Add the circular `i` info trigger button beside `{col.price}` in product cards on `/products` page (matching `/pre-configure`), connecting to `openInfoModal(col)`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Rendered circular `i` button next to price tag and connected modal popup for sold configurations in `/products`.
+- **Backend Impact:** None
+- **Testing Completed:** Verified info button layout, contrast color adaptation, and modal popup trigger on `/products`.
+- **Rollback Strategy:** Revert `p-price-row` and modal markup in `products/page.jsx`.
+- **Status:** Complete

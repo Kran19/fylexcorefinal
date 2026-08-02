@@ -549,9 +549,9 @@ const PreConfigure = () => {
           font-family: 'Inter', sans-serif;
           font-size: 0.95rem;
           font-weight: 500;
-          color: #1a1a1a;
+          color: var(--theme-text, #1a1a1a);
           cursor: pointer;
-          opacity: 0.4;
+          opacity: 0.55;
           transition: all 0.3s ease;
           display: flex;
           align-items: center;
@@ -559,14 +559,15 @@ const PreConfigure = () => {
           text-transform: capitalize;
         }
         .category-item:hover {
-          opacity: 0.8;
+          opacity: 0.85;
         }
         .category-item.active {
           opacity: 1;
           font-weight: 600;
+          color: var(--theme-text, #1a1a1a);
         }
         .category-dot {
-          color: #1a1a1a;
+          color: var(--theme-accent, var(--theme-text, #1a1a1a));
           font-size: 1.2rem;
           line-height: 0;
           margin-left: 2px;
@@ -704,7 +705,7 @@ const PreConfigure = () => {
                           i
                         </button>
                       </div>
-                      <div className="flex items-center justify-start mt-3 btn-container" style={{ width: '100%' }}>
+                      <div className="flex items-center justify-center mt-3 btn-container" style={{ width: '100%' }}>
                         <Link href={`/configure?watch=${product.id}`} className="btn-configure">
                           CONFIGURE
                         </Link>
@@ -737,7 +738,6 @@ const PreConfigure = () => {
               {activeModalData.combinations && activeModalData.combinations.length > 0 ? (
                 activeModalData.combinations.map((combo) => (
                   <div key={combo.id} className="info-combo-item">
-                    <span className="info-combo-num" style={{ fontSize: '1.2rem', color: activeModalData.accentColor || '#c4a35a' }}>•</span>
                     <div className="info-combo-img-wrap">
                       <img src={combo.img} alt={`Combo ${combo.id}`} />
                     </div>
