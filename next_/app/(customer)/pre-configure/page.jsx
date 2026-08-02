@@ -20,6 +20,7 @@ const PreConfigure = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [categories, setCategories] = useState(['All']);
   const [activeModalData, setActiveModalData] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const openInfoModal = (product) => {
     setActiveModalData(product);
@@ -552,10 +553,10 @@ const PreConfigure = () => {
         .category-item {
           font-family: 'Inter', sans-serif;
           font-size: 0.95rem;
-          font-weight: 500;
-          color: var(--theme-text, #1a1a1a);
+          font-weight: 600;
+          color: var(--nav-text-color, #000000);
           cursor: pointer;
-          opacity: 0.55;
+          opacity: 0.7;
           transition: all 0.3s ease;
           display: flex;
           align-items: center;
@@ -563,18 +564,19 @@ const PreConfigure = () => {
           text-transform: capitalize;
         }
         .category-item:hover {
-          opacity: 0.85;
+          opacity: 1;
         }
         .category-item.active {
           opacity: 1;
-          font-weight: 600;
-          color: var(--theme-text, #1a1a1a);
+          font-weight: 700;
+          color: var(--nav-text-color, #000000);
         }
         .category-dot {
-          color: var(--theme-accent, var(--theme-text, #1a1a1a));
+          color: var(--nav-text-color, #000000);
           font-size: 1.2rem;
           line-height: 0;
           margin-left: 2px;
+          opacity: 1;
         }
 
         @media (max-width: 768px) {
@@ -612,30 +614,45 @@ const PreConfigure = () => {
         <Header />
       </div>
 
-      <main className="flex-1 relative overflow-hidden z-10">
-        <nav className="category-nav">
-          {categories.map(cat => (
-            <div
-              key={cat}
-              className={`category-item ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
-            >
-              {cat}
-              {activeCategory === cat && <span className="category-dot">•</span>}
-            </div>
-          ))}
-        </nav>
-        <div className="swiper-container-main">
-          <Swiper
-            onSwiper={setSwiperInstance}
-            modules={[Pagination]}
-            spaceBetween={0}
-            slidesPerView={1}
-            allowTouchMove={expandedIds.size === 0}
-            pagination={{ clickable: true }}
-            loop={true}
-            className="mySwiper h-full w-full"
-          >
+      {(() => {
+        const filteredList = products.filter(p => activeCategory === 'All' || p.category === activeCategory);
+        const currentProd = filteredList[activeIndex] || filteredList[0];
+        const isDark = currentProd ? (
+          currentProd.textColor === '#ffffff' || 
+          currentProd.bgColor?.toLowerCase() === '#000000' || 
+          currentProd.bgColor?.toLowerCase()?.startsWith('#1')
+        ) : false;
+        const activeNavTextColor = isDark ? '#ffffff' : '#000000';
+
+        return (
+          <main className="flex-1 relative overflow-hidden z-10">
+            <nav className="category-nav" style={{ '--nav-text-color': activeNavTextColor }}>
+              {categories.map(cat => (
+                <div
+                  key={cat}
+                  className={`category-item ${activeCategory === cat ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    setActiveIndex(0);
+                  }}
+                >
+                  {cat}
+                  {activeCategory === cat && <span className="category-dot">•</span>}
+                </div>
+              ))}
+            </nav>
+            <div className="swiper-container-main">
+              <Swiper
+                onSwiper={setSwiperInstance}
+                onSlideChange={(s) => setActiveIndex(s.realIndex)}
+                modules={[Pagination]}
+                spaceBetween={0}
+                slidesPerView={1}
+                allowTouchMove={expandedIds.size === 0}
+                pagination={{ clickable: true }}
+                loop={true}
+                className="mySwiper h-full w-full"
+              >
             {products
               .filter(p => activeCategory === 'All' || p.category === activeCategory)
               .map((product) => {
@@ -759,7 +776,8 @@ const PreConfigure = () => {
             </div>
           </div>
         </div>
-      )}
+      );
+      })()}
 
     </div>
   );
