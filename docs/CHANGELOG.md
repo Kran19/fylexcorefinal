@@ -531,3 +531,17 @@
 - **Testing Completed:** Verified category nav text readability and contrast across light and dark slides.
 - **Rollback Strategy:** Revert `--nav-text-color` and `.category-item` CSS in `pre-configure/page.jsx`.
 - **Status:** Complete
+
+## Task 45: Fix JSX Parsing Error in Pre-Configure Page for Production Build
+- **Task Number:** 45
+- **Task Name:** Fix JSX Parsing Error in Pre-Configure Page for Production Build
+- **Files Modified:** `next_/app/(customer)/pre-configure/page.jsx`
+- **Reason:** Resolved JSX parsing syntax error (`Expected '</', got '{'`) by moving dynamic text color calculation out of inline JSX IIFE wrappers to component-level scope.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Resolved Next.js / Turbopack build failure on `npm run build`.
+- **Backend Impact:** None
+- **Testing Completed:** Verified JSX syntax and component structure.
+- **Rollback Strategy:** Revert changes in `next_/app/(customer)/pre-configure/page.jsx`.
+- **Status:** Complete

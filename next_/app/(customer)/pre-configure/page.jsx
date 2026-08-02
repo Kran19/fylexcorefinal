@@ -97,7 +97,14 @@ const PreConfigure = () => {
   }, []);
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-white text-navy font-serif text-2xl">Initializing Atelier...</div>;
-  if (products.length === 0) return <div className="h-screen flex items-center justify-center bg-white text-navy font-serif">No timepieces available for configuration.</div>;
+  const filteredList = products.filter(p => activeCategory === 'All' || p.category === activeCategory);
+  const currentProd = filteredList[activeIndex] || filteredList[0];
+  const isDark = currentProd ? (
+    currentProd.textColor === '#ffffff' || 
+    currentProd.bgColor?.toLowerCase() === '#000000' || 
+    currentProd.bgColor?.toLowerCase()?.startsWith('#1')
+  ) : false;
+  const activeNavTextColor = isDark ? '#ffffff' : '#000000';
 
   return (
     <div className="pre-configure-page fixed inset-0 flex flex-col bg-white overflow-hidden z-[1001]">
@@ -614,19 +621,8 @@ const PreConfigure = () => {
         <Header />
       </div>
 
-      {(() => {
-        const filteredList = products.filter(p => activeCategory === 'All' || p.category === activeCategory);
-        const currentProd = filteredList[activeIndex] || filteredList[0];
-        const isDark = currentProd ? (
-          currentProd.textColor === '#ffffff' || 
-          currentProd.bgColor?.toLowerCase() === '#000000' || 
-          currentProd.bgColor?.toLowerCase()?.startsWith('#1')
-        ) : false;
-        const activeNavTextColor = isDark ? '#ffffff' : '#000000';
-
-        return (
-          <main className="flex-1 relative overflow-hidden z-10">
-            <nav className="category-nav" style={{ '--nav-text-color': activeNavTextColor }}>
+      <main className="flex-1 relative overflow-hidden z-10">
+        <nav className="category-nav" style={{ '--nav-text-color': activeNavTextColor }}>
               {categories.map(cat => (
                 <div
                   key={cat}
@@ -776,8 +772,7 @@ const PreConfigure = () => {
             </div>
           </div>
         </div>
-      );
-      })()}
+      )}
 
     </div>
   );
