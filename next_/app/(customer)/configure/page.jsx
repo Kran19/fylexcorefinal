@@ -132,12 +132,10 @@ function ConfigureContent() {
           if (vPath) setPreviewSrc(vPath);
 
           const vBgPath = resolveProductBackground(p, match);
-          setProduct(prev => ({ ...prev, heroBgImage: vBgPath }));
-
           const matchGallery = (match.variantImages || []).map(vi =>
             getFileUrl(vi.media || vi)
           ).filter(Boolean);
-          setProduct(prev => ({ ...prev, galleryImages: matchGallery }));
+          setProduct(prev => ({ ...prev, heroBgImage: vBgPath, galleryImages: matchGallery, heroImage: vPath || prev.heroImage }));
         }
       } catch (err) {
         console.error(err);
@@ -268,7 +266,7 @@ function ConfigureContent() {
         const matchGallery = (match.variantImages || []).map(vi =>
           getFileUrl(vi.media || vi)
         ).filter(Boolean);
-        setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath }));
+        setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath, heroImage: vPath || prev.heroImage }));
       } else {
         updatePreviewImage(stepsData[prevStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
       }
@@ -354,7 +352,7 @@ function ConfigureContent() {
       const matchGallery = (match.variantImages || []).map(vi =>
         getFileUrl(vi.media || vi)
       ).filter(Boolean);
-      setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath }));
+      setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath, heroImage: vPath || prev.heroImage }));
     } else {
       updatePreviewImage(src);
     }
@@ -383,7 +381,7 @@ function ConfigureContent() {
         const matchGallery = (match.variantImages || []).map(vi =>
           getFileUrl(vi.media || vi)
         ).filter(Boolean);
-        setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath }));
+        setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath, heroImage: vPath || prev.heroImage }));
       } else {
         updatePreviewImage(stepsData[nextStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
       }
@@ -539,19 +537,17 @@ function ConfigureContent() {
           )}
           {media360.length > 0 && <div style={{ position: 'absolute', bottom: 100, color: '#888', fontSize: 13 }}><RefreshCw size={14} /> Swipe for 360° View</div>}
 
-          {/* ── SIDE ANGLE THUMBNAILS BAR ── */}
+          {/* ── SIDE ANGLE THUMBNAILS BAR (Strictly Variant Scoped) ── */}
           {(() => {
-            const rawGallery = (product.galleryImages || []).length > 0
-              ? product.galleryImages
-              : (product.gallery || []).map(g => getFileUrl(g)).filter(Boolean);
-
             const normalizeKey = (url) => {
               if (!url) return '';
               const full = getFileUrl(url);
               return full.split('?')[0].split('/').pop() || full;
             };
 
-            const basePrimary = product.heroImage || previewSrc;
+            // Strictly use variant-specific gallery images, avoid falling back to mixed product galleries
+            const rawGallery = (product.galleryImages || []);
+            const basePrimary = previewSrc || product.heroImage;
             const seenKeys = new Set();
             const sideList = [];
 
