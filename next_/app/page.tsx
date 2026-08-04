@@ -1037,49 +1037,51 @@ const Home = () => {
                   </div>
                 ) : (
                   <>
-                    {(() => {
-                      const displayList = (featuredProducts && featuredProducts.length > 0) ? featuredProducts : productsData;
-                      return (
-                        <Swiper
-                          modules={[Autoplay, Pagination]}
-                          spaceBetween={0}
-                          slidesPerView={isMobile ? 1 : 2}
-                          autoplay={{ delay: 5000, disableOnInteraction: false }}
-                          pagination={{
-                            clickable: true,
-                            dynamicBullets: false
-                          }}
-                          loop={displayList.length >= (isMobile ? 1 : 2)}
-                          className="featured-swiper"
-                        >
-                          {displayList.map((p) => {
-                            const display = getDisplayData(p);
+                    {featuredProducts.length > 0 ? (
+                      <Swiper
+                        modules={[Autoplay, Pagination]}
+                        spaceBetween={0}
+                        slidesPerView={isMobile ? 1 : 2}
+                        autoplay={{ delay: 5000, disableOnInteraction: false }}
+                        pagination={{
+                          clickable: true,
+                          dynamicBullets: false
+                        }}
+                        loop={featuredProducts.length >= (isMobile ? 1 : 2)}
+                        className="featured-swiper"
+                      >
+                        {featuredProducts.map((p) => {
+                          const display = getDisplayData(p);
 
-                            return (
-                              <SwiperSlide key={p.id}>
-                                <div className="featured-item-v2" style={{ background: p.gradient || p.bgColor || '#f5f5f5' }}>
-                                  {display.image && (
-                                    <img
-                                      src={display.image}
-                                      alt={display.name}
-                                      style={{ position: 'absolute', top: '-40px', left: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 1 }}
-                                    />
-                                  )}
-                                  <div className="featured-content" style={{ color: p.textColor || '#111', zIndex: 2 }}>
-                                    <div className="f-label" style={{ color: p.accentColor || '#666' }}>{p.subtitle || p.tagline}</div>
-                                    <div className="f-title" style={{ color: 'inherit' }}>{display.name} <em>{p.titleAccent || ''}</em></div>
-                                    <div className="f-price" style={{ margin: '4px 0 14px', fontSize: '1.1rem', fontWeight: 500 }}>
-                                      {display.isConfigurable ? 'From ' : ''}{display.formattedPrice}
-                                    </div>
-                                    <Link href={`/explore?watch=${p.id}`} className="f-shop-btn">Shop</Link>
+                          return (
+                            <SwiperSlide key={p.id}>
+                              <div className="featured-item-v2" style={{ background: p.gradient || p.bgColor || '#f5f5f5' }}>
+                                {display.image && (
+                                  <img
+                                    src={display.image}
+                                    alt={display.name}
+                                    style={{ position: 'absolute', top: '-40px', left: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 1 }}
+                                  />
+                                )}
+                                <div className="featured-content" style={{ color: p.textColor || '#111', zIndex: 2 }}>
+                                  <div className="f-label" style={{ color: p.accentColor || '#666' }}>{p.subtitle || p.tagline}</div>
+                                  <div className="f-title" style={{ color: 'inherit' }}>{display.name} <em>{p.titleAccent || ''}</em></div>
+                                  <div className="f-price" style={{ margin: '4px 0 14px', fontSize: '1.1rem', fontWeight: 500 }}>
+                                    {display.isConfigurable ? 'From ' : ''}{display.formattedPrice}
                                   </div>
+                                  <Link href={`/explore?watch=${p.id}`} className="f-shop-btn">Shop</Link>
                                 </div>
-                              </SwiperSlide>
-                            );
-                          })}
-                        </Swiper>
-                      );
-                    })()}
+                              </div>
+                            </SwiperSlide>
+                          );
+                        })}
+                      </Swiper>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '60px 20px', color: '#888', textAlign: 'center' }}>
+                        <p style={{ fontSize: '1.1rem', letterSpacing: '0.05em', fontWeight: 500, color: '#444' }}>No featured timepieces available.</p>
+                        <p style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '8px' }}>Add products from the Admin Panel to feature them here.</p>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
