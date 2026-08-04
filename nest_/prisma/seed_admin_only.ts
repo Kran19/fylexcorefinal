@@ -1,10 +1,35 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const prisma = new PrismaClient();
 
+function clearUploadsDirectory() {
+  const uploadsDir = path.join(__dirname, '../uploads');
+  if (fs.existsSync(uploadsDir)) {
+    try {
+      const files = fs.readdirSync(uploadsDir);
+      for (const file of files) {
+        if (file === '.gitkeep') continue;
+        const filePath = path.join(uploadsDir, file);
+        if (fs.statSync(filePath).isDirectory()) {
+          fs.rmSync(filePath, { recursive: true, force: true });
+        } else {
+          fs.unlinkSync(filePath);
+        }
+      }
+      console.log('🧹 Cleaned all uploaded files from /uploads directory.');
+    } catch (e) {
+      console.error('⚠️ Could not clear some uploads files:', e);
+    }
+  }
+}
+
 async function main() {
   console.log('🌱 Initializing clean database with admin credentials only...');
+
+  clearUploadsDirectory();
 
   const adminPassword = 'fylex@123';
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
