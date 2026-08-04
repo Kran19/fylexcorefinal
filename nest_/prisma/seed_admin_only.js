@@ -26,10 +26,51 @@ function clearUploadsDirectory() {
   }
 }
 
+async function clearDatabase() {
+  console.log('🧹 Clearing existing database records (products, variants, categories, belts, boxes, carts, orders)...');
+  
+  const safeDelete = async (fn, name) => {
+    try {
+      await fn();
+    } catch (e) {
+      // Table might not exist or be empty, skip safely
+    }
+  };
+
+  await safeDelete(() => prisma.cartItem.deleteMany({}), 'cartItem');
+  await safeDelete(() => prisma.cart.deleteMany({}), 'cart');
+  await safeDelete(() => prisma.orderItem.deleteMany({}), 'orderItem');
+  await safeDelete(() => prisma.order.deleteMany({}), 'order');
+  await safeDelete(() => prisma.review.deleteMany({}), 'review');
+  await safeDelete(() => prisma.variantAttribute.deleteMany({}), 'variantAttribute');
+  await safeDelete(() => prisma.variantImage.deleteMany({}), 'variantImage');
+  await safeDelete(() => prisma.productVariant.deleteMany({}), 'productVariant');
+  await safeDelete(() => prisma.productSpecification.deleteMany({}), 'productSpecification');
+  await safeDelete(() => prisma.productTag.deleteMany({}), 'productTag');
+  await safeDelete(() => prisma.productMedia.deleteMany({}), 'productMedia');
+  await safeDelete(() => prisma.categorySpecGroup.deleteMany({}), 'categorySpecGroup');
+  await safeDelete(() => prisma.categoryAttribute.deleteMany({}), 'categoryAttribute');
+  await safeDelete(() => prisma.specGroupSpec.deleteMany({}), 'specGroupSpec');
+  await safeDelete(() => prisma.attributeValue.deleteMany({}), 'attributeValue');
+  await safeDelete(() => prisma.attribute.deleteMany({}), 'attribute');
+  await safeDelete(() => prisma.specification.deleteMany({}), 'specification');
+  await safeDelete(() => prisma.specificationGroup.deleteMany({}), 'specificationGroup');
+  await safeDelete(() => prisma.product.deleteMany({}), 'product');
+  await safeDelete(() => prisma.category.deleteMany({}), 'category');
+  await safeDelete(() => prisma.belt.deleteMany({}), 'belt');
+  await safeDelete(() => prisma.box.deleteMany({}), 'box');
+  await safeDelete(() => prisma.coupon.deleteMany({}), 'coupon');
+  await safeDelete(() => prisma.offer.deleteMany({}), 'offer');
+  await safeDelete(() => prisma.homeSection.deleteMany({}), 'homeSection');
+
+  console.log('✨ All store data tables cleared successfully.');
+}
+
 async function main() {
   console.log('🌱 Initializing clean database with admin credentials only...');
 
   clearUploadsDirectory();
+  await clearDatabase();
 
   const adminPassword = 'fylex@123';
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
@@ -59,3 +100,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
