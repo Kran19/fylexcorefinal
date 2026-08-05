@@ -6,4 +6,4 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 EXPOSE 3001
-CMD ["sh", "-c", "npx prisma db push && node prisma/seed_admin_only.js && node dist/src/main.js"]
+CMD ["sh", "-c", "npx prisma db push && node dist/src/main.js"]
