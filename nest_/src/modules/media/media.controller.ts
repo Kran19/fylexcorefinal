@@ -17,7 +17,7 @@ export class MediaController {
   @Post('upload')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FilesInterceptor('file', 500, {
-    limits: { fileSize: 200 * 1024 * 1024 },
+    limits: { fileSize: 700 * 1024 * 1024 },
     storage: diskStorage({
       destination: './uploads',
       filename: (req, file, cb) => {

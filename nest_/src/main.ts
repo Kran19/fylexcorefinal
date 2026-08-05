@@ -10,6 +10,8 @@ import { join } from 'path';
 import * as fs from 'fs';
 import { PrismaService } from './prisma/prisma.service';
 
+import { json, urlencoded } from 'express';
+
 // Fix BigInt JSON serialization globally across NestJS
 (BigInt.prototype as any).toJSON = function () {
   const intVal = Number(this);
@@ -18,6 +20,11 @@ import { PrismaService } from './prisma/prisma.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  
+  // Set global body and urlencoded size limits to 700mb
+  app.use(json({ limit: '700mb' }));
+  app.use(urlencoded({ limit: '700mb', extended: true }));
+
   app.setGlobalPrefix('api');
 
   // Automatic Production Media Optimization Interceptor Middleware
