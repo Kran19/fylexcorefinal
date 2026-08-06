@@ -98,6 +98,7 @@ const navItems = [
     path: '/admin/cms',
     submenu: [
       { title: 'Home Page Layout', path: '/admin/cms/home-sections' },
+      { title: 'Products Page Layout', path: '/admin/cms/products' },
       { title: 'About Page', path: '/admin/cms/about' },
       { title: 'Sliders', path: '/admin/cms/banners' },
       { title: 'Design System', path: '/admin/settings/design' },
