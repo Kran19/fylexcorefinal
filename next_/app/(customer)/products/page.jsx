@@ -1006,7 +1006,7 @@ const Products = () => {
       <section className="products-hero">
         <div className="video-container">
           <video
-            src={getFileUrl(videoSettings.products_hero_video) || "/assets/Fylex.mp4"}
+            src={getFileUrl(videoSettings.products_hero_video) || getFileUrl(videoSettings.shop_hero_video) || getFileUrl(videoSettings.home_hero_video) || "/assets/Fylex.mp4"}
             autoPlay
             muted
             loop
