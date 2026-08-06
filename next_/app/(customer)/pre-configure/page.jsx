@@ -235,7 +235,7 @@ const PreConfigure = () => {
         }
         .product-price {
           font-size: 1.1rem;
-          color: #555;
+          color: var(--theme-text, inherit);
           margin: 0 0 15px;
           font-weight: 300;
           display: block;
@@ -248,7 +248,8 @@ const PreConfigure = () => {
         }
         .product-desc {
           font-size: 0.95rem;
-          color: #000;
+          color: var(--theme-text, inherit);
+          opacity: 0.85;
           line-height: 1.5;
           font-weight: 300;
           display: -webkit-box;
@@ -716,15 +717,16 @@ const PreConfigure = () => {
                           </button>
                         )}
                       </div>
-                      <div className="product-price-row flex items-center gap-3 mb-4">
-                        <span className="product-price !m-0">{product.price}</span>
+                      <div className="product-price-row flex items-center gap-3 mb-4" style={{ color: 'var(--theme-text, inherit)' }}>
+                        <span className="product-price !m-0" style={{ color: 'var(--theme-text, inherit)' }}>{product.price}</span>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.preventDefault();
                             openInfoModal(product);
                           }}
-                          className="w-6 h-6 rounded-full border border-current flex items-center justify-center text-xs font-serif italic font-bold cursor-pointer bg-transparent text-inherit opacity-85 hover:opacity-100 transition-all"
+                          className="w-6 h-6 rounded-full border flex items-center justify-center text-xs font-serif italic font-bold cursor-pointer bg-transparent opacity-85 hover:opacity-100 transition-all"
+                          style={{ color: 'var(--theme-text, inherit)', borderColor: 'var(--theme-text, inherit)' }}
                           title="View Details"
                         >
                           i
