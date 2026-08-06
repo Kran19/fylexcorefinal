@@ -76,15 +76,17 @@ export default function DataTable({
       movableColumns: true,
       movableRows: !!onRowMoved,
       placeholder: 'No records found',
-      selectable: true,
-      rowSelectionChanged: (data, rows) => {
-        setSelectedRows(rows.map(r => r.getData()));
-      },
-      rowMoved: (row) => {
-        if (onRowMovedRef.current && tabulatorRef.current) {
-          const currentTableData = tabulatorRef.current.getData();
-          onRowMovedRef.current(currentTableData);
-        }
+      selectable: true
+    });
+
+    instance.on("rowSelectionChanged", (data, rows) => {
+      setSelectedRows(rows.map(r => r.getData()));
+    });
+
+    instance.on("rowMoved", (row) => {
+      if (onRowMovedRef.current && tabulatorRef.current) {
+        const currentTableData = tabulatorRef.current.getData();
+        onRowMovedRef.current(currentTableData);
       }
     });
 
