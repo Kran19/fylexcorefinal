@@ -1,13 +1,15 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useWishlist } from '@/context/WishlistContext';
-import { fetchProducts } from '../../../lib/api';
+import { fetchProducts, fetchProduct } from '../../../lib/api';
 import { useDesignSystem } from '@/context/DesignSystemContext';
 import { getFileUrl, resolveProductImage, getDisplayData, getContrastTextColor, getPageTheme } from '@/lib/utils';
 import cmsService from '@/services/cms.service';
 
 const Products = () => {
+  const router = useRouter();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { productOverrides } = useDesignSystem();
   const [scrollDir, setScrollDir] = useState('up');
@@ -131,9 +133,53 @@ const Products = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const openInfoModal = (col) => {
-    const templates = col.combinations || [];
-    setActiveModalData({ ...col, combinations: templates });
+  const openInfoModal = async (col) => {
+    const initialList = (col.combinations && col.combinations.length > 0) 
+      ? col.combinations 
+      : (col.variants || []).map(v => {
+          const vDisplay = getDisplayData(col, v);
+          return {
+            id: v.id.toString(),
+            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            img: vDisplay.image || col.heroImage || col.image,
+            price: vDisplay.price,
+            formattedPrice: vDisplay.formattedPrice,
+            isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
+            fakeSoldCount: Number(v.fakeSoldCount) || 0,
+          };
+        }).filter(combo => Boolean(combo.isSoldConfiguration === true || combo.isSoldConfiguration === 1 || combo.isSoldConfiguration === 'true' || col.isSoldConfiguration === true));
+
+    setActiveModalData({ ...col, combinations: initialList });
+
+    try {
+      const res = await fetchProduct(col.id);
+      const fullProduct = (res && res.data) ? res.data : col;
+      const rawVariants = fullProduct.variants || col.variants || [];
+      
+      const soldConfigs = rawVariants
+        .filter(v => Boolean(
+          v.isSoldConfiguration === true || 
+          v.isSoldConfiguration === 1 || 
+          v.isSoldConfiguration === 'true' ||
+          fullProduct.isSoldConfiguration === true
+        ))
+        .map(v => {
+          const vDisplay = getDisplayData(fullProduct, v);
+          return {
+            id: v.id.toString(),
+            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
+            price: vDisplay.price,
+            formattedPrice: vDisplay.formattedPrice,
+            isSoldConfiguration: true,
+            fakeSoldCount: Number(v.fakeSoldCount) || 0,
+          };
+        });
+
+      setActiveModalData({ ...fullProduct, combinations: soldConfigs });
+    } catch (e) {
+      console.warn('Failed to pre-fetch product modal data on products page', e);
+    }
   };
   const closeInfoModal = () => setActiveModalData(null);
 
@@ -1114,15 +1160,18 @@ const Products = () => {
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1, paddingRight: '8px', textAlign: 'left' }}>
-              {activeModalData.combinations && activeModalData.combinations.length > 0 ? (
+              {activeModalData?.combinations && activeModalData.combinations.length > 0 ? (
                 activeModalData.combinations.map((combo) => (
-                  <div key={combo.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px', borderBottom: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                  <div key={combo.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px', borderBottom: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', cursor: 'pointer' }} onClick={() => {
+                    closeInfoModal();
+                    router.push(`/explore?watch=${activeModalData.id}&variant=${combo.id}`);
+                  }}>
                     <div style={{ width: '56px', height: '56px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <img src={combo.img} alt={`Combo ${combo.id}`} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      <img src={combo.img || activeModalData.heroImage || activeModalData.image} alt={combo.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#fff' }}>{combo.name}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#888' }}>Sold on {combo.soldAt || 'Recently'}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#008767', fontWeight: 600 }}>Exclusive Build &bull; {(combo.fakeSoldCount && Number(combo.fakeSoldCount) > 0) ? combo.fakeSoldCount : 4} Built</span>
                     </div>
                   </div>
                 ))
