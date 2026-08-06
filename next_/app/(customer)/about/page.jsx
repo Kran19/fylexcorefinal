@@ -36,17 +36,23 @@ export default function About() {
     const vId = variant?.id || variant?.productId;
     if (!vId) return;
     setAddingId(vId);
-    const res = await addToCart(vId.toString(), 1);
-    setAddingId(null);
-    if (res?.success !== false) {
-      setAddedIds(prev => new Set(prev).add(vId));
-      setTimeout(() => {
-        setAddedIds(prev => {
-          const next = new Set(prev);
-          next.delete(vId);
-          return next;
-        });
-      }, 2500);
+    try {
+      await fetchVariant(vId);
+      const res = await addToCart(vId.toString(), 1);
+      if (res?.success !== false) {
+        setAddedIds(prev => new Set(prev).add(vId));
+        setTimeout(() => {
+          setAddedIds(prev => {
+            const next = new Set(prev);
+            next.delete(vId);
+            return next;
+          });
+        }, 2500);
+      }
+    } catch (err) {
+      console.error('Failed to add Founder pick to cart:', err);
+    } finally {
+      setAddingId(null);
     }
   };
 
