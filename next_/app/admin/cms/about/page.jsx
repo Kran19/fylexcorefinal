@@ -39,6 +39,7 @@ export default function AboutPageManager() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [pickerTarget, setPickerTarget] = useState(null); // 'shop_hero_video' | 'shop_deepsea_video' | 'shop_dial_image'
+    const [variantSearch, setVariantSearch] = useState('');
 
     const handleMediaSelect = (selection) => {
         if (!selection || !selection.length) return;
@@ -245,12 +246,27 @@ export default function AboutPageManager() {
                             <label style={labelStyle}>Founder's Pick Variants</label>
                             <p style={{ fontSize: 11, color: 'var(--admin-text-muted)', marginBottom: 12 }}>Select the specific watch variants to feature at the bottom of the About page.</p>
                             
+                            <input 
+                                type="text" 
+                                placeholder="Search by SKU (e.g. FY-AL-086) or Watch Name..." 
+                                value={variantSearch} 
+                                onChange={e => setVariantSearch(e.target.value)} 
+                                style={{ ...inputStyleNormal, marginBottom: 12 }} 
+                            />
+
                             {adminLoading?.products ? (
                                 <div style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>Loading products...</div>
                             ) : (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, maxHeight: 300, overflowY: 'auto', padding: 12, border: '1px solid var(--admin-border)', borderRadius: 12, background: '#fafbff' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12, maxHeight: 320, overflowY: 'auto', padding: 12, border: '1px solid var(--admin-border)', borderRadius: 12, background: '#fafbff' }}>
                                     {adminData?.products?.map(product => 
-                                        product.variants?.map(variant => {
+                                        product.variants?.filter(variant => {
+                                            if (!variantSearch.trim()) return true;
+                                            const query = variantSearch.toLowerCase().trim();
+                                            const skuMatch = (variant.sku || '').toLowerCase().includes(query);
+                                            const nameMatch = (product.name || '').toLowerCase().includes(query);
+                                            const vNameMatch = (variant.name || '').toLowerCase().includes(query);
+                                            return skuMatch || nameMatch || vNameMatch;
+                                        }).map(variant => {
                                             const isSelected = settings.founder_watch_ids?.split(',').map(id => id.trim()).includes(variant.id.toString());
                                             const variantName = variant.name || variant.attributes?.find(a => a.attribute?.name === 'Color')?.value || 'Standard';
                                             return (
@@ -273,12 +289,13 @@ export default function AboutPageManager() {
                                                         borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' 
                                                     }}
                                                 >
-                                                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `1px solid ${isSelected ? 'var(--admin-primary)' : '#cbd5e1'}`, background: isSelected ? 'var(--admin-primary)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `1px solid ${isSelected ? 'var(--admin-primary)' : '#cbd5e1'}`, background: isSelected ? 'var(--admin-primary)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                                         {isSelected && <i className="fas fa-check" style={{ color: '#fff', fontSize: 10 }}></i>}
                                                     </div>
                                                     <div>
                                                         <div style={{ fontSize: 12, fontWeight: 700, color: isSelected ? 'var(--admin-primary-dark)' : 'var(--admin-text)' }}>{product.name}</div>
-                                                        <div style={{ fontSize: 11, color: isSelected ? 'var(--admin-primary)' : 'var(--admin-text-muted)' }}>ID: {variant.id} • {variantName}</div>
+                                                        <div style={{ fontSize: 11, fontWeight: 600, color: isSelected ? 'var(--admin-primary)' : '#334155' }}>SKU: {variant.sku || 'N/A'}</div>
+                                                        <div style={{ fontSize: 10, color: isSelected ? 'var(--admin-primary)' : 'var(--admin-text-muted)' }}>ID: {variant.id} • {variantName}</div>
                                                     </div>
                                                 </div>
                                             );
