@@ -22,8 +22,30 @@ const PreConfigure = () => {
   const [activeModalData, setActiveModalData] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const openInfoModal = (product) => {
-    setActiveModalData(product);
+  const openInfoModal = (p) => {
+    const rawList = (p.combinations && p.combinations.length > 0) 
+      ? p.combinations 
+      : (p.variants || []).map(v => {
+          const vDisplay = getDisplayData(p, v);
+          return {
+            id: v.id.toString(),
+            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            img: vDisplay.image || p.heroImage || p.image,
+            price: vDisplay.price,
+            formattedPrice: vDisplay.formattedPrice,
+            isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
+            fakeSoldCount: Number(v.fakeSoldCount) || 0,
+          };
+        });
+
+    const soldConfigs = rawList.filter(combo => Boolean(
+      combo.isSoldConfiguration === true || 
+      combo.isSoldConfiguration === 1 || 
+      combo.isSoldConfiguration === 'true' ||
+      p.isSoldConfiguration === true
+    ));
+
+    setActiveModalData({ ...p, combinations: soldConfigs });
   };
   const closeInfoModal = () => {
     setActiveModalData(null);
@@ -762,15 +784,18 @@ const PreConfigure = () => {
             </div>
             
             <div className="info-modal-content">
-              {activeModalData.combinations && activeModalData.combinations.length > 0 ? (
+              {activeModalData?.combinations && activeModalData.combinations.length > 0 ? (
                 activeModalData.combinations.map((combo) => (
-                  <div key={combo.id} className="info-combo-item">
+                  <div key={combo.id} className="info-combo-item" style={{ cursor: 'pointer' }} onClick={() => {
+                    closeInfoModal();
+                    router.push(`/explore?watch=${activeModalData.id}&variant=${combo.id}`);
+                  }}>
                     <div className="info-combo-img-wrap">
-                      <img src={combo.img} alt={`Combo ${combo.id}`} />
+                      <img src={combo.img || activeModalData.heroImage || activeModalData.image} alt={combo.name} />
                     </div>
                     <div className="info-combo-details">
                       <span className="info-combo-name">{combo.name}</span>
-                      <span className="info-combo-status">Sold on {combo.soldAt}</span>
+                      <span className="info-combo-status">Exclusive Build &bull; {(combo.fakeSoldCount && Number(combo.fakeSoldCount) > 0) ? combo.fakeSoldCount : 4} Built</span>
                     </div>
                   </div>
                 ))
