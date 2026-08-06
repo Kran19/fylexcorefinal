@@ -28,6 +28,7 @@ export default function About() {
   const [videoSettings, setVideoSettings] = useState({});
   const [founderVariants, setFounderVariants] = useState([]);
   const [addingId, setAddingId] = useState(null);
+  const [addedIds, setAddedIds] = useState(new Set());
 
   const handleAddToCart = async (e, variant) => {
     e.preventDefault();
@@ -38,7 +39,14 @@ export default function About() {
     const res = await addToCart(vId.toString(), 1);
     setAddingId(null);
     if (res?.success !== false) {
-      toast?.success?.('Added Founder’s Pick to Cart!');
+      setAddedIds(prev => new Set(prev).add(vId));
+      setTimeout(() => {
+        setAddedIds(prev => {
+          const next = new Set(prev);
+          next.delete(vId);
+          return next;
+        });
+      }, 2500);
     }
   };
 
@@ -373,116 +381,118 @@ export default function About() {
           
           {founderVariants.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center', marginTop: '40px' }}>
-              {founderVariants.map(variant => (
-                <Link 
-                  key={variant.id}
-                  href={`/discover?watch=${variant.productId || variant.product?.id || ''}`}
-                  style={{
-                    display: 'inline-block',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '12px',
-                    padding: '40px 30px',
-                    textDecoration: 'none',
-                    color: '#fff',
-                    transition: 'transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
-                    cursor: 'pointer',
-                    width: '320px',
-                    textAlign: 'center'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-5px)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
-                    e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <h3 style={{
-                    fontSize: '14px',
-                    letterSpacing: '0.2em',
-                    textTransform: 'uppercase',
-                    color: '#999B98',
-                    marginBottom: '20px',
-                    fontWeight: '600'
-                  }}>
-                    The Founder's Pick
-                  </h3>
-                  <img 
-                    src={resolveProductImage(variant.product || variant, variant) || getFileUrl(variant.image || variant.heroImage || (variant.variantImages?.[0]?.media?.fileName ? `/uploads/${variant.variantImages[0].media.fileName}` : '')) || '/assets/fylex-watch-v2/premium.png'} 
-                    alt={variant.product?.name || variant.name || variant.sku || "Founder's Pick"}
+              {founderVariants.map(variant => {
+                const vId = variant?.id || variant?.productId;
+                const isAdding = addingId === vId;
+                const isAdded = addedIds.has(vId);
+                const targetWatchId = variant.productId || variant.product?.id || '';
+                return (
+                  <div 
+                    key={variant.id}
                     style={{
-                      width: '200px',
-                      height: '200px',
-                      objectFit: 'contain',
-                      margin: '0 auto 20px',
-                      filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))'
+                      display: 'inline-block',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '16px',
+                      padding: '36px 24px',
+                      color: '#fff',
+                      transition: 'transform 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
+                      width: '320px',
+                      textAlign: 'center'
                     }}
-                    onError={(e) => { e.target.src = '/assets/fylex-watch-v2/premium.png'; }}
-                  />
-                  <h4 style={{
-                    fontFamily: 'Avenir, sans-serif',
-                    fontSize: '18px',
-                    fontWeight: '700',
-                    color: '#ffffff',
-                    marginBottom: '10px',
-                    height: '54px',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    lineHeight: '1.3'
-                  }}>
-                    {variant.product?.name || 'Watch'}
-                  </h4>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: '15px', justifyContent: 'center', width: '100%' }}>
-                    <button 
-                      onClick={(e) => handleAddToCart(e, variant)}
-                      disabled={addingId === (variant?.id || variant?.productId)}
-                      className="bf"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                      e.currentTarget.style.boxShadow = '0 15px 30px rgba(0,0,0,0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <h3 style={{
+                      fontSize: '12px',
+                      letterSpacing: '0.2em',
+                      textTransform: 'uppercase',
+                      color: '#999B98',
+                      marginBottom: '16px',
+                      fontWeight: '600'
+                    }}>
+                      The Founder's Pick
+                    </h3>
+                    <img 
+                      src={resolveProductImage(variant.product || variant, variant) || getFileUrl(variant.image || variant.heroImage || (variant.variantImages?.[0]?.media?.fileName ? `/uploads/${variant.variantImages[0].media.fileName}` : '')) || '/assets/fylex-watch-v2/premium.png'} 
+                      alt={variant.product?.name || variant.name || variant.sku || "Founder's Pick"}
                       style={{
-                        flex: 1,
-                        padding: '12px 14px',
-                        background: '#ffffff',
-                        border: '1px solid #ffffff',
-                        color: '#000000',
-                        fontWeight: '800',
-                        letterSpacing: '0.12em',
-                        cursor: 'pointer',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        transition: 'all 0.3s ease'
+                        width: '180px',
+                        height: '180px',
+                        objectFit: 'contain',
+                        margin: '0 auto 16px',
+                        filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))'
                       }}
-                    >
-                      {addingId === (variant?.id || variant?.productId) ? 'ADDING...' : 'ADD TO CART'}
-                    </button>
-                    <div 
-                      className="bf"
-                      style={{
-                        flex: 1,
-                        padding: '12px 14px',
-                        background: 'transparent',
-                        border: '1px solid #ffffff',
-                        color: '#ffffff',
-                        fontWeight: '700',
-                        letterSpacing: '0.12em',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        transition: 'all 0.3s ease'
-                      }}
-                    >
-                      DISCOVER
+                      onError={(e) => { e.target.src = '/assets/fylex-watch-v2/premium.png'; }}
+                    />
+                    <h4 style={{
+                      fontFamily: 'Avenir, sans-serif',
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: '#ffffff',
+                      marginBottom: '16px',
+                      height: '44px',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: '1.3'
+                    }}>
+                      {variant.product?.name || 'Watch'}
+                    </h4>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '15px', justifyContent: 'center', width: '100%' }}>
+                      <button 
+                        onClick={(e) => handleAddToCart(e, variant)}
+                        disabled={isAdding}
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: isAdded ? '#008767' : '#ffffff',
+                          border: isAdded ? '1px solid #008767' : '1px solid #ffffff',
+                          color: isAdded ? '#ffffff' : '#000000',
+                          fontWeight: '800',
+                          letterSpacing: '0.12em',
+                          cursor: 'pointer',
+                          borderRadius: '999px',
+                          fontSize: '11px',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        {isAdding ? 'ADDING...' : isAdded ? 'ADDED ✓' : 'ADD TO CART'}
+                      </button>
+                      <Link 
+                        href={`/explore?watch=${targetWatchId}&variant=${variant.id}`}
+                        style={{
+                          flex: 1,
+                          padding: '12px 14px',
+                          background: 'transparent',
+                          border: '1px solid rgba(255,255,255,0.4)',
+                          color: '#ffffff',
+                          fontWeight: '700',
+                          letterSpacing: '0.12em',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '999px',
+                          fontSize: '11px',
+                          textDecoration: 'none',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        DISCOVER
+                      </Link>
                     </div>
                   </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
