@@ -462,7 +462,7 @@ function ConfigureContent() {
           .top-actions { top: 25px; right: 20px; }
           .top-left-actions { top: 25px; left: 20px; }
           .c-main { padding-top: 5px; padding-bottom: 220px; min-height: 42vh; margin-top: -20px; }
-          .watch-preview { max-height: 44vh; max-width: 90%; transform: scale(1.1) translateY(-10px); }
+          .watch-preview { max-height: 44vh; max-width: 90%; transform: scale(1.1) translate(18px, -10px); }
           .side-thumbnails-bar { right: 12px; top: 35%; transform: translateY(-50%); gap: 10px; z-index: 20; }
           .side-thumb-item { width: 40px; height: 40px; padding: 4px; }
           .c-selection-controls { padding: 12px 16px 8px; gap: 10px; }
