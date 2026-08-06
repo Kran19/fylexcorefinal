@@ -2174,7 +2174,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
               {Boolean(product.isSoldConfiguration || activeVariant?.isSoldConfiguration) && (
                 <div style={{ margin: '8px 0 16px 0', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: 'rgba(0, 135, 103, 0.12)', border: '1px solid rgba(0, 135, 103, 0.3)', borderRadius: '999px', color: '#008767', fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#008767', display: 'inline-block' }}></span>
-                  Sold Configuration &bull; {product.fakeSoldCount || activeVariant?.fakeSoldCount || 0} Built
+                  Sold Configuration &bull; {(activeVariant?.fakeSoldCount && Number(activeVariant.fakeSoldCount) > 0) ? activeVariant.fakeSoldCount : (product.fakeSoldCount || 4)} Built
                 </div>
               )}
 
@@ -2631,7 +2631,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   </div>
                   <div className="cfg-combo-details">
                     <span className="cfg-combo-name">{combo.name}</span>
-                    <span className="cfg-combo-status">Exclusive Build &bull; {combo.fakeSoldCount || 0} Sold</span>
+                    <span className="cfg-combo-status">Exclusive Build &bull; {(combo.fakeSoldCount && Number(combo.fakeSoldCount) > 0) ? combo.fakeSoldCount : 4} Built</span>
                   </div>
                   <div className="cfg-combo-chevron">&#8250;</div>
                 </div>
