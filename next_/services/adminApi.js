@@ -71,6 +71,14 @@ async function request(method, path, body = null) {
     }
 
     if (!res.ok) {
+      if (res.status === 401 && typeof window !== 'undefined' && !path.includes('/auth/login')) {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('fylexx_token');
+        window.location.href = '/admin/login?reason=expired';
+        return { data: null, error: 'Session expired after 2 hours of inactivity. Please log in again.', success: false };
+      }
       const msg = (data && (data.message || data.error)) || `Request failed with status ${res.status}`;
       return { data: null, error: msg, success: false };
     }

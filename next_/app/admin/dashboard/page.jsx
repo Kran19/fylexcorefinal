@@ -274,6 +274,9 @@ const Dashboard = () => {
           <p className="welcome-banner-text">
             Here's what's happening with your store today. Have a great day managing <img src="/fylex.png" alt="Fylex" style={{ height: '2.5em', display: 'inline-block', verticalAlign: 'middle', transform: 'translateY(-0.1em)' }} />!
           </p>
+          <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 14px', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(10px)', borderRadius: 20, fontSize: 11, fontWeight: 700, color: '#fff', border: '1px solid rgba(255,255,255,0.25)' }}>
+            <i className="fas fa-shield-alt"></i> JWT Session Security: 2-Hour Auto-Logout Active
+          </div>
         </div>
         <div className="welcome-banner-illustration hidden md:flex">
           <i className="fas fa-rocket"></i>

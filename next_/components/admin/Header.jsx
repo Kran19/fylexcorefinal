@@ -34,8 +34,11 @@ const Header = ({ setMobileOpen }) => {
         </div>
       </div>
 
-      {/* Right — admin dropdown */}
+      {/* Right — admin dropdown & session badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
+          <i className="fas fa-clock" style={{ fontSize: 10 }}></i> 2h Session Limit
+        </div>
         {/* Admin Profile Button */}
         <div style={{ position: 'relative' }}>
           <button
