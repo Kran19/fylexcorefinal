@@ -42,7 +42,7 @@ const MediaList = () => {
         navigateUp,
         allItems,
         isSearching
-    } = useMediaLibrary(files, { excludeVideos: true });
+    } = useMediaLibrary(files);
 
     // Pagination logic
     const totalPages = Math.ceil(allItems.length / itemsPerPage);
