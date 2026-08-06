@@ -69,21 +69,21 @@ export default function About() {
         setProducts(mapped);
         
         const { data: settings } = await cmsService.getVideoSettings();
-        if (settings) {
-          const videoMap = {};
+        if (settings && Array.isArray(settings)) {
+          const settingMap = {};
           settings.forEach(s => {
-            if (s.group === 'video' || s.group === 'shop_page') videoMap[s.key] = s.value;
+            if (s.key) settingMap[s.key] = s.value;
           });
-          setVideoSettings(videoMap);
+          setVideoSettings(settingMap);
           
-          const watchIdsStr = videoMap.founder_watch_ids || videoMap.founder_watch_id;
+          const watchIdsStr = settingMap.founder_watch_ids || settingMap.founder_watch_id;
           if (watchIdsStr) {
             const ids = watchIdsStr.split(',').map(id => id.trim()).filter(Boolean);
             const fetchPromises = ids.map(id => fetchVariant(id));
             const results = await Promise.all(fetchPromises);
             const activeVariants = results
-              .filter(res => res && res.success && res.data)
-              .map(res => res.data);
+              .filter(res => res && (res.success !== false) && (res.data || res.id))
+              .map(res => res.data || res);
             setFounderVariants(activeVariants);
           }
         }
@@ -412,8 +412,8 @@ export default function About() {
                     The Founder's Pick
                   </h3>
                   <img 
-                    src={resolveProductImage(variant.product, variant) || getFileUrl(variant.heroImage || variant.image || variant.product?.heroImage)} 
-                    alt={variant.product?.name || variant.sku}
+                    src={resolveProductImage(variant.product || variant, variant) || getFileUrl(variant.image || variant.heroImage || (variant.variantImages?.[0]?.media?.fileName ? `/uploads/${variant.variantImages[0].media.fileName}` : '')) || '/assets/fylex-watch-v2/premium.png'} 
+                    alt={variant.product?.name || variant.name || variant.sku || "Founder's Pick"}
                     style={{
                       width: '200px',
                       height: '200px',
@@ -421,7 +421,7 @@ export default function About() {
                       margin: '0 auto 20px',
                       filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.3))'
                     }}
-                    onError={(e) => { e.target.src = '/assets/Watch_1.png'; }}
+                    onError={(e) => { e.target.src = '/assets/fylex-watch-v2/premium.png'; }}
                   />
                   <h4 style={{
                     fontFamily: 'Avenir, sans-serif',
