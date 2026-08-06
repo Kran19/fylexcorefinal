@@ -1,6 +1,6 @@
 "use client";
 import { usePathname, useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { adminLogout } from '@/services/adminApi';
 import Link from 'next/link';
@@ -10,6 +10,40 @@ const Header = ({ setMobileOpen }) => {
   const router = useRouter();
   const { logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(7200); // 2 hours in seconds
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let loginTime = localStorage.getItem('admin_login_time');
+    if (!loginTime) {
+      loginTime = Date.now().toString();
+      localStorage.setItem('admin_login_time', loginTime);
+    }
+
+    const updateTimer = () => {
+      const elapsedSec = Math.floor((Date.now() - Number(loginTime)) / 1000);
+      const remainingSec = Math.max(0, 7200 - elapsedSec);
+      setTimeLeft(remainingSec);
+
+      if (remainingSec <= 0) {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        localStorage.removeItem('admin_login_time');
+        window.location.href = '/admin/login?reason=expired';
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   // Derive page title from URL — matches Laravel's str_replace('_', ' ', Request::segment(2))
   const getPageTitle = () => {
@@ -36,8 +70,23 @@ const Header = ({ setMobileOpen }) => {
 
       {/* Right — admin dropdown & session badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>
-          <i className="fas fa-clock" style={{ fontSize: 10 }}></i> 2h Session Limit
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 14px',
+          background: timeLeft < 1800 ? '#fef3c7' : '#f0fdf4',
+          color: timeLeft < 1800 ? '#92400e' : '#166534',
+          border: `1px solid ${timeLeft < 1800 ? '#fde68a' : '#bbf7d0'}`,
+          borderRadius: 20,
+          fontSize: 11,
+          fontWeight: 800,
+          fontFamily: 'monospace',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+          transition: 'all 0.3s ease'
+        }}>
+          <i className={`fas fa-stopwatch ${timeLeft < 1800 ? 'fa-spin' : ''}`} style={{ fontSize: 12 }}></i>
+          <span>Session: {formatTime(timeLeft)}</span>
         </div>
         {/* Admin Profile Button */}
         <div style={{ position: 'relative' }}>
