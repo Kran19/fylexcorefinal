@@ -2161,7 +2161,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 </div>
               )}
               <div className="cfg-price-add-row">
-                <div className="cfg-details-price" style={product.heroBgImage ? { color: '#ffffff' } : { color: product.textColor || '#111111' }}>
+                <div className="cfg-details-price" style={product.heroBgImage ? { color: '#ffffff' } : { color: activeTextColor || product.textColor || '#111111' }}>
                   {product.formattedPrice || (typeof product.price === 'number' ? `₹ ${product.price.toLocaleString()}` : product.price) || '₹ 25,000'}
                 </div>
 
