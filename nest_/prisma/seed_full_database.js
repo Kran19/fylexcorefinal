@@ -388,7 +388,8 @@ const SEED_DATA = {
   "boxes": [
     {
       "id": 1,
-      "name": "The classic court",
+      "name": "DESIGNED FOR EVERY JOURNEY",
+      "description": "A watch is more than something you wear—it's something you carry through life's defining moments. The FYLEX Travel Case is thoughtfully crafted to protect your timepiece wherever those moments take you.\n\nWrapped in premium leather and lined with a soft protective interior, it offers security without compromising on elegance. Compact, refined, and built with the same attention to detail that defines every FYLEX creation. Wherever you go, your time travels with you.\n\nIt's Your Time.",
       "isActive": true,
       "imageId": 149,
       "createdAt": "2026-07-27T05:30:26.879Z",

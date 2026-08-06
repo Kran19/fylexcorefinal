@@ -2459,11 +2459,9 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         {product.productBoxes?.length > 0 && (() => {
           const mainBox = product.productBoxes[0];
           const boxImg = mainBox?.image;
-          const defaultParagraph = "Inspired by the travel cases from the 1940s, simply sophisticated and refined, our packaging is crafted with attention to details to guarantee great robustness. It includes warranty and certificates papers, a micro-fiber cloth and a secondary strap.";
+          const defaultParagraph = "A watch is more than something you wear—it's something you carry through life's defining moments. The FYLEX Travel Case is thoughtfully crafted to protect your timepiece wherever those moments take you.\n\nWrapped in premium leather and lined with a soft protective interior, it offers security without compromising on elegance. Compact, refined, and built with the same attention to detail that defines every FYLEX creation. Wherever you go, your time travels with you.\n\nIt's Your Time.";
           let rawDesc = mainBox?.description || defaultParagraph;
-          const sentenceList = rawDesc.split(/(?<=[.?!])\s+/).filter(Boolean);
-          const uniqueSentences = Array.from(new Set(sentenceList));
-          let cleanDesc = uniqueSentences.join(' ').trim();
+          let cleanDesc = rawDesc.trim();
           if (!cleanDesc) {
             cleanDesc = defaultParagraph;
           }
@@ -2473,7 +2471,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           const isLongName = rawBoxName.length >= 50 || rawBoxName.toLowerCase().includes('inspired by');
           const displayBoxName = (!isLongName && rawBoxName && rawBoxName !== cleanDesc)
             ? rawBoxName
-            : 'Universal Signature Packaging';
+            : 'DESIGNED FOR EVERY JOURNEY';
 
           return (
             <section style={{ 
@@ -2510,7 +2508,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 ) : (
                   <div style={{ padding: '80px 20px', textAlign: 'center', color: '#888' }}>
                     <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>📦</span>
-                    <p style={{ fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>Universal Signature Packaging</p>
+                    <p style={{ fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 600 }}>DESIGNED FOR EVERY JOURNEY</p>
                   </div>
                 )}
               </div>
@@ -2528,12 +2526,26 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#006039', marginBottom: '8px' }}>
                       Included Packaging
                     </p>
-                    <h3 style={{ fontSize: '26px', fontWeight: 400, fontFamily: 'Georgia, serif', color: '#111', marginBottom: '12px' }}>
+                    <h3 style={{ fontSize: '26px', fontWeight: 400, fontFamily: 'Georgia, serif', color: '#111', marginBottom: '16px', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                       {displayBoxName}
                     </h3>
-                    <p style={{ fontSize: '15px', color: '#555', lineHeight: 1.7, margin: 0 }}>
-                      {cleanDesc}
-                    </p>
+                    <div style={{ fontSize: '15px', color: '#555', lineHeight: 1.7, margin: 0 }}>
+                      {cleanDesc.split('\n\n').map((para, pIdx) => (
+                        <p
+                          key={pIdx}
+                          style={{
+                            marginBottom: pIdx < cleanDesc.split('\n\n').length - 1 ? '14px' : '0',
+                            fontWeight: para.includes("It's Your Time") ? '700' : '400',
+                            color: para.includes("It's Your Time") ? '#111' : '#555',
+                            letterSpacing: para.includes("It's Your Time") ? '0.12em' : 'normal',
+                            textTransform: para.includes("It's Your Time") ? 'uppercase' : 'none',
+                            fontSize: para.includes("It's Your Time") ? '14px' : '15px'
+                          }}
+                        >
+                          {para}
+                        </p>
+                      ))}
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
