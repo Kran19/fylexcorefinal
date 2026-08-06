@@ -931,6 +931,32 @@ const Home = () => {
           .flip-top, .flip-bottom, .flip-flap { font-size: 1.4rem; }
           .flip-digits { gap: 2px; }
           .flip-group + .flip-group::before { left: -4px; }
+          /* Featured Timepieces mobile layout fix */
+          .featured-container { height: 500px !important; }
+          .featured-item-v2 { height: 500px !important; }
+          .featured-item-v2 img {
+            top: -75px !important;
+            height: 85% !important;
+            object-fit: contain !important;
+          }
+          .featured-content {
+            bottom: 24px !important;
+            left: 24px !important;
+            right: 24px !important;
+            max-width: calc(100% - 48px) !important;
+          }
+          .f-label {
+            font-size: 0.75rem !important;
+            margin-bottom: 2px !important;
+          }
+          .f-title {
+            font-size: 1.4rem !important;
+            line-height: 1.15 !important;
+          }
+          .f-price {
+            margin: 2px 0 10px !important;
+            font-size: 0.95rem !important;
+          }
         }
       `}</style>
 
