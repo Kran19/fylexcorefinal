@@ -533,13 +533,14 @@ const Home = () => {
           height: 600px;
           width: 100%;
         }
-        .featured-item-v2 img {
+        .featured-img-v2 {
           position: absolute; top: 0; left: 0;
           width: 100%; height: 100%; object-fit: contain;
           padding: 30px;
+          z-index: 1;
           transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .featured-item-v2:hover img { transform: scale(1.04); }
+        .featured-item-v2:hover .featured-img-v2 { transform: scale(1.04); }
         
         .featured-overlay-grad {
           position: absolute; inset: 0;
@@ -932,47 +933,63 @@ const Home = () => {
           .flip-digits { gap: 2px; }
           .flip-group + .flip-group::before { left: -4px; }
           /* Featured Timepieces mobile layout fix */
-          .featured-container { height: 360px !important; }
-          .featured-item-v2 { height: 360px !important; }
-          .featured-item-v2 img {
-            top: -5px !important;
-            left: 0 !important;
-            right: 0 !important;
-            margin: 0 auto !important;
-            width: auto !important;
-            height: 290px !important;
-            max-width: 90% !important;
-            object-fit: contain !important;
-          }
-          .featured-content {
-            bottom: 16px !important;
-            left: 16px !important;
-            right: 16px !important;
-            max-width: calc(100% - 32px) !important;
-          }
-          .f-shop-btn {
-            padding: 5px 16px !important;
-            font-size: 0.6rem !important;
-            letter-spacing: 0.12em !important;
-            font-weight: 700 !important;
-            border-radius: 999px !important;
-            display: inline-block !important;
-            border: 1px solid #1a1a1a !important;
-          }
-          .f-label {
-            font-size: 0.65rem !important;
-            margin-bottom: 2px !important;
-            opacity: 0.8 !important;
-          }
-          .f-title {
-            font-size: 1.15rem !important;
-            line-height: 1.1 !important;
-            font-weight: 700 !important;
-          }
-          .f-price {
-            margin: 2px 0 8px !important;
-            font-size: 0.8rem !important;
-            font-weight: 600 !important;
+          @media (max-width: 768px) {
+            .featured-container {
+              height: 360px !important;
+            }
+            .featured-item-v2 {
+              height: 360px !important;
+              position: relative !important;
+              overflow: hidden !important;
+            }
+            .featured-img-v2 {
+              position: absolute !important;
+              top: 5px !important;
+              left: 50% !important;
+              transform: translateX(-50%) !important;
+              width: auto !important;
+              max-width: 85% !important;
+              height: 240px !important;
+              object-fit: contain !important;
+              padding: 0 !important;
+            }
+            .featured-item-v2:hover .featured-img-v2 {
+              transform: translateX(-50%) scale(1.02) !important;
+            }
+            .featured-content {
+              position: absolute !important;
+              bottom: 16px !important;
+              left: 16px !important;
+              right: 16px !important;
+              max-width: calc(100% - 32px) !important;
+              z-index: 2 !important;
+            }
+            .f-label {
+              font-size: 0.65rem !important;
+              line-height: 1.2 !important;
+              margin-bottom: 2px !important;
+              opacity: 0.8 !important;
+            }
+            .f-title {
+              font-size: 1.15rem !important;
+              line-height: 1.1 !important;
+              font-weight: 700 !important;
+              margin-bottom: 2px !important;
+            }
+            .f-price {
+              font-size: 0.8rem !important;
+              font-weight: 600 !important;
+              margin: 2px 0 8px !important;
+            }
+            .f-shop-btn {
+              padding: 6px 18px !important;
+              font-size: 0.62rem !important;
+              letter-spacing: 0.12em !important;
+              font-weight: 700 !important;
+              border-radius: 999px !important;
+              display: inline-block !important;
+              border: 1px solid #1a1a1a !important;
+            }
           }
         }
       `}</style>
@@ -1103,7 +1120,7 @@ const Home = () => {
                                   <img
                                     src={display.image}
                                     alt={display.name}
-                                    style={{ position: 'absolute', top: '-40px', left: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 1 }}
+                                    className="featured-img-v2"
                                   />
                                 )}
                                 <div className="featured-content" style={{ color: p.textColor || '#111', zIndex: 2 }}>
