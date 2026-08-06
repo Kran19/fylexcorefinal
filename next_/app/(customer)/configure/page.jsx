@@ -545,9 +545,9 @@ function ConfigureContent() {
               return full.split('?')[0].split('/').pop() || full;
             };
 
-            // Strictly use variant-specific gallery images, avoid falling back to mixed product galleries
+            // Strictly use variant-specific gallery images, keep sequence order fixed and stationary
             const rawGallery = (product.galleryImages || []);
-            const basePrimary = previewSrc || product.heroImage;
+            const basePrimary = product.heroImage;
             const seenKeys = new Set();
             const sideList = [];
 
