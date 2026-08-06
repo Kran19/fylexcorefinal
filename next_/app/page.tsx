@@ -932,46 +932,46 @@ const Home = () => {
           .flip-digits { gap: 2px; }
           .flip-group + .flip-group::before { left: -4px; }
           /* Featured Timepieces mobile layout fix */
-          .featured-container { height: 490px !important; }
-          .featured-item-v2 { height: 490px !important; }
+          .featured-container { height: 360px !important; }
+          .featured-item-v2 { height: 360px !important; }
           .featured-item-v2 img {
-            top: 20px !important;
+            top: -5px !important;
             left: 0 !important;
             right: 0 !important;
             margin: 0 auto !important;
             width: auto !important;
-            height: 260px !important;
-            max-width: 85% !important;
+            height: 290px !important;
+            max-width: 90% !important;
             object-fit: contain !important;
           }
           .featured-content {
-            bottom: 24px !important;
-            left: 24px !important;
-            right: 24px !important;
-            max-width: calc(100% - 48px) !important;
+            bottom: 16px !important;
+            left: 16px !important;
+            right: 16px !important;
+            max-width: calc(100% - 32px) !important;
           }
           .f-shop-btn {
-            padding: 8px 24px !important;
-            font-size: 0.72rem !important;
-            letter-spacing: 0.14em !important;
-            font-weight: 800 !important;
+            padding: 5px 16px !important;
+            font-size: 0.6rem !important;
+            letter-spacing: 0.12em !important;
+            font-weight: 700 !important;
             border-radius: 999px !important;
             display: inline-block !important;
             border: 1px solid #1a1a1a !important;
           }
           .f-label {
-            font-size: 0.75rem !important;
+            font-size: 0.65rem !important;
             margin-bottom: 2px !important;
-            opacity: 0.85 !important;
+            opacity: 0.8 !important;
           }
           .f-title {
-            font-size: 1.5rem !important;
-            line-height: 1.15 !important;
+            font-size: 1.15rem !important;
+            line-height: 1.1 !important;
             font-weight: 700 !important;
           }
           .f-price {
-            margin: 2px 0 10px !important;
-            font-size: 0.95rem !important;
+            margin: 2px 0 8px !important;
+            font-size: 0.8rem !important;
             font-weight: 600 !important;
           }
         }
