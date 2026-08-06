@@ -1401,27 +1401,6 @@ export class ProductService {
     }
     return { success: true, data: variant };
   }
-
-  async reorderProducts(ids: (number | string)[]) {
-    if (!Array.isArray(ids) || ids.length === 0) {
-      return { success: false, message: 'No product IDs provided' };
-    }
-
-    const updates = ids.map((id, index) => {
-      const numId = Number(id);
-      return this.prisma.product.update({
-        where: { id: numId },
-        data: { sortOrder: index + 1 },
-      });
-    });
-
-    await this.prisma.$transaction(updates);
-
-    return {
-      success: true,
-      message: 'Products reordered successfully',
-    };
-  }
 }
 
 
