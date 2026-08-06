@@ -12,18 +12,28 @@ export class CartService {
   ) {}
 
   // Get or Create active cart for customer
-  private async getOrCreateCart(customerId: string | number | number) {
+  private async getOrCreateCart(customerId: string | number) {
     if (!customerId || customerId === 'undefined' || customerId === 'null' || customerId === '') {
       return { id: Number(0), items: [] as any[], subtotal: Number(0), discountTotal: Number(0), grandTotal: Number(0) };
     }
 
     const customerIdStr = customerId.toString();
-    const isNumeric = !isNaN(Number(customerIdStr)) && !customerIdStr.includes('usr_');
-    
+    const isNumeric = !isNaN(Number(customerIdStr)) && !customerIdStr.includes('usr_') && !customerIdStr.includes('gst_');
+
+    let customerExists = false;
+    if (isNumeric) {
+      const cust = await this.prisma.customer.findUnique({ where: { id: Number(customerIdStr) } }).catch(() => null);
+      customerExists = !!cust;
+    }
+
     let cart = await this.prisma.cart.findFirst({
-      where: isNumeric 
-        ? { customerId: Number(customerIdStr), status: 'active' }
-        : { sessionId: customerIdStr, status: 'active' },
+      where: {
+        OR: [
+          ...(customerExists ? [{ customerId: Number(customerIdStr) }] : []),
+          { sessionId: customerIdStr }
+        ],
+        status: 'active'
+      },
       include: { 
         items: { 
           include: { 
@@ -57,116 +67,35 @@ export class CartService {
     });
 
     if (!cart) {
-      try {
-        if (isNumeric) {
-          cart = await this.prisma.cart.create({
-            data: {
-              customer: { connect: { id: Number(customerIdStr) } },
-              status: 'active',
-            },
-            include: { 
-        items: { 
-          include: { 
-            productVariant: { 
-              include: { 
-                product: true, 
-                variantAttributes: { 
-                  include: { 
-                    attributeValue: { 
-                      include: { 
-                        attribute: true 
-                      } 
-                    } 
-                  } 
-                }, 
-                variantImages: { 
-                  include: { 
-                    media: true 
-                  } 
-                } 
-              } 
-            },
-            belt: { include: { image: true } }
+      if (customerExists) {
+        cart = await this.prisma.cart.create({
+          data: {
+            customer: { connect: { id: Number(customerIdStr) } },
+            status: 'active',
           },
-          orderBy: [
-            { createdAt: 'asc' },
-            { id: 'asc' }
-          ]
-        } 
-      },
-          });
-        } else {
-          cart = await this.prisma.cart.create({
-            data: {
-              sessionId: customerIdStr,
-              status: 'active',
-            },
-            include: { 
-        items: { 
           include: { 
-            productVariant: { 
+            items: { 
               include: { 
-                product: true, 
-                variantAttributes: { 
-                  include: { 
-                    attributeValue: { 
-                      include: { 
-                        attribute: true 
-                      } 
-                    } 
-                  } 
-                }, 
-                variantImages: { 
-                  include: { 
-                    media: true 
-                  } 
-                } 
-              } 
-            },
-            belt: { include: { image: true } }
+                productVariant: { include: { product: true } },
+                belt: { include: { image: true } }
+              }
+            } 
           },
-          orderBy: [
-            { createdAt: 'asc' },
-            { id: 'asc' }
-          ]
-        } 
-      },
-          });
-        }
-      } catch (err) {
-        // Fallback for non-existent numeric users: treat as session
+        });
+      } else {
         cart = await this.prisma.cart.create({
           data: {
             sessionId: customerIdStr,
             status: 'active',
           },
           include: { 
-        items: { 
-          include: { 
-            productVariant: { 
+            items: { 
               include: { 
-                product: true, 
-                variantAttributes: { 
-                  include: { 
-                    attributeValue: { 
-                      include: { 
-                        attribute: true 
-                      } 
-                    } 
-                  } 
-                }, 
-                variantImages: { 
-                  include: { 
-                    media: true 
-                  } 
-                } 
-              } 
-            },
-            belt: { include: { image: true } }
+                productVariant: { include: { product: true } },
+                belt: { include: { image: true } }
+              }
+            } 
           },
-          orderBy: { createdAt: 'asc' }
-        } 
-      },
         });
       }
     }
