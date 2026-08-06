@@ -418,12 +418,12 @@ function ConfigureContent() {
         .top-actions { position: fixed; top: 100px; right: 30px; display: flex; align-items: center; gap: 15px; z-index: 999; }
         .close-btn { background: rgba(0,0,0,0.6); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); transition: transform 0.2s; }
         .close-btn:hover { transform: scale(1.1); }
-        .c-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 55vh; }
-        .watch-preview { max-width: 80%; max-height: 52vh; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.25)); transition: transform 0.3s; }
+        .c-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 55vh; padding-bottom: 120px; margin-top: -30px; }
+        .watch-preview { max-width: 80%; max-height: 48vh; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.25)); transition: transform 0.3s; transform: translateY(-15px); }
         .side-thumbnails-bar {
           position: absolute;
           right: 28px;
-          top: 50%;
+          top: 42%;
           transform: translateY(-50%);
           display: flex;
           flex-direction: column;
@@ -461,9 +461,9 @@ function ConfigureContent() {
           .thumb { width: 42px; height: 42px; }
           .top-actions { top: 25px; right: 20px; }
           .top-left-actions { top: 25px; left: 20px; }
-          .c-main { padding-top: 5px; padding-bottom: 200px; min-height: 42vh; }
-          .watch-preview { max-height: 48vh; max-width: 90%; transform: scale(1.16); }
-          .side-thumbnails-bar { right: 12px; top: 38%; transform: translateY(-50%); gap: 10px; z-index: 20; }
+          .c-main { padding-top: 5px; padding-bottom: 220px; min-height: 42vh; margin-top: -20px; }
+          .watch-preview { max-height: 44vh; max-width: 90%; transform: scale(1.1) translateY(-10px); }
+          .side-thumbnails-bar { right: 12px; top: 35%; transform: translateY(-50%); gap: 10px; z-index: 20; }
           .side-thumb-item { width: 40px; height: 40px; padding: 4px; }
           .c-selection-controls { padding: 12px 16px 8px; gap: 10px; }
           .options-row { gap: 12px; font-size: 14px; }
