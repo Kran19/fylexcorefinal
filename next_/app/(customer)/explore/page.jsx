@@ -380,38 +380,6 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     );
   }
 
-  // ── THEME & SHOWCASE IMAGE RESOLUTION ──
-  let parsedTheme = {};
-  if (product?.theme) {
-    try {
-      parsedTheme = typeof product.theme === 'string' ? JSON.parse(product.theme) : (product.theme || {});
-    } catch (e) {}
-  }
-
-  const getImgUrl = (img) => {
-    if (!img) return null;
-    if (typeof img === 'string') return getFileUrl(img);
-    const u = img.url || img.filePath || img.path || (img.fileName ? `uploads/${img.fileName}` : '');
-    return getFileUrl(u);
-  };
-
-  const activeHeroImg = (previewTheme?.exploreHeroImage !== undefined && previewTheme?.exploreHeroImage !== null) 
-    ? previewTheme.exploreHeroImage 
-    : (parsedTheme.exploreHeroImage || product.exploreHeroImage);
-
-  const activeStoryImg = (previewTheme?.exploreStoryImage !== undefined && previewTheme?.exploreStoryImage !== null) 
-    ? previewTheme.exploreStoryImage 
-    : (parsedTheme.exploreStoryImage || product.exploreStoryImage);
-
-  const activeSpecsImg = (previewTheme?.exploreSpecsImage !== undefined && previewTheme?.exploreSpecsImage !== null) 
-    ? previewTheme.exploreSpecsImage 
-    : (parsedTheme.exploreSpecsImage || product.exploreSpecsImage);
-
-  const displayHeroImg = (!isConfiguredMode && getImgUrl(activeHeroImg)) ? getImgUrl(activeHeroImg) : product.heroImage;
-  const displayStoryImg = isConfiguredMode ? product.heroImage : (getImgUrl(activeStoryImg) || product.galleryImages?.[0] || product.heroImage);
-  const displaySpecsImg = isConfiguredMode ? product.heroImage : (getImgUrl(activeSpecsImg) || product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage);
-  const effectiveImageCount = 3;
-
   // ── LIVE PREVIEW INTERCEPT ──
   if (productOverrides) {
     product.bgColor = productOverrides.discoverBg || product.bgColor;
@@ -419,14 +387,23 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     product.accentColor = productOverrides.discoverAccentColor || product.accentColor;
     product.gradient = productOverrides.discoverGradient || product.gradient;
   }
-  
-  // ── DYNAMIC VARIANT MATCHING ──
+
+  // ── DYNAMIC VARIANT MATCHING & RESOLUTION (Runs BEFORE image assignment) ──
+  const normalizeAttrKey = (k) => {
+    if (!k) return '';
+    const clean = k.toLowerCase().trim();
+    if (clean.includes('dial')) return 'dial';
+    if (clean.includes('belt') || clean.includes('strap')) return 'belt';
+    if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
+    return clean;
+  };
+
   const selections = {};
   const variantIdParam = searchParams.get('variant');
 
   searchParams.forEach((value, key) => {
     if (key !== 'watch' && key !== 'mode' && key !== 'variant') {
-      selections[key.toLowerCase()] = value;
+      selections[normalizeAttrKey(key)] = value;
     }
   });
 
@@ -435,17 +412,13 @@ export function DiscoverContent({ isConfiguredMode = false }) {
 
   if (hasSelections || variantIdParam) {
     matchingVariant = (product.variants || []).find(v => {
-      // 1. Try to match by variant ID if provided in URL
       if (variantIdParam && v.id.toString() === variantIdParam) return true;
-
-      // 2. Otherwise match by attributes
       const vAttrs = v.variantAttributes || [];
       if (vAttrs.length === 0) return false;
 
-      // Check if ALL selected attributes match this variant
-      return Object.keys(selections).every(key => {
-        const va = vAttrs.find(a => a.attributeValue?.attribute?.name?.toLowerCase() === key);
-        return va && va.attributeValue?.label === selections[key];
+      return Object.keys(selections).every(normKey => {
+        const va = vAttrs.find(a => normalizeAttrKey(a.attributeValue?.attribute?.name) === normKey);
+        return va && va.attributeValue?.label?.toLowerCase().trim() === selections[normKey].toLowerCase().trim();
       });
     });
   }
@@ -485,6 +458,38 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   if (!hasConfig) {
     product.heroBgImage = null;
   }
+
+  // ── THEME & SHOWCASE IMAGE RESOLUTION (Computed AFTER activeVariant updates product.heroImage) ──
+  let parsedTheme = {};
+  if (product?.theme) {
+    try {
+      parsedTheme = typeof product.theme === 'string' ? JSON.parse(product.theme) : (product.theme || {});
+    } catch (e) {}
+  }
+
+  const getImgUrl = (img) => {
+    if (!img) return null;
+    if (typeof img === 'string') return getFileUrl(img);
+    const u = img.url || img.filePath || img.path || (img.fileName ? `uploads/${img.fileName}` : '');
+    return getFileUrl(u);
+  };
+
+  const activeHeroImg = (previewTheme?.exploreHeroImage !== undefined && previewTheme?.exploreHeroImage !== null) 
+    ? previewTheme.exploreHeroImage 
+    : (parsedTheme.exploreHeroImage || product.exploreHeroImage);
+
+  const activeStoryImg = (previewTheme?.exploreStoryImage !== undefined && previewTheme?.exploreStoryImage !== null) 
+    ? previewTheme.exploreStoryImage 
+    : (parsedTheme.exploreStoryImage || product.exploreStoryImage);
+
+  const activeSpecsImg = (previewTheme?.exploreSpecsImage !== undefined && previewTheme?.exploreSpecsImage !== null) 
+    ? previewTheme.exploreSpecsImage 
+    : (parsedTheme.exploreSpecsImage || product.exploreSpecsImage);
+
+  const displayHeroImg = (!isConfiguredMode && getImgUrl(activeHeroImg)) ? getImgUrl(activeHeroImg) : product.heroImage;
+  const displayStoryImg = isConfiguredMode ? product.heroImage : (getImgUrl(activeStoryImg) || product.galleryImages?.[0] || product.heroImage);
+  const displaySpecsImg = isConfiguredMode ? product.heroImage : (getImgUrl(activeSpecsImg) || product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage);
+  const effectiveImageCount = 3;
   const materialParam = searchParams.get('material');
   const bezelParam = searchParams.get('bezel');
   const dialParam = searchParams.get('dial');
