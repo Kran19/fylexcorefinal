@@ -285,12 +285,37 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     };
   }, [loading, watchId]); // Re-run on watch change as sections might re-render
   const openInfoModal = (p) => {
-    const soldConfigs = (p.combinations || [])
-      .filter(combo => Boolean(combo.isSoldConfiguration === true || combo.isSoldConfiguration === 1 || combo.isSoldConfiguration === 'true'))
+    const rawList = (p.combinations && p.combinations.length > 0) 
+      ? p.combinations 
+      : (p.variants || []).map(v => {
+          const vDisplay = getDisplayData(p, v);
+          return {
+            id: v.id.toString(),
+            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            img: vDisplay.image,
+            price: vDisplay.price,
+            formattedPrice: vDisplay.formattedPrice,
+            isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
+            fakeSoldCount: Number(v.fakeSoldCount) || 0,
+            attributes: v.variantAttributes?.map(va => ({
+              name: (va.attributeValue?.attribute?.name || '').toLowerCase(),
+              value: va.attributeValue?.label || va.attributeValue?.value
+            })) || []
+          };
+        });
+
+    const soldConfigs = rawList
+      .filter(combo => Boolean(
+        combo.isSoldConfiguration === true || 
+        combo.isSoldConfiguration === 1 || 
+        combo.isSoldConfiguration === 'true' ||
+        p.isSoldConfiguration === true
+      ))
       .map(combo => ({
         ...combo,
         isProduct: false
       }));
+
     setActiveModalData({ ...p, combinations: soldConfigs });
   };
   const closeInfoModal = () => setActiveModalData(null);
