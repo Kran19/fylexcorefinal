@@ -935,21 +935,21 @@ const Home = () => {
           /* Featured Timepieces mobile layout fix */
           @media (max-width: 768px) {
             .featured-container {
-              height: 360px !important;
+              height: 410px !important;
             }
             .featured-item-v2 {
-              height: 360px !important;
+              height: 410px !important;
               position: relative !important;
               overflow: hidden !important;
             }
             .featured-img-v2 {
               position: absolute !important;
-              top: 5px !important;
+              top: 10px !important;
               left: 50% !important;
               transform: translateX(-50%) !important;
               width: auto !important;
               max-width: 85% !important;
-              height: 240px !important;
+              height: 230px !important;
               object-fit: contain !important;
               padding: 0 !important;
             }
@@ -958,11 +958,15 @@ const Home = () => {
             }
             .featured-content {
               position: absolute !important;
-              bottom: 16px !important;
+              bottom: 42px !important;
               left: 16px !important;
               right: 16px !important;
               max-width: calc(100% - 32px) !important;
-              z-index: 2 !important;
+              z-index: 5 !important;
+            }
+            .featured-swiper .swiper-pagination {
+              bottom: 10px !important;
+              z-index: 10 !important;
             }
             .f-label {
               font-size: 0.65rem !important;
@@ -979,7 +983,7 @@ const Home = () => {
             .f-price {
               font-size: 0.8rem !important;
               font-weight: 600 !important;
-              margin: 2px 0 8px !important;
+              margin: 2px 0 6px !important;
             }
             .f-shop-btn {
               padding: 6px 18px !important;
@@ -989,6 +993,7 @@ const Home = () => {
               border-radius: 999px !important;
               display: inline-block !important;
               border: 1px solid #1a1a1a !important;
+              margin-top: 2px !important;
             }
           }
         }
