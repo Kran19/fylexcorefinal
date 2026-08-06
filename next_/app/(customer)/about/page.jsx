@@ -438,8 +438,8 @@ export default function About() {
                       fontSize: '18px',
                       fontWeight: '700',
                       color: '#ffffff',
-                      marginBottom: '16px',
-                      height: '44px',
+                      marginBottom: '6px',
+                      height: '36px',
                       overflow: 'hidden',
                       display: 'flex',
                       alignItems: 'center',
@@ -448,6 +448,15 @@ export default function About() {
                     }}>
                       {variant.product?.name || 'Watch'}
                     </h4>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '800',
+                      color: '#ffffff',
+                      marginBottom: '16px',
+                      letterSpacing: '0.05em'
+                    }}>
+                      {variant.formattedPrice || (variant.price ? `₹${Number(variant.price).toLocaleString('en-IN')}` : (variant.product?.formattedPrice || (variant.product?.basePrice ? `₹${Number(variant.product.basePrice).toLocaleString('en-IN')}` : '₹5,999')))}
+                    </div>
                     <div style={{ display: 'flex', gap: '10px', marginTop: '15px', justifyContent: 'center', width: '100%' }}>
                       <button 
                         onClick={(e) => handleAddToCart(e, variant)}

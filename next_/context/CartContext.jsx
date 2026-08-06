@@ -76,14 +76,25 @@ export function CartProvider({ children }) {
     });
   };
 
-  const loadCart = async () => {
-    if (!userId) {
-      setItems([]);
-      return;
+  const getEffectiveUserId = () => {
+    if (userId) return userId;
+    if (typeof window !== 'undefined') {
+      let gid = localStorage.getItem('fylexx_guest_id');
+      if (!gid) {
+        gid = `gst_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+        localStorage.setItem('fylexx_guest_id', gid);
+      }
+      return gid;
     }
+    return 'gst_anon';
+  };
+
+  const loadCart = async () => {
+    const activeId = getEffectiveUserId();
+    if (!activeId) return;
     setLoading(true);
     try {
-        const result = await fetchCart(userId);
+        const result = await fetchCart(activeId);
         if (result.success) {
             mapCartData(result.data);
         } else {
@@ -104,11 +115,11 @@ export function CartProvider({ children }) {
   }, [userId]);
 
   const addToCart = async (variantId, quantity = 1) => {
-    if (!userId) return { success: false, error: 'Login required' };
+    const activeId = getEffectiveUserId();
     
     setLoading(true);
     try {
-        const result = await addToCartApi(userId, variantId, quantity);
+        const result = await addToCartApi(activeId, variantId, quantity);
         if (result.success) {
             mapCartData(result.data);
             eventBus.emit(EVENTS.CART_UPDATED);
