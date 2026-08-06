@@ -169,8 +169,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   img: vDisplay.image,
                   price: vDisplay.price,
                   formattedPrice: vDisplay.formattedPrice,
-                  isSoldConfiguration: v.isSoldConfiguration,
-                  fakeSoldCount: v.fakeSoldCount || 0,
+                  isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
+                  fakeSoldCount: Number(v.fakeSoldCount) || 0,
                   attributes: v.variantAttributes?.map(va => ({
                     name: va.attributeValue?.attribute?.name?.toLowerCase(),
                     value: va.attributeValue?.label
@@ -286,7 +286,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   }, [loading, watchId]); // Re-run on watch change as sections might re-render
   const openInfoModal = (p) => {
     const soldConfigs = (p.combinations || [])
-      .filter(combo => combo.isSoldConfiguration)
+      .filter(combo => Boolean(combo.isSoldConfiguration === true || combo.isSoldConfiguration === 1 || combo.isSoldConfiguration === 'true'))
       .map(combo => ({
         ...combo,
         isProduct: false
@@ -431,6 +431,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     product.variantName = vDisplay.subtitle;
     product.price = vDisplay.price;
     product.formattedPrice = vDisplay.formattedPrice;
+    product.isSoldConfiguration = Boolean(activeVariant.isSoldConfiguration === true || activeVariant.isSoldConfiguration === 1 || activeVariant.isSoldConfiguration === 'true');
+    product.fakeSoldCount = Number(activeVariant.fakeSoldCount) || 0;
     
     // Always resolve primary image for active variant
     const primaryImg = resolveProductImage(product, activeVariant) || resolveProductImage(product);
@@ -2137,6 +2139,13 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           <div className="cfg-details-box" style={{ zIndex: 10 }}>
             <div className="cfg-details-left">
               <h1 className="cfg-details-title" style={product.heroBgImage ? { color: '#ffffff' } : { color: product.textColor || '#111111' }}>{product.title}</h1>
+
+              {Boolean(product.isSoldConfiguration || activeVariant?.isSoldConfiguration) && (
+                <div style={{ margin: '8px 0 16px 0', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: 'rgba(0, 135, 103, 0.12)', border: '1px solid rgba(0, 135, 103, 0.3)', borderRadius: '999px', color: '#008767', fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#008767', display: 'inline-block' }}></span>
+                  Sold Configuration &bull; {product.fakeSoldCount || activeVariant?.fakeSoldCount || 0} Built
+                </div>
+              )}
 
               {hasConfig && (
                 <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
