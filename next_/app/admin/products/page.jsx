@@ -149,10 +149,10 @@ const AdminProducts = () => {
       const orderedIds = newRowSequence.map(item => item.id).filter(Boolean);
       const res = await api.reorderProducts(orderedIds);
       if (res.error || res.success === false) {
-        toast.error(res.error || res.message || 'Failed to reorder models');
+        toast.error(res.error || 'Failed to reorder models');
       } else {
         setProducts(newRowSequence);
-        toast.success('Model sequence updated successfully');
+        toast.success(res.message || 'Model sequence updated successfully');
       }
     } catch (err) {
       toast.error('Failed to update sequence');

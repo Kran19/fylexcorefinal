@@ -78,9 +78,10 @@ async function request(method, path, body = null) {
     // Standardize: if backend returns { success, data, error }
     if (data && typeof data === 'object' && 'success' in data) {
       return {
-        data: data.data || null,
-        error: data.error || data.message || null,
-        success: data.success,
+        data: data.data !== undefined ? data.data : data,
+        error: data.success ? null : (data.error || data.message || 'Request failed'),
+        message: data.message || null,
+        success: Boolean(data.success),
       };
     }
 
