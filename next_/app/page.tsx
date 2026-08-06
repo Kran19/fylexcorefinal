@@ -932,11 +932,16 @@ const Home = () => {
           .flip-digits { gap: 2px; }
           .flip-group + .flip-group::before { left: -4px; }
           /* Featured Timepieces mobile layout fix */
-          .featured-container { height: 480px !important; }
-          .featured-item-v2 { height: 480px !important; }
+          .featured-container { height: 490px !important; }
+          .featured-item-v2 { height: 490px !important; }
           .featured-item-v2 img {
-            top: -90px !important;
-            height: 125% !important;
+            top: 20px !important;
+            left: 0 !important;
+            right: 0 !important;
+            margin: 0 auto !important;
+            width: auto !important;
+            height: 260px !important;
+            max-width: 85% !important;
             object-fit: contain !important;
           }
           .featured-content {
@@ -946,23 +951,28 @@ const Home = () => {
             max-width: calc(100% - 48px) !important;
           }
           .f-shop-btn {
-            padding: 7px 20px !important;
-            font-size: 0.68rem !important;
+            padding: 8px 24px !important;
+            font-size: 0.72rem !important;
             letter-spacing: 0.14em !important;
+            font-weight: 800 !important;
             border-radius: 999px !important;
             display: inline-block !important;
+            border: 1px solid #1a1a1a !important;
           }
           .f-label {
             font-size: 0.75rem !important;
             margin-bottom: 2px !important;
+            opacity: 0.85 !important;
           }
           .f-title {
-            font-size: 1.4rem !important;
+            font-size: 1.5rem !important;
             line-height: 1.15 !important;
+            font-weight: 700 !important;
           }
           .f-price {
             margin: 2px 0 10px !important;
             font-size: 0.95rem !important;
+            font-weight: 600 !important;
           }
         }
       `}</style>
