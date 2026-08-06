@@ -591,7 +591,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         .cfg-page.is-configured .cfg-desc-text,
         .cfg-page.is-configured .cfg-heritage-heading,
         .cfg-page.is-configured .cfg-heritage-text {
-          color: ${product.textColor || '#ffffff'} !important;
+          color: ${activeTextColor || product.textColor || '#ffffff'} !important;
         }
         .cfg-page.is-configured .cfg-details-specs,
         .cfg-page.is-configured .cfg-heritage-eyebrow {
