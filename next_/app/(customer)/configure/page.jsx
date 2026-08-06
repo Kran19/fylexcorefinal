@@ -633,16 +633,16 @@ function ConfigureContent() {
               {Boolean((product?.variants || []).find(v => {
                 const vAttrs = v.variantAttributes || [];
                 return Object.entries(userSelections).every(([sKey, sVal]) => 
-                  vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || '').toLowerCase().trim() === sVal.toLowerCase().trim())
+                  vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim() === sVal.toLowerCase().trim())
                 );
-              })?.isSoldConfiguration) && (
+              })?.isSoldConfiguration || product?.isSoldConfiguration || (product?.variants || []).some(v => v.isSoldConfiguration)) && (
                 <span style={{ fontSize: '11px', color: '#008767', fontWeight: '700', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   Sold Configuration &bull; {(product?.variants || []).find(v => {
                     const vAttrs = v.variantAttributes || [];
                     return Object.entries(userSelections).every(([sKey, sVal]) => 
-                      vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || '').toLowerCase().trim() === sVal.toLowerCase().trim())
+                      vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim() === sVal.toLowerCase().trim())
                     );
-                  })?.fakeSoldCount || 0} Built
+                  })?.fakeSoldCount || product?.fakeSoldCount || (product?.variants || []).find(v => (v.fakeSoldCount || 0) > 0)?.fakeSoldCount || 0} Built
                 </span>
               )}
             </div>
@@ -658,17 +658,17 @@ function ConfigureContent() {
             {Boolean((product?.variants || []).find(v => {
               const vAttrs = v.variantAttributes || [];
               return Object.entries(userSelections).every(([sKey, sVal]) => 
-                vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || '').toLowerCase().trim() === sVal.toLowerCase().trim())
+                vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim() === sVal.toLowerCase().trim())
               );
-            })?.isSoldConfiguration) && (
+            })?.isSoldConfiguration || product?.isSoldConfiguration || (product?.variants || []).some(v => v.isSoldConfiguration)) && (
               <div style={{ margin: '6px 0 16px 0', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'rgba(0, 135, 103, 0.12)', border: '1px solid rgba(0, 135, 103, 0.3)', borderRadius: '999px', color: '#008767', fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#008767', display: 'inline-block' }}></span>
                 Sold Configuration &bull; {(product?.variants || []).find(v => {
                   const vAttrs = v.variantAttributes || [];
                   return Object.entries(userSelections).every(([sKey, sVal]) => 
-                    vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || '').toLowerCase().trim() === sVal.toLowerCase().trim())
+                    vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim() === sVal.toLowerCase().trim())
                   );
-                })?.fakeSoldCount || 0} Built
+                })?.fakeSoldCount || product?.fakeSoldCount || (product?.variants || []).find(v => (v.fakeSoldCount || 0) > 0)?.fakeSoldCount || 0} Built
               </div>
             )}
             <div className="alert-selections-bar">

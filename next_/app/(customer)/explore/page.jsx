@@ -431,8 +431,14 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     product.variantName = vDisplay.subtitle;
     product.price = vDisplay.price;
     product.formattedPrice = vDisplay.formattedPrice;
-    product.isSoldConfiguration = Boolean(activeVariant.isSoldConfiguration === true || activeVariant.isSoldConfiguration === 1 || activeVariant.isSoldConfiguration === 'true');
-    product.fakeSoldCount = Number(activeVariant.fakeSoldCount) || 0;
+    product.isSoldConfiguration = Boolean(
+      activeVariant.isSoldConfiguration === true || 
+      activeVariant.isSoldConfiguration === 1 || 
+      activeVariant.isSoldConfiguration === 'true' ||
+      product.isSoldConfiguration === true ||
+      (product.variants || []).some(v => v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true')
+    );
+    product.fakeSoldCount = Number(activeVariant.fakeSoldCount) || Number(product.fakeSoldCount) || (product.variants || []).find(v => (v.fakeSoldCount || 0) > 0)?.fakeSoldCount || 0;
     
     // Always resolve primary image for active variant
     const primaryImg = resolveProductImage(product, activeVariant) || resolveProductImage(product);
