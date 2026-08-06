@@ -144,6 +144,20 @@ const AdminProducts = () => {
     if (success) setDeleteTarget(null);
   };
 
+  const handleRowMoved = async (newRowSequence) => {
+    try {
+      const orderedIds = newRowSequence.map(item => item.id).filter(Boolean);
+      const res = await api.reorderProducts(orderedIds);
+      if (res.error) {
+        toast.error(res.error || 'Failed to reorder models');
+      } else {
+        toast.success('Model sequence updated successfully');
+      }
+    } catch (err) {
+      toast.error('Failed to update sequence');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <DataTable
@@ -153,6 +167,7 @@ const AdminProducts = () => {
         columns={columns}
         loading={loading.products}
         minWidth={1000}
+        onRowMoved={handleRowMoved}
         action={{
           label: 'Add Product',
           icon: 'fas fa-plus',

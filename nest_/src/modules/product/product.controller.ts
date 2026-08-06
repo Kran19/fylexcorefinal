@@ -34,6 +34,11 @@ export class ProductController {
     return this.productService.getAllProducts(filters);
   }
 
+  @Post('reorder')
+  async reorder(@Body('ids') ids: (number | string)[]) {
+    return this.productService.reorderProducts(ids);
+  }
+
   @Get('featured')
   async getFeatured() {
     return this.productService.getFeaturedProducts();

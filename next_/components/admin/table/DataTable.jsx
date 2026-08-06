@@ -23,11 +23,16 @@ export default function DataTable({
   emptyTitle = "No records found",
   emptyDescription = "There are no items to display right now.",
   onResetFilters,
-  exportFileName = 'data_export'
+  exportFileName = 'data_export',
+  onRowMoved
 }) {
   const tableRef = useRef(null);
   const tabulatorRef = useRef(null);
   const isBuiltRef = useRef(false);
+  const onRowMovedRef = useRef(onRowMoved);
+  useEffect(() => {
+    onRowMovedRef.current = onRowMoved;
+  }, [onRowMoved]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -69,10 +74,17 @@ export default function DataTable({
       paginationElement: false, // Handled by custom PaginationFooter below
       headerVisible: true,
       movableColumns: true,
+      movableRows: !!onRowMoved,
       placeholder: 'No records found',
       selectable: true,
       rowSelectionChanged: (data, rows) => {
         setSelectedRows(rows.map(r => r.getData()));
+      },
+      rowMoved: (row) => {
+        if (onRowMovedRef.current && tabulatorRef.current) {
+          const currentTableData = tabulatorRef.current.getData();
+          onRowMovedRef.current(currentTableData);
+        }
       }
     });
 

@@ -733,6 +733,7 @@ model Product {
   videoUrl            String?                @map("video_url")
   theme               String?                @map("theme")
   discoverHeroBgImage String?                @map("discover_hero_bg_image")
+  sortOrder           Int                    @default(0) @map("sort_order")
   cartItems           CartItem[]
   categories          CategoryProduct[]
   crossSellsFrom      CrossSellProduct[]     @relation("ProductCrossSellTargets")

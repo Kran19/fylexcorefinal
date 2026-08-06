@@ -444,7 +444,7 @@ export class ProductService {
       if (maxPrice !== undefined) where.sellingPrice.lte = Number(maxPrice);
     }
 
-    let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
+    let orderBy: any = [{ sortOrder: 'asc' }, { id: 'asc' }];
     if (sort) {
       switch (sort) {
         case 'price_asc':
@@ -575,6 +575,27 @@ export class ProductService {
       };
     } catch (error) {
       this.handlePrismaError(error, 'Get All Products');
+    }
+  }
+
+  async reorderProducts(ids: (number | string)[]) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return { success: false, message: 'No IDs provided' };
+    }
+
+    try {
+      const updates = ids.map((id, index) => {
+        const numId = Number(id);
+        return this.prisma.product.update({
+          where: { id: numId },
+          data: { sortOrder: index }
+        });
+      });
+
+      await this.prisma.$transaction(updates);
+      return { success: true, message: 'Products reordered successfully' };
+    } catch (error) {
+      this.handlePrismaError(error, 'Reorder Products');
     }
   }
 

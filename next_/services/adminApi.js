@@ -129,6 +129,7 @@ export const getProduct = (id) => get(`/products/${id}`);
 export const createProduct = (data) => post('/products', data);
 export const updateProduct = (id, data) => put(`/products/${id}`, data);
 export const deleteProduct = (id) => del(`/products/${id}`);
+export const reorderProducts = (ids) => post('/products/reorder', { ids });
 
 export const getAllVariants = (page=1, limit=50) => get(`/variants?page=${page}&limit=${limit}`);
 export const generateVariants = (productId, selections) => post(`/products/${productId}/generate-variants`, { selections });
