@@ -969,7 +969,7 @@ export class ProductService {
           }
 
           const existingMedia = await tx.productMedia.findMany({ where: { productId } });
-          const existingMap = new Map(existingMedia.map(m => [`${m.mediaId}-${m.type}`, m]));
+          const existingMap = new Map<string, any>(existingMedia.map(m => [`${m.mediaId}-${m.type}`, m]));
           
           const toDelete = existingMedia.filter(em => !incomingMedia.some(im => im.mediaId === em.mediaId && im.type === em.type));
           const toCreate = incomingMedia.filter(im => !existingMedia.some(em => em.mediaId === im.mediaId && em.type === im.type));
