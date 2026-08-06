@@ -580,7 +580,7 @@ export class ProductService {
 
   async reorderProducts(ids: (number | string)[]) {
     if (!Array.isArray(ids) || ids.length === 0) {
-      return { success: false, message: 'No IDs provided' };
+      return { success: false, message: 'No product IDs provided' };
     }
 
     try {
@@ -588,7 +588,7 @@ export class ProductService {
         const numId = Number(id);
         return this.prisma.product.update({
           where: { id: numId },
-          data: { sortOrder: index }
+          data: { sortOrder: index + 1 }
         });
       });
 
