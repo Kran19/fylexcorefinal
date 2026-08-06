@@ -423,7 +423,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     });
   }
 
-  const activeVariant = matchingVariant || (product.variants || []).find(v => v.isPrimary) || (product.variants || [])[0];
+  const activeVariant = matchingVariant || (product.variants || []).find(v => v.isPrimary || v.isDefault) || (product.variants || [])[0];
 
   if (activeVariant) {
     const vDisplay = getDisplayData(product, activeVariant);

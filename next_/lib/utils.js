@@ -168,6 +168,18 @@ export function resolveProductImage(product, variant = null) {
     }
   }
 
+  // 1.5. PRIORITY: Starred / Primary Variant image (If variant is not explicitly passed)
+  if (!resolvedPath && product.variants?.length > 0) {
+    const primaryV = product.variants.find(v => v.isDefault || v.isPrimary);
+    if (primaryV) {
+      const vImages = primaryV.variantImages || [];
+      if (vImages.length > 0) {
+        const mainImg = vImages.find(img => img.type === 'MAIN' || img.isPrimary || img.type === 'PRIMARY') || vImages[0];
+        resolvedPath = extractMediaPath(mainImg);
+      }
+    }
+  }
+
   // 2. PRIORITY: Product-level Default MAIN Media (Source of Truth)
   if (!resolvedPath && product.productMedia?.length > 0) {
     const mainMedia = product.productMedia.find(m => m.type === 'MAIN' || m.isPrimary || m.type === 'PRIMARY') || product.productMedia[0];

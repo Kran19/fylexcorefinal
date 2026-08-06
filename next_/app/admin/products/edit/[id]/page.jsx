@@ -347,6 +347,8 @@ const EditProductPage = () => {
                         } : null,
                         isSoldConfiguration: v.isSoldConfiguration || false,
                         fakeSoldCount: v.fakeSoldCount || 0,
+                        isPrimary: v.isDefault === true || v.isPrimary === true,
+                        isDefault: v.isDefault === true || v.isPrimary === true,
                     })));
 
                     // Hydrate selectedAttributeValues
@@ -639,6 +641,8 @@ const EditProductPage = () => {
                 heroBgImageId: v.heroBgImage?.id || undefined,
                 isSoldConfiguration: v.isSoldConfiguration || false,
                 fakeSoldCount: parseInt(v.fakeSoldCount) || 0,
+                isPrimary: v.isPrimary === true || v.isDefault === true,
+                isDefault: v.isPrimary === true || v.isDefault === true,
                 galleryIds: (v.gallery || []).map(g => g.id).filter(id => id != null) || []
             }))
         };
