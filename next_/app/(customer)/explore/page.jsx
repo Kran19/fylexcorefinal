@@ -10,7 +10,7 @@ import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
 import 'swiper/css/effect-coverflow';
 import 'swiper/css/free-mode';
-import { fetchProducts, fetchBoxes } from '../../../lib/api';
+import { fetchProducts, fetchProduct, fetchBoxes } from '../../../lib/api';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useDesignSystem } from '@/context/DesignSystemContext';
@@ -284,7 +284,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
       clearTimeout(timeoutId);
     };
   }, [loading, watchId]); // Re-run on watch change as sections might re-render
-  const openInfoModal = (p) => {
+  const openInfoModal = async (p) => {
     const rawList = (p.combinations && p.combinations.length > 0) 
       ? p.combinations 
       : (p.variants || []).map(v => {
@@ -317,6 +317,41 @@ export function DiscoverContent({ isConfiguredMode = false }) {
       }));
 
     setActiveModalData({ ...p, combinations: soldConfigs });
+
+    try {
+      const res = await fetchProduct(p.id);
+      const fullProduct = (res && res.data) ? res.data : p;
+      const rawVariants = fullProduct.variants || p.variants || [];
+
+      const freshSold = rawVariants
+        .filter(v => Boolean(
+          v.isSoldConfiguration === true || 
+          v.isSoldConfiguration === 1 || 
+          v.isSoldConfiguration === 'true' ||
+          fullProduct.isSoldConfiguration === true
+        ))
+        .map(v => {
+          const vDisplay = getDisplayData(fullProduct, v);
+          return {
+            id: v.id.toString(),
+            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
+            price: vDisplay.price,
+            formattedPrice: vDisplay.formattedPrice,
+            isSoldConfiguration: true,
+            fakeSoldCount: Number(v.fakeSoldCount) || 0,
+            attributes: v.variantAttributes?.map(va => ({
+              name: (va.attributeValue?.attribute?.name || '').toLowerCase(),
+              value: va.attributeValue?.label || va.attributeValue?.value
+            })) || [],
+            isProduct: false
+          };
+        });
+
+      setActiveModalData({ ...fullProduct, combinations: freshSold });
+    } catch (e) {
+      console.warn('Failed to pre-fetch fresh explore product modal data', e);
+    }
   };
   const closeInfoModal = () => setActiveModalData(null);
 

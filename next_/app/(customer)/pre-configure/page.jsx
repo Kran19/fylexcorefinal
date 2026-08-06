@@ -7,7 +7,7 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { fetchProducts } from '../../../lib/api';
+import { fetchProducts, fetchProduct } from '../../../lib/api';
 import { useDesignSystem } from '@/context/DesignSystemContext';
 import { getDisplayData, getPageTheme } from '../../../lib/utils';
 
@@ -22,8 +22,8 @@ const PreConfigure = () => {
   const [activeModalData, setActiveModalData] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const openInfoModal = (p) => {
-    const rawList = (p.combinations && p.combinations.length > 0) 
+  const openInfoModal = async (p) => {
+    const initialList = (p.combinations && p.combinations.length > 0) 
       ? p.combinations 
       : (p.variants || []).map(v => {
           const vDisplay = getDisplayData(p, v);
@@ -36,16 +36,39 @@ const PreConfigure = () => {
             isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
             fakeSoldCount: Number(v.fakeSoldCount) || 0,
           };
+        }).filter(combo => Boolean(combo.isSoldConfiguration === true || combo.isSoldConfiguration === 1 || combo.isSoldConfiguration === 'true' || p.isSoldConfiguration === true));
+
+    setActiveModalData({ ...p, combinations: initialList });
+
+    try {
+      const res = await fetchProduct(p.id);
+      const fullProduct = (res && res.data) ? res.data : p;
+      const rawVariants = fullProduct.variants || p.variants || [];
+      
+      const soldConfigs = rawVariants
+        .filter(v => Boolean(
+          v.isSoldConfiguration === true || 
+          v.isSoldConfiguration === 1 || 
+          v.isSoldConfiguration === 'true' ||
+          fullProduct.isSoldConfiguration === true
+        ))
+        .map(v => {
+          const vDisplay = getDisplayData(fullProduct, v);
+          return {
+            id: v.id.toString(),
+            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
+            price: vDisplay.price,
+            formattedPrice: vDisplay.formattedPrice,
+            isSoldConfiguration: true,
+            fakeSoldCount: Number(v.fakeSoldCount) || 0,
+          };
         });
 
-    const soldConfigs = rawList.filter(combo => Boolean(
-      combo.isSoldConfiguration === true || 
-      combo.isSoldConfiguration === 1 || 
-      combo.isSoldConfiguration === 'true' ||
-      p.isSoldConfiguration === true
-    ));
-
-    setActiveModalData({ ...p, combinations: soldConfigs });
+      setActiveModalData({ ...fullProduct, combinations: soldConfigs });
+    } catch (e) {
+      console.warn('Failed to pre-fetch product modal data', e);
+    }
   };
   const closeInfoModal = () => {
     setActiveModalData(null);
