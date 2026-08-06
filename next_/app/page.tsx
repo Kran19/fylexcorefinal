@@ -932,11 +932,11 @@ const Home = () => {
           .flip-digits { gap: 2px; }
           .flip-group + .flip-group::before { left: -4px; }
           /* Featured Timepieces mobile layout fix */
-          .featured-container { height: 500px !important; }
-          .featured-item-v2 { height: 500px !important; }
+          .featured-container { height: 480px !important; }
+          .featured-item-v2 { height: 480px !important; }
           .featured-item-v2 img {
-            top: -30px !important;
-            height: 100% !important;
+            top: -90px !important;
+            height: 125% !important;
             object-fit: contain !important;
           }
           .featured-content {
@@ -944,6 +944,13 @@ const Home = () => {
             left: 24px !important;
             right: 24px !important;
             max-width: calc(100% - 48px) !important;
+          }
+          .f-shop-btn {
+            padding: 7px 20px !important;
+            font-size: 0.68rem !important;
+            letter-spacing: 0.14em !important;
+            border-radius: 999px !important;
+            display: inline-block !important;
           }
           .f-label {
             font-size: 0.75rem !important;
