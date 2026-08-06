@@ -935,8 +935,8 @@ const Home = () => {
           .featured-container { height: 500px !important; }
           .featured-item-v2 { height: 500px !important; }
           .featured-item-v2 img {
-            top: -75px !important;
-            height: 85% !important;
+            top: -30px !important;
+            height: 100% !important;
             object-fit: contain !important;
           }
           .featured-content {
