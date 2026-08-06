@@ -29,6 +29,14 @@ export class CartController {
     return this.cartService.addItem(userId, addToCartDto);
   }
 
+  @Post('merge')
+  async mergeCart(
+    @Body('guestSessionId') guestSessionId: string,
+    @Body('userId') userId: string,
+  ) {
+    return this.cartService.mergeCart(guestSessionId, userId);
+  }
+
   @Patch('items/:id')
   async updateItem(
     @Body('userId') userId: string,

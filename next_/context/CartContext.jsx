@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { fetchCart, addToCartApi, removeFromCartApi, updateCartQtyApi } from '../lib/api';
+import { fetchCart, addToCartApi, removeFromCartApi, updateCartQtyApi, mergeCartApi } from '../lib/api';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { resolveProductImage, getDisplayData } from '../lib/utils';
@@ -109,10 +109,24 @@ export function CartProvider({ children }) {
   };
 
   useEffect(() => {
-    loadCart();
+    const initAndMerge = async () => {
+      if (user?.id && typeof window !== 'undefined') {
+        const storedGuestId = localStorage.getItem('fylexx_guest_id');
+        if (storedGuestId) {
+          try {
+            await mergeCartApi(storedGuestId, user.id);
+            localStorage.removeItem('fylexx_guest_id');
+          } catch (err) {
+            console.error('Failed to merge guest cart on login:', err);
+          }
+        }
+      }
+      await loadCart();
+    };
+    initAndMerge();
     const unsub = eventBus.on(EVENTS.CART_UPDATED, loadCart);
     return () => unsub();
-  }, [userId]);
+  }, [user?.id, userId]);
 
   const addToCart = async (variantId, quantity = 1) => {
     const activeId = getEffectiveUserId();

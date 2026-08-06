@@ -369,6 +369,63 @@ export class CartService {
     return this.getCart(customerId);
   }
 
+  // Merge guest cart items into user cart
+  async mergeCart(guestSessionId: string, customerId: string | number) {
+    if (!guestSessionId || !customerId) return this.getCart(customerId ? customerId.toString() : '');
+
+    const guestCart = await this.prisma.cart.findFirst({
+      where: { sessionId: guestSessionId, status: 'active' },
+      include: { items: true },
+    });
+
+    if (!guestCart || !guestCart.items || guestCart.items.length === 0) {
+      return this.getCart(customerId.toString());
+    }
+
+    const userCart = await this.getOrCreateCart(customerId.toString());
+
+    for (const item of guestCart.items) {
+      if (item.productVariantId) {
+        const existing = (userCart.items as any[]).find((i) => i.productVariantId === item.productVariantId);
+        if (existing) {
+          await this.prisma.cartItem.update({
+            where: { id: existing.id },
+            data: {
+              quantity: existing.quantity + item.quantity,
+              total: Number((item.unitPrice || 0) * (existing.quantity + item.quantity)),
+            },
+          });
+        } else {
+          await this.prisma.cartItem.update({
+            where: { id: item.id },
+            data: { cartId: userCart.id },
+          });
+        }
+      } else if (item.beltId) {
+        const existing = (userCart.items as any[]).find((i) => i.beltId === item.beltId);
+        if (existing) {
+          await this.prisma.cartItem.update({
+            where: { id: existing.id },
+            data: {
+              quantity: existing.quantity + item.quantity,
+              total: Number((item.unitPrice || 0) * (existing.quantity + item.quantity)),
+            },
+          });
+        } else {
+          await this.prisma.cartItem.update({
+            where: { id: item.id },
+            data: { cartId: userCart.id },
+          });
+        }
+      }
+    }
+
+    // Clean up empty guest cart
+    await this.prisma.cart.delete({ where: { id: guestCart.id } }).catch(() => {});
+    await this.updateCartTotals(userCart.id);
+    return this.getCart(customerId.toString());
+  }
+
   // Recalculate totals
   private async updateCartTotals(cartId: number) {
     const cart = await this.prisma.cart.findUnique({

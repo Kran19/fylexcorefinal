@@ -121,6 +121,8 @@ export const removeFromCartApi = (userId, id) => request('DELETE', `/cart/items/
 
 export const updateCartQtyApi = (userId, id, quantity) => request('PATCH', `/cart/items/${id}`, { userId, quantity });
 
+export const mergeCartApi = (guestSessionId, userId) => request('POST', '/cart/merge', { guestSessionId, userId });
+
 // Wishlist API
 export const fetchWishlist = (userId) => request('GET', userId ? `/wishlist?customerId=${userId}` : '/wishlist');
 
