@@ -419,7 +419,7 @@ function ConfigureContent() {
         .close-btn { background: rgba(0,0,0,0.6); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); transition: transform 0.2s; }
         .close-btn:hover { transform: scale(1.1); }
         .c-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 55vh; padding-bottom: 120px; margin-top: -30px; }
-        .watch-preview { max-width: 80%; max-height: 48vh; object-fit: contain; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.25)); transition: transform 0.3s; transform: translateY(-15px); }
+        .watch-preview { max-width: 80%; max-height: 48vh; object-fit: contain; filter: none !important; transition: transform 0.3s; transform: translateY(-15px); }
         .side-thumbnails-bar {
           position: absolute;
           right: 28px;
@@ -499,7 +499,7 @@ function ConfigureContent() {
         .alert-key-label { color: #888888; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; margin-right: 4px; }
         .alert-val-label { color: #111111; font-weight: 600; text-transform: capitalize; }
         .alert-image-center { width: 100%; display: flex; justify-content: center; align-items: center; margin: 25px 0 45px 0; overflow: visible; }
-        .alert-watch-preview { width: 100%; max-width: min(80vw, 540px); max-height: 46vh; object-fit: contain; filter: drop-shadow(0 30px 60px rgba(0,0,0,0.16)); transition: transform 0.6s ease; }
+        .alert-watch-preview { width: 100%; max-width: min(80vw, 540px); max-height: 46vh; object-fit: contain; filter: none !important; transition: transform 0.6s ease; }
         .alert-footer-btn { margin-top: 45px; padding: 18px 56px; background: #111111; color: #ffffff; border-radius: 999px; cursor: pointer; font-weight: 800; font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; border: 1px solid #111111; transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); box-shadow: 0 12px 35px rgba(0,0,0,0.18); }
         @media (hover: hover) {
           .alert-footer-btn:hover { background: #000000 !important; color: #ffffff !important; transform: translateY(-3px) scale(1.02); box-shadow: 0 18px 45px rgba(0, 0, 0, 0.3); }
