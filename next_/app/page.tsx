@@ -377,7 +377,7 @@ const Home = () => {
         }
       }
 
-      // 2. Pin section and scale down as next section enters
+      // 2. Pin section & inner image parallax scrub as next section enters
       if (i < sections.length - 1) {
         ScrollTrigger.create({
           trigger: section,
@@ -387,18 +387,36 @@ const Home = () => {
           pinSpacing: false,
         });
 
+        // Outer section scaling
         gsap.to(section, {
           scale: 0.9,
-          opacity: 0.6,
-          borderRadius: '28px',
+          opacity: 0.5,
+          borderRadius: '32px',
           ease: 'none',
           scrollTrigger: {
             trigger: sections[i + 1],
             start: 'top bottom',
             end: 'top top',
-            scrub: true,
+            scrub: 1,
           }
         });
+
+        // Inner image parallax depth shift
+        const innerImg = section.querySelector('.section-bg-img');
+        if (innerImg) {
+          gsap.to(innerImg, {
+            yPercent: 20,
+            scale: 1.2,
+            filter: 'brightness(0.4)',
+            ease: 'none',
+            scrollTrigger: {
+              trigger: sections[i + 1],
+              start: 'top bottom',
+              end: 'top top',
+              scrub: 1,
+            }
+          });
+        }
       }
     });
 
@@ -472,7 +490,7 @@ const Home = () => {
       <style>{`
         .v1-home { background: #F9F9F7; position: relative; }
 
-        /* ── Sticky Overlapping Hero Sections (Parallax Card Stacking) ── */
+        /* ── Sticky Overlapping Hero Sections (3D Parallax Card Deck) ── */
         .section {
           height: 100vh; min-height: 500px; width: 100%;
           position: sticky; top: 0;
@@ -480,16 +498,28 @@ const Home = () => {
           padding-left: 0;
           overflow: hidden;
           background-size: cover; background-position: center; background-repeat: no-repeat;
-          box-shadow: 0 -30px 60px rgba(0,0,0,0.5);
-          will-change: transform;
+          box-shadow: 0 -30px 60px rgba(0,0,0,0.6);
+          border-top-left-radius: 32px;
+          border-top-right-radius: 32px;
+          will-change: transform, opacity, border-radius;
+          transform-origin: center top;
         }
-        .s1 { z-index: 1; }
+        .s1 { z-index: 1; border-top-left-radius: 0; border-top-right-radius: 0; }
         .s2 { z-index: 2; }
         .s3 { z-index: 3; }
         .s4 { z-index: 4; }
         .s5, .featured-grid-wrap {
           position: relative; z-index: 5; background: #fff;
-          box-shadow: 0 -30px 60px rgba(0,0,0,0.5);
+          border-top-left-radius: 32px; border-top-right-radius: 32px;
+          box-shadow: 0 -30px 60px rgba(0,0,0,0.6);
+        }
+
+        .section-bg-inner {
+          position: absolute; inset: 0; z-index: 0; overflow: hidden;
+        }
+        .section-bg-img {
+          width: 100%; height: 120%; top: -10%; left: 0; position: absolute; object-fit: cover;
+          will-change: transform, filter, opacity;
         }
 
         .section::before { content: ''; position: absolute; inset: 0; z-index: 0; }
@@ -1071,9 +1101,11 @@ const Home = () => {
             {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
               <div
                 className="section s2"
-                style={{ backgroundImage: `url('${s2Bg}')` }}
                 ref={el => { sectionsRef.current[1] = el; }}
               >
+                <div className="section-bg-inner">
+                  <img src={s2Bg} alt="Movement" className="section-bg-img" />
+                </div>
                 <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
                   <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
                   <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
@@ -1087,9 +1119,11 @@ const Home = () => {
             {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
               <div
                 className="section s3"
-                style={{ backgroundImage: `url('${s3Bg}')` }}
                 ref={el => { sectionsRef.current[2] = el; }}
               >
+                <div className="section-bg-inner">
+                  <img src={s3Bg} alt="Design" className="section-bg-img" />
+                </div>
                 <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
                   <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
                   <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
