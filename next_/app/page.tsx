@@ -554,17 +554,26 @@ const Home = () => {
         .featured-item-v2 {
           position: relative; overflow: hidden;
           background: #f5f5f5;
-          height: 600px;
+          height: 580px;
           width: 100%;
         }
         .featured-img-v2 {
-          position: absolute; top: 0; left: 0;
-          width: 100%; height: 100%; object-fit: contain;
-          padding: 30px;
+          position: absolute;
+          top: 48%;
+          left: 50%;
+          transform: translate(-50%, -52%);
+          width: auto;
+          max-width: 70%;
+          height: 68%;
+          object-fit: contain;
+          padding: 0;
           z-index: 1;
+          mix-blend-mode: multiply;
           transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .featured-item-v2:hover .featured-img-v2 { transform: scale(1.04); }
+        .featured-item-v2:hover .featured-img-v2 {
+          transform: translate(-50%, -52%) scale(1.05);
+        }
         
         .featured-overlay-grad {
           position: absolute; inset: 0;
