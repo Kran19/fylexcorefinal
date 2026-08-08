@@ -378,14 +378,14 @@ const Home = () => {
       }
     });
 
-    // 2. Horizontal slide scrub from Section 2 -> Section 3
+    // 2. Bottom-to-top clip-path wipe reveal (erasing Section 2 from bottom 1% to 100%)
     if (containerRef.current) {
       const horizWrap = containerRef.current.querySelector('.horizontal-hero-wrapper');
       const horizPanel2 = containerRef.current.querySelector('.horiz-panel-2');
 
       if (horizWrap && horizPanel2) {
         gsap.to(horizPanel2, {
-          xPercent: -100,
+          clipPath: 'inset(0% 0 0 0)',
           ease: 'none',
           scrollTrigger: {
             trigger: horizWrap,
@@ -469,17 +469,18 @@ const Home = () => {
       <style>{`
         .v1-home { background: #F9F9F7; position: relative; }
 
-        /* ── Horizontal Slide Hero Wrapper (Section 2 -> Section 3) ── */
+        /* ── Bottom-to-Top Clip-Path Wipe Hero Wrapper (Section 2 -> Section 3) ── */
         .horizontal-hero-wrapper {
           position: relative; width: 100%; height: 100vh; overflow: hidden;
         }
         .horiz-panel-1 {
-          position: absolute; inset: 0; z-index: 2; height: 100vh; width: 100%;
+          position: absolute; inset: 0; z-index: 1; height: 100vh; width: 100%;
         }
         .horiz-panel-2 {
-          position: absolute; top: 0; left: 100%; width: 100%; height: 100vh;
-          z-index: 3;
-          box-shadow: -30px 0 60px rgba(0,0,0,0.6);
+          position: absolute; inset: 0; z-index: 2; height: 100vh; width: 100%;
+          clip-path: inset(100% 0 0 0);
+          will-change: clip-path;
+          box-shadow: 0 -25px 50px rgba(0,0,0,0.5);
         }
 
         .section {
