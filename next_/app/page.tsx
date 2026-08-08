@@ -379,14 +379,10 @@ const Home = () => {
         }
       }
 
-      // Receding layer -1 depth animation for stationary sticky card as next section slides over it
+      // Uncover animation: Section N uncovers as Section N+1 sits smoothly behind it
       if (index < sections.length - 1) {
         gsap.to(section, {
-          scale: 0.88,
-          y: '-8%',
-          opacity: 0.5,
-          filter: 'brightness(0.5)',
-          borderRadius: '32px',
+          y: '-100%',
           ease: 'none',
           scrollTrigger: {
             trigger: sections[index + 1],
@@ -468,7 +464,7 @@ const Home = () => {
       <style>{`
         .v1-home { background: #F9F9F7; position: relative; }
 
-        /* ── Sticky Overlapping Hero Sections (Stacked Deck Effect) ── */
+        /* ── Sticky Overlapping Hero Sections (Reverse Stacking: Section 1 on Top) ── */
         .section {
           height: 100vh; min-height: 500px; width: 100%;
           position: sticky; top: 0;
@@ -476,18 +472,15 @@ const Home = () => {
           padding-left: 0;
           overflow: hidden;
           background-size: cover; background-position: center; background-repeat: no-repeat;
-          box-shadow: 0 -25px 50px rgba(0,0,0,0.4);
-          border-top-left-radius: 28px;
-          border-top-right-radius: 28px;
-          will-change: transform, opacity, filter, border-radius;
-          transform-origin: center top;
+          box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+          will-change: transform, opacity;
         }
-        .s1 { z-index: 1; border-top-left-radius: 0; border-top-right-radius: 0; }
-        .s2 { z-index: 2; }
-        .s3 { z-index: 3; }
-        .s4 { z-index: 4; }
+        .s1 { z-index: 10; }
+        .s2 { z-index: 9; }
+        .s3 { z-index: 8; }
+        .s4 { z-index: 7; }
         .s5, .featured-grid-wrap {
-          position: relative; z-index: 5; background: #fff;
+          position: relative; z-index: 11; background: #fff;
           border-top-left-radius: 28px; border-top-right-radius: 28px;
           box-shadow: 0 -25px 50px rgba(0,0,0,0.4);
         }
