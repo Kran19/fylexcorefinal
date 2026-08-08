@@ -355,11 +355,11 @@ const Home = () => {
   // Section navigation helpers removed
 
 
-  // ── ScrollTrigger setup ────────────────────────────────────────
+  // ── ScrollTrigger setup & Card Deck Stacking Effect ───────────
   useEffect(() => {
     // Reveal cards on scroll as sections overlap each other
     const sections = gsap.utils.toArray('.section');
-    sections.forEach((section: any) => {
+    sections.forEach((section: any, index: number) => {
       const card = section.querySelector('.card');
       if (card) {
         ScrollTrigger.create({
@@ -377,6 +377,22 @@ const Home = () => {
         if (rect.top < window.innerHeight && rect.bottom > 0) {
           card.classList.add('in');
         }
+      }
+
+      // Smooth scrub scale down for stationary sticky card as next section slides over it
+      if (index < sections.length - 1) {
+        gsap.to(section, {
+          scale: 0.93,
+          opacity: 0.7,
+          borderRadius: '24px',
+          ease: 'none',
+          scrollTrigger: {
+            trigger: sections[index + 1],
+            start: 'top bottom',
+            end: 'top top',
+            scrub: true,
+          }
+        });
       }
     });
 
@@ -450,7 +466,7 @@ const Home = () => {
       <style>{`
         .v1-home { background: #F9F9F7; position: relative; }
 
-        /* ── Sticky Overlapping Hero Sections ── */
+        /* ── Sticky Overlapping Hero Sections (Stacked Deck Effect) ── */
         .section {
           height: 100vh; min-height: 500px; width: 100%;
           position: sticky; top: 0;
@@ -458,13 +474,21 @@ const Home = () => {
           padding-left: 0;
           overflow: hidden;
           background-size: cover; background-position: center; background-repeat: no-repeat;
-          box-shadow: 0 -10px 30px rgba(0,0,0,0.25);
+          box-shadow: 0 -20px 40px rgba(0,0,0,0.35);
+          border-top-left-radius: 28px;
+          border-top-right-radius: 28px;
+          will-change: transform, opacity, border-radius;
+          transform-origin: center top;
         }
-        .s1 { z-index: 1; }
+        .s1 { z-index: 1; border-top-left-radius: 0; border-top-right-radius: 0; }
         .s2 { z-index: 2; }
         .s3 { z-index: 3; }
         .s4 { z-index: 4; }
-        .s5, .featured-grid-wrap { position: relative; z-index: 5; background: #fff; }
+        .s5, .featured-grid-wrap {
+          position: relative; z-index: 5; background: #fff;
+          border-top-left-radius: 28px; border-top-right-radius: 28px;
+          box-shadow: 0 -25px 50px rgba(0,0,0,0.4);
+        }
 
         .section::before { content: ''; position: absolute; inset: 0; z-index: 0; }
         .s1::before { background: linear-gradient(135deg, rgba(10,8,4,0), rgba(40,28,10,.40)); }
