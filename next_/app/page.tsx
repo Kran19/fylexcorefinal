@@ -379,12 +379,14 @@ const Home = () => {
         }
       }
 
-      // Smooth scrub scale down for stationary sticky card as next section slides over it
+      // Receding layer -1 depth animation for stationary sticky card as next section slides over it
       if (index < sections.length - 1) {
         gsap.to(section, {
-          scale: 0.93,
-          opacity: 0.7,
-          borderRadius: '24px',
+          scale: 0.88,
+          y: '-8%',
+          opacity: 0.5,
+          filter: 'brightness(0.5)',
+          borderRadius: '32px',
           ease: 'none',
           scrollTrigger: {
             trigger: sections[index + 1],
@@ -474,10 +476,10 @@ const Home = () => {
           padding-left: 0;
           overflow: hidden;
           background-size: cover; background-position: center; background-repeat: no-repeat;
-          box-shadow: 0 -20px 40px rgba(0,0,0,0.35);
+          box-shadow: 0 -25px 50px rgba(0,0,0,0.4);
           border-top-left-radius: 28px;
           border-top-right-radius: 28px;
-          will-change: transform, opacity, border-radius;
+          will-change: transform, opacity, filter, border-radius;
           transform-origin: center top;
         }
         .s1 { z-index: 1; border-top-left-radius: 0; border-top-right-radius: 0; }
