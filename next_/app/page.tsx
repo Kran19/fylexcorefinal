@@ -355,13 +355,13 @@ const Home = () => {
   // Section navigation helpers removed
 
 
-  // ── ScrollTrigger setup & Card Deck Stacking Effect ───────────
+  // ── ScrollTrigger setup & Horizontal Slide Effect ─────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // 1. Card text reveal triggers
     const sections = gsap.utils.toArray('.section');
-    sections.forEach((section: any, i: number) => {
-      // 1. Reveal card text
+    sections.forEach((section: any) => {
       const card = section.querySelector('.card');
       if (card) {
         ScrollTrigger.create({
@@ -376,49 +376,28 @@ const Home = () => {
           card.classList.add('in');
         }
       }
+    });
 
-      // 2. Pin section & inner image parallax scrub as next section enters
-      if (i < sections.length - 1) {
-        ScrollTrigger.create({
-          trigger: section,
-          start: "top top",
-          end: "+=100%",
-          pin: true,
-          pinSpacing: false,
-        });
+    // 2. Horizontal slide scrub from Section 2 -> Section 3
+    if (containerRef.current) {
+      const horizWrap = containerRef.current.querySelector('.horizontal-hero-wrapper');
+      const horizPanel2 = containerRef.current.querySelector('.horiz-panel-2');
 
-        // Outer section scaling
-        gsap.to(section, {
-          scale: 0.9,
-          opacity: 0.5,
-          borderRadius: '32px',
+      if (horizWrap && horizPanel2) {
+        gsap.to(horizPanel2, {
+          xPercent: -100,
           ease: 'none',
           scrollTrigger: {
-            trigger: sections[i + 1],
-            start: 'top bottom',
-            end: 'top top',
+            trigger: horizWrap,
+            start: 'top top',
+            end: '+=100%',
+            pin: true,
+            pinSpacing: true,
             scrub: 1,
           }
         });
-
-        // Inner image parallax depth shift
-        const innerImg = section.querySelector('.section-bg-img');
-        if (innerImg) {
-          gsap.to(innerImg, {
-            yPercent: 20,
-            scale: 1.2,
-            filter: 'brightness(0.4)',
-            ease: 'none',
-            scrollTrigger: {
-              trigger: sections[i + 1],
-              start: 'top bottom',
-              end: 'top top',
-              scrub: 1,
-            }
-          });
-        }
       }
-    });
+    }
 
     const timer = setTimeout(() => ScrollTrigger.refresh(), 300);
 
@@ -490,24 +469,31 @@ const Home = () => {
       <style>{`
         .v1-home { background: #F9F9F7; position: relative; }
 
-        /* ── Sticky Overlapping Hero Sections (3D Parallax Card Deck) ── */
+        /* ── Horizontal Slide Hero Wrapper (Section 2 -> Section 3) ── */
+        .horizontal-hero-wrapper {
+          position: relative; width: 100%; height: 100vh; overflow: hidden;
+        }
+        .horiz-panel-1 {
+          position: absolute; inset: 0; z-index: 2; height: 100vh; width: 100%;
+        }
+        .horiz-panel-2 {
+          position: absolute; top: 0; left: 100%; width: 100%; height: 100vh;
+          z-index: 3;
+          box-shadow: -30px 0 60px rgba(0,0,0,0.6);
+        }
+
         .section {
           height: 100vh; min-height: 500px; width: 100%;
-          position: sticky; top: 0;
+          position: relative;
           display: flex; align-items: center; justify-content: center;
           padding-left: 0;
           overflow: hidden;
           background-size: cover; background-position: center; background-repeat: no-repeat;
-          box-shadow: 0 -30px 60px rgba(0,0,0,0.6);
-          border-top-left-radius: 32px;
-          border-top-right-radius: 32px;
-          will-change: transform, opacity, border-radius;
-          transform-origin: center top;
         }
-        .s1 { z-index: 1; border-top-left-radius: 0; border-top-right-radius: 0; }
+        .s1 { position: sticky; top: 0; z-index: 1; }
         .s2 { z-index: 2; }
         .s3 { z-index: 3; }
-        .s4 { z-index: 4; }
+        .s4 { position: sticky; top: 0; z-index: 4; }
         .s5, .featured-grid-wrap {
           position: relative; z-index: 5; background: #fff;
           border-top-left-radius: 32px; border-top-right-radius: 32px;
@@ -1097,41 +1083,44 @@ const Home = () => {
               </div>
             )}
 
-            {/* ── Hero Section 2 ── */}
-            {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
-              <div
-                className="section s2"
-                ref={el => { sectionsRef.current[1] = el; }}
-              >
-                <div className="section-bg-inner">
-                  <img src={s2Bg} alt="Movement" className="section-bg-img" />
+            {/* ── Pinned Horizontal Transition Group (Section 2 -> Section 3) ── */}
+            <div className="horizontal-hero-wrapper">
+              {/* ── Hero Section 2 ── */}
+              {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
+                <div
+                  className="section s2 horiz-panel-1"
+                  ref={el => { sectionsRef.current[1] = el; }}
+                >
+                  <div className="section-bg-inner">
+                    <img src={s2Bg} alt="Movement" className="section-bg-img" />
+                  </div>
+                  <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
+                    <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
+                    <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
+                    <div className="divider"></div>
+                    <p style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.content || 'Hundreds of hand-finished bridges and jewels.<br />A calibre beating 28,800 times each hour.' }} />
+                  </div>
                 </div>
-                <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
-                  <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
-                  <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
-                  <div className="divider"></div>
-                  <p style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.content || 'Hundreds of hand-finished bridges and jewels.<br />A calibre beating 28,800 times each hour.' }} />
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* ── Hero Section 3 ── */}
-            {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
-              <div
-                className="section s3"
-                ref={el => { sectionsRef.current[2] = el; }}
-              >
-                <div className="section-bg-inner">
-                  <img src={s3Bg} alt="Design" className="section-bg-img" />
+              {/* ── Hero Section 3 (Slides Horizontally from Right to Left) ── */}
+              {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
+                <div
+                  className="section s3 horiz-panel-2"
+                  ref={el => { sectionsRef.current[2] = el; }}
+                >
+                  <div className="section-bg-inner">
+                    <img src={s3Bg} alt="Design" className="section-bg-img" />
+                  </div>
+                  <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
+                    <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
+                    <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
+                    <div className="divider"></div>
+                    <p style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.content || 'Sapphire crystal, polished steel, supple leather.<br />Every element chosen for eternity, not fashion.' }} />
+                  </div>
                 </div>
-                <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
-                  <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
-                  <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
-                  <div className="divider"></div>
-                  <p style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.content || 'Sapphire crystal, polished steel, supple leather.<br />Every element chosen for eternity, not fashion.' }} />
-                </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* ── Hero Section 4 (video) ── */}
             {(homeSections.s4 || homeSections.home_s4 || homeSections['Section 4'] || homeSections.s4 === undefined) && (
