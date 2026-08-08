@@ -357,9 +357,11 @@ const Home = () => {
 
   // ── ScrollTrigger setup & Card Deck Stacking Effect ───────────
   useEffect(() => {
-    // Reveal cards on scroll as sections overlap each other
+    if (typeof window === 'undefined') return;
+
     const sections = gsap.utils.toArray('.section');
-    sections.forEach((section: any, index: number) => {
+    sections.forEach((section: any, i: number) => {
+      // 1. Reveal card text
       const card = section.querySelector('.card');
       if (card) {
         ScrollTrigger.create({
@@ -368,24 +370,30 @@ const Home = () => {
           end: "bottom 25%",
           onEnter: () => card.classList.add('in'),
           onEnterBack: () => card.classList.add('in'),
-          onLeave: () => card.classList.remove('in'),
-          onLeaveBack: () => card.classList.remove('in')
         });
-
-        // Ensure card reveals immediately if section is already in viewport
         const rect = section.getBoundingClientRect();
         if (rect.top < window.innerHeight && rect.bottom > 0) {
           card.classList.add('in');
         }
       }
 
-      // Soft background parallax scrub for sticky section card
-      if (index < sections.length - 1) {
+      // 2. Pin section and scale down as next section enters
+      if (i < sections.length - 1) {
+        ScrollTrigger.create({
+          trigger: section,
+          start: "top top",
+          end: "+=100%",
+          pin: true,
+          pinSpacing: false,
+        });
+
         gsap.to(section, {
-          yPercent: -15,
+          scale: 0.9,
+          opacity: 0.6,
+          borderRadius: '28px',
           ease: 'none',
           scrollTrigger: {
-            trigger: sections[index + 1],
+            trigger: sections[i + 1],
             start: 'top bottom',
             end: 'top top',
             scrub: true,
@@ -394,7 +402,7 @@ const Home = () => {
       }
     });
 
-    const timer = setTimeout(() => ScrollTrigger.refresh(), 200);
+    const timer = setTimeout(() => ScrollTrigger.refresh(), 300);
 
     return () => {
       clearTimeout(timer);
