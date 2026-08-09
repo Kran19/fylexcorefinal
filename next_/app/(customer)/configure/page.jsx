@@ -464,8 +464,8 @@ function ConfigureContent() {
           .thumb { width: 42px; height: 42px; }
           .top-actions { top: 25px; right: 20px; }
           .top-left-actions { top: 25px; left: 20px; }
-          .c-main { height: calc(100svh - 180px) !important; min-height: auto !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
-          .watch-preview { max-height: 44vh !important; max-width: 85% !important; transform: translateY(0) !important; margin: 0 auto !important; }
+          .c-main { height: calc(100svh - 170px) !important; min-height: auto !important; margin: -25px 0 0 0 !important; padding: 0 !important; overflow: hidden !important; }
+          .watch-preview { max-height: 56vh !important; max-width: 95% !important; transform: translateY(-30px) !important; margin: 0 auto !important; }
           .side-thumbnails-bar { right: 12px; top: 35%; transform: translateY(-50%); gap: 10px; z-index: 45; pointer-events: auto; }
           .side-thumb-item { width: 40px; height: 40px; padding: 4px; }
           .c-selection-controls { padding: 12px 16px 8px; gap: 10px; }
