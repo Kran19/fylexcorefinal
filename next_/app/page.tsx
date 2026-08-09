@@ -1004,9 +1004,14 @@ const Home = () => {
               height: 230px !important;
               object-fit: contain !important;
               padding: 0 !important;
+              transition: none !important;
+              pointer-events: none !important;
+              -webkit-user-drag: none !important;
             }
-            .featured-item-v2:hover .featured-img-v2 {
-              transform: translateX(-50%) scale(1.02) !important;
+            .featured-item-v2:hover .featured-img-v2,
+            .featured-item-v2:active .featured-img-v2,
+            .featured-item-v2:focus .featured-img-v2 {
+              transform: translateX(-50%) !important;
             }
             .featured-content {
               position: absolute !important;
