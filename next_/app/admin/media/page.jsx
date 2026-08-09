@@ -61,23 +61,25 @@ const MediaList = () => {
 
         const formData = new FormData();
         const paths = [];
+        let validFileCount = 0;
 
         for (const file of filesToUpload) {
             if (file.type.startsWith('image/')) {
                 const maxSizeInBytes = (activeMaxImageSizeMB || 3) * 1024 * 1024;
                 if (file.size > maxSizeInBytes) {
-                    toast?.error?.(`Image size must be less than ${activeMaxImageSizeMB || 3}MB`);
+                    toast?.error?.(`Image "${file.name}" size must be less than ${activeMaxImageSizeMB || 3}MB`);
                     continue;
                 }
             }
             if (file.type.startsWith('video/')) {
-                const maxVideoSizeInBytes = 20 * 1024 * 1024;
+                const maxVideoSizeInBytes = 700 * 1024 * 1024;
                 if (file.size > maxVideoSizeInBytes) {
-                    toast?.error?.(`Video "${file.name}" size exceeds maximum 20MB limit`);
+                    toast?.error?.(`Video "${file.name}" size exceeds maximum 700MB limit`);
                     continue;
                 }
             }
             formData.append('file', file);
+            validFileCount++;
             
             const base = currentFolder === '/' ? '' : currentFolder;
             if (isFolder && file.webkitRelativePath) {
@@ -85,6 +87,12 @@ const MediaList = () => {
             } else {
                 paths.push(base + '/' + file.name);
             }
+        }
+
+        if (validFileCount === 0) {
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            if (folderInputRef.current) folderInputRef.current.value = '';
+            return;
         }
 
         if (paths.length > 0) {
