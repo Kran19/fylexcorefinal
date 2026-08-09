@@ -428,7 +428,8 @@ function ConfigureContent() {
           display: flex;
           flex-direction: column;
           gap: 12px;
-          z-index: 15;
+          z-index: 45;
+          pointer-events: auto;
         }
         .side-thumb-item {
           width: 50px;
@@ -463,15 +464,15 @@ function ConfigureContent() {
           .top-left-actions { top: 25px; left: 20px; }
           .c-main { padding-top: 5px; padding-bottom: 220px; min-height: 42vh; margin-top: -20px; }
           .watch-preview { max-height: 50vh !important; max-width: 95% !important; transform: scale(1.35) translate(0, -10px) !important; margin: 0 auto !important; }
-          .side-thumbnails-bar { right: 12px; top: 35%; transform: translateY(-50%); gap: 10px; z-index: 20; }
+          .side-thumbnails-bar { right: 12px; top: 35%; transform: translateY(-50%); gap: 10px; z-index: 45; pointer-events: auto; }
           .side-thumb-item { width: 40px; height: 40px; padding: 4px; }
           .c-selection-controls { padding: 12px 16px 8px; gap: 10px; }
           .options-row { gap: 12px; font-size: 14px; }
           .c-summary-footer { padding: 16px 20px; flex-direction: column; align-items: flex-start; gap: 12px; }
           .f-add-cart-btn { align-self: flex-end; margin-top: -30px; }
         }
-        .c-bottom-panel { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 30; background: transparent; }
-        .c-selection-controls { padding: 30px; display: flex; flex-direction: column; gap: 20px; }
+        .c-bottom-panel { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 30; background: transparent; pointer-events: none; }
+        .c-selection-controls { padding: 30px; display: flex; flex-direction: column; gap: 20px; pointer-events: auto; }
         .step-title { font-size: 1.125rem; font-weight: 600; }
         .options-row { display: flex; gap: 30px; font-size: 16px; font-weight: 600; color: #8A8A8A; overflow-x: auto; scrollbar-width: none; }
         .opt { cursor: pointer; transition: color 0.3s; white-space: nowrap; color: #94a3b8; }
