@@ -2206,13 +2206,6 @@ export function DiscoverContent({ isConfiguredMode = false }) {
             <div className="cfg-details-left">
               <h1 className="cfg-details-title" style={product.heroBgImage ? { color: '#ffffff' } : { color: product.textColor || '#111111' }}>{product.title}</h1>
 
-              {Boolean(product.isSoldConfiguration || activeVariant?.isSoldConfiguration) && (
-                <div style={{ margin: '8px 0 16px 0', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 14px', background: 'rgba(0, 135, 103, 0.12)', border: '1px solid rgba(0, 135, 103, 0.3)', borderRadius: '999px', color: '#008767', fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#008767', display: 'inline-block' }}></span>
-                  Sold Configuration &bull; {(activeVariant?.fakeSoldCount && Number(activeVariant.fakeSoldCount) > 0) ? activeVariant.fakeSoldCount : (product.fakeSoldCount || 4)} Built
-                </div>
-              )}
-
               {hasConfig && (
                 <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {Object.entries(selections).map(([key, val]) => {
