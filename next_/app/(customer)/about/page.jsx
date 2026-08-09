@@ -16,7 +16,6 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function About() {
   const container = useRef(null);
-  const canvasRef = useRef(null);
   const mainWatchRef = useRef(null);
 
   const { addToCart } = useCart();
@@ -170,56 +169,11 @@ export default function About() {
       repeat: -1,
       yoyo: true
     });
-
-    // Watch Sequence Animation (Canvas)
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const context = canvas.getContext("2d");
-      canvas.width = 1920;
-      canvas.height = 1080;
-
-      const frameCount = 210;
-      const currentFrame = index => `/watch/ezgif-frame-${(index + 1).toString().padStart(3, '0')}.jpg`;
-
-      const images = [];
-      const airpods = { frame: 0 };
-
-      for (let i = 0; i < frameCount; i++) {
-        const img = new Image();
-        img.src = currentFrame(i);
-        images.push(img);
-      }
-
-      const render = () => {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        const img = images[airpods.frame];
-        if (img) context.drawImage(img, 0, 0, canvas.width, canvas.height);
-      };
-
-      images[0].onload = render;
-
-      gsap.to(airpods, {
-        frame: frameCount - 1,
-        snap: "frame",
-        ease: "none",
-        scrollTrigger: {
-          trigger: "#watch-sequence",
-          pin: ".watch-sticky",
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 0.5
-        },
-        onUpdate: render
-      });
-    }
   }, { scope: container });
 
   return (
     <div ref={container} className="shop-page-wrapper">
       <style>{`
-        #watch-sequence { position: relative; height: 300vh; background: #000000; }
-        .watch-sticky { width: 100%; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; background: #000000; }
-        #watch-canvas { width: 100%; height: 100%; object-fit: cover; }
         .shop-page-wrapper {
           background: #000000;
           color: #ffffff;
@@ -323,13 +277,6 @@ export default function About() {
         <div className="video-overlay">
           <h2 className="r-dial" dangerouslySetInnerHTML={{ __html: "It's your <br /><em>time</em>" }}></h2>
           <p className="r-dial">wear your choice.</p>
-        </div>
-      </section>
-
-      {/* ═══ CANVAS SEQUENCE ═══ */}
-      <section id="watch-sequence">
-        <div className="watch-sticky">
-          <canvas id="watch-canvas" ref={canvasRef} />
         </div>
       </section>
 
