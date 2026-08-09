@@ -262,24 +262,6 @@ export default function About() {
           <h1 className="r-hero">{videoSettings.shop_hero_video_title || "FYLEX"}</h1>
           <p className="r-hero">{videoSettings.shop_hero_video_subtitle || "Wear It Your Way."}</p>
         </div>
-      </section>
-
-      {/* Middle Video Section */}
-      <section id="dial-video" style={{ height: '120vh', position: 'relative', overflow: 'hidden', background: '#000' }}>
-        <div className="yt-bg-wrap">
-          {videoSettings.shop_deepsea_video_is_iframe === 'true' ? (
-            <iframe className="hvideo" src={videoSettings.shop_deepsea_video} frameBorder="0" allow="autoplay; fullscreen" allowFullScreen></iframe>
-          ) : (
-            <video className="hvideo" src={getFileUrl(videoSettings.shop_deepsea_video) || "/Watch-iframe-2.mp4"} autoPlay loop muted playsInline></video>
-          )}
-        </div>
-        <div className="hov" style={{ background: 'rgba(0,0,0,0.35)' }}></div>
-        <div className="video-overlay">
-          <h2 className="r-dial" dangerouslySetInnerHTML={{ __html: "It's your <br /><em>time</em>" }}></h2>
-          <p className="r-dial">wear your choice.</p>
-        </div>
-      </section>
-
       {/* Dynamic Interstitial Section */}
       <section id="dial">
         <div className="dwrap">
