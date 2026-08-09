@@ -30,7 +30,7 @@ const MediaList = () => {
     const [renameFolderData, setRenameFolderData] = useState({ isOpen: false, oldName: '', oldPath: '', newName: '' });
     const [deleteFolderData, setDeleteFolderData] = useState({ isOpen: false, folderName: '', folderPath: '' });
 
-    const itemsPerPage = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const fileInputRef = useRef(null);
     const folderInputRef = useRef(null);
     
@@ -53,7 +53,7 @@ const MediaList = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, currentFolder]);
+    }, [searchTerm, currentFolder, itemsPerPage]);
 
     const handleUpload = async (e, isFolder = false) => {
         const filesToUpload = Array.from(e.target.files);
@@ -161,6 +161,28 @@ const MediaList = () => {
             }
         } catch (err) {
             toast?.error?.('Failed to move media file');
+        }
+    };
+
+    const handleFolderMove = async (draggedFolderPath, draggedFolderName, targetFolderName) => {
+        const targetBasePath = currentFolder === '/' ? '/' + targetFolderName : currentFolder + '/' + targetFolderName;
+        const newPath = targetBasePath + '/' + draggedFolderName;
+
+        if (draggedFolderPath === targetBasePath || draggedFolderPath === newPath) {
+            toast?.error?.('Cannot move folder into itself');
+            return;
+        }
+
+        try {
+            const res = await api.renameFolder({ oldPath: draggedFolderPath, newPath });
+            if (res.success) {
+                toast?.success?.(`Folder "${draggedFolderName}" moved to "${targetFolderName}"`);
+                refetch.media?.();
+            } else {
+                toast?.error?.(res.error || 'Failed to move folder');
+            }
+        } catch (err) {
+            toast?.error?.('Failed to move folder');
         }
     };
 
@@ -322,15 +344,32 @@ const MediaList = () => {
             <div className="admin-card" style={{ borderRadius: 16, overflow: 'hidden' }}>
                 <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                     <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1e293b' }}>Items ({allItems.length})</h3>
-                    <div className="admin-search" style={{ width: 280, background: '#f8fafc', borderRadius: 10 }}>
-                        <i className="fas fa-search" style={{ color: '#94a3b8' }}></i>
-                        <input 
-                            type="text" 
-                            placeholder="Search by filename..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{ background: 'transparent' }}
-                        />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <label style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Per Page:</label>
+                            <select 
+                                value={itemsPerPage} 
+                                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, background: '#fff', outline: 'none', fontWeight: 600, color: '#1e293b' }}
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                                <option value={250}>250</option>
+                                <option value={allItems.length || 1000}>All ({allItems.length})</option>
+                            </select>
+                        </div>
+                        <div className="admin-search" style={{ width: 260, background: '#f8fafc', borderRadius: 10 }}>
+                            <i className="fas fa-search" style={{ color: '#94a3b8' }}></i>
+                            <input 
+                                type="text" 
+                                placeholder="Search by filename..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                style={{ background: 'transparent' }}
+                            />
+                        </div>
                     </div>
                 </div>
                 
@@ -358,12 +397,15 @@ const MediaList = () => {
                                             </div>
                                         </td></tr>
                                     ) : paginatedItems.map((item) => (
-                                        <tr key={item.id} className="hover:bg-slate-50/50"
-                                             draggable={item.type !== 'folder'}
+                                        <tr key={item.id || item.path} className="hover:bg-slate-50/50"
+                                             draggable={true}
                                              onDragStart={(e) => {
-                                                 if (item.type !== 'folder') {
-                                                     e.dataTransfer.setData('text/plain', item.id.toString());
-                                                 }
+                                                 e.dataTransfer.setData('application/json', JSON.stringify({
+                                                     type: item.type,
+                                                     id: item.id,
+                                                     path: item.path,
+                                                     name: item.name
+                                                 }));
                                              }}
                                              onDragOver={(e) => {
                                                  if (item.type === 'folder') {
@@ -380,9 +422,20 @@ const MediaList = () => {
                                                  if (item.type === 'folder') {
                                                      e.preventDefault();
                                                      e.currentTarget.style.background = '';
-                                                     const mediaId = e.dataTransfer.getData('text/plain');
-                                                     if (mediaId) {
-                                                         handleFileDrop(mediaId, item.name);
+                                                     try {
+                                                         const dragDataStr = e.dataTransfer.getData('application/json');
+                                                         if (!dragDataStr) return;
+                                                         const dragData = JSON.parse(dragDataStr);
+
+                                                         if (dragData.type === 'folder') {
+                                                             if (dragData.name !== item.name) {
+                                                                 handleFolderMove(dragData.path, dragData.name, item.name);
+                                                             }
+                                                         } else if (dragData.id) {
+                                                             handleFileDrop(dragData.id, item.name);
+                                                         }
+                                                     } catch (err) {
+                                                         console.error('Drag drop parse error:', err);
                                                      }
                                                  }
                                              }}>
@@ -478,46 +531,65 @@ const MediaList = () => {
                          </div>
 
                          {/* Pagination Footer */}
-                         {totalPages > 1 && (
-                             <div style={{ padding: '20px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-                                 <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-                                     Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, allItems.length)} of {allItems.length}
-                                 </span>
-                                 <div style={{ display: 'flex', gap: 6 }}>
-                                     <button 
-                                         className="btn-filter-dark" 
-                                         style={{ padding: '6px 12px', fontSize: 12, background: '#fff', color: '#475569', border: '1px solid #e2e8f0' }} 
-                                         disabled={currentPage === 1}
-                                         onClick={() => setCurrentPage(prev => prev - 1)}
-                                     >
-                                         Previous
-                                     </button>
-                                     {[...Array(totalPages)].map((_, i) => (
-                                         <button 
-                                             key={i}
-                                             className="btn-filter-dark"
-                                             style={{ 
-                                                 padding: '6px 12px', minWidth: 36, fontSize: 12,
-                                                 background: currentPage === i + 1 ? '#000' : '#fff',
-                                                 color: currentPage === i + 1 ? '#fff' : '#475569',
-                                                 border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0'
-                                             }}
-                                             onClick={() => setCurrentPage(i + 1)}
-                                         >
-                                             {i + 1}
-                                         </button>
-                                     ))}
-                                     <button 
-                                         className="btn-filter-dark" 
-                                         style={{ padding: '6px 12px', fontSize: 12, background: '#fff', color: '#475569', border: '1px solid #e2e8f0' }} 
-                                         disabled={currentPage === totalPages}
-                                         onClick={() => setCurrentPage(prev => prev - 1)}
-                                     >
-                                         Next
-                                     </button>
-                                 </div>
-                             </div>
-                         )}
+                          {allItems.length > 0 && (
+                              <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                      <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                                          Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, allItems.length)} of {allItems.length}
+                                      </span>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                          <label style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Items per page:</label>
+                                          <select 
+                                              value={itemsPerPage} 
+                                              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                                              style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 12, background: '#fff', outline: 'none', fontWeight: 600, color: '#334155' }}
+                                          >
+                                              <option value={10}>10</option>
+                                              <option value={25}>25</option>
+                                              <option value={50}>50</option>
+                                              <option value={100}>100</option>
+                                              <option value={250}>250</option>
+                                              <option value={allItems.length || 1000}>All ({allItems.length})</option>
+                                          </select>
+                                      </div>
+                                  </div>
+                                  {totalPages > 1 && (
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                      <button 
+                                          className="btn-filter-dark" 
+                                          style={{ padding: '6px 12px', fontSize: 12, background: '#fff', color: '#475569', border: '1px solid #e2e8f0' }} 
+                                          disabled={currentPage === 1}
+                                          onClick={() => setCurrentPage(prev => prev - 1)}
+                                      >
+                                          Previous
+                                      </button>
+                                      {[...Array(totalPages)].map((_, i) => (
+                                          <button 
+                                              key={i}
+                                              className="btn-filter-dark"
+                                              style={{ 
+                                                  padding: '6px 12px', minWidth: 36, fontSize: 12,
+                                                  background: currentPage === i + 1 ? '#000' : '#fff',
+                                                  color: currentPage === i + 1 ? '#fff' : '#475569',
+                                                  border: currentPage === i + 1 ? 'none' : '1px solid #e2e8f0'
+                                              }}
+                                              onClick={() => setCurrentPage(i + 1)}
+                                          >
+                                              {i + 1}
+                                          </button>
+                                      ))}
+                                      <button 
+                                          className="btn-filter-dark" 
+                                          style={{ padding: '6px 12px', fontSize: 12, background: '#fff', color: '#475569', border: '1px solid #e2e8f0' }} 
+                                          disabled={currentPage === totalPages}
+                                          onClick={() => setCurrentPage(prev => prev + 1)}
+                                      >
+                                          Next
+                                      </button>
+                                  </div>
+                                  )}
+                              </div>
+                          )}
                      </>
                   )}
              </div>
