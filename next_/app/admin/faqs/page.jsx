@@ -69,7 +69,7 @@ const FaqsManagement = () => {
       cellClick: (e, cell) => {
         const d = cell.getRow().getData();
         if (e.target.closest('.style-btn-edit')) {
-          setEditingRecord(d);
+          setEditingItem(d);
           setFormData({
             question: d.question || '',
             answer: d.answer || '',
