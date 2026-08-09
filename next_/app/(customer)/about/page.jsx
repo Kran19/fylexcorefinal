@@ -262,6 +262,8 @@ export default function About() {
           <h1 className="r-hero">{videoSettings.shop_hero_video_title || "FYLEX"}</h1>
           <p className="r-hero">{videoSettings.shop_hero_video_subtitle || "Wear It Your Way."}</p>
         </div>
+      </section>
+
       {/* Dynamic Interstitial Section */}
       <section id="dial">
         <div className="dwrap">
