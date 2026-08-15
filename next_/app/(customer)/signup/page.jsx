@@ -580,10 +580,13 @@ export default function Signup() {
             grid-template-rows: auto 1fr;
           }
           .auth-image-panel {
-            height: 38vh; min-height: 240px; max-height: 360px;
+            height: 44vh; min-height: 280px; max-height: 420px;
+          }
+          .auth-hero-img {
+            object-position: center 68% !important;
           }
           .auth-image-overlay {
-            background: linear-gradient(to bottom, transparent 40%, #000000 100%);
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.3) 72%, #000000 100%) !important;
           }
           .auth-form-panel {
             padding: 24px 24px 48px;
@@ -606,7 +609,10 @@ export default function Signup() {
           .auth-header { padding: 14px 20px; }
           .auth-header-logo { font-size: 14px; }
           .auth-image-panel {
-            height: 32vh; min-height: 200px;
+            height: 40vh; min-height: 250px;
+          }
+          .auth-hero-img {
+            object-position: center 70% !important;
           }
           .auth-form-panel { padding: 20px 20px 40px; }
           .auth-title { font-size: 22px; }

@@ -571,13 +571,16 @@ export default function Login() {
             grid-template-rows: auto 1fr;
           }
           .auth-image-panel {
-            height: 45vh; min-height: 280px; max-height: 420px;
+            height: 44vh; min-height: 280px; max-height: 420px;
+          }
+          .auth-hero-img {
+            object-position: center 68% !important;
           }
           .auth-image-overlay {
-            background: linear-gradient(to bottom, transparent 40%, #000000 100%);
+            background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.3) 72%, #000000 100%) !important;
           }
           .auth-form-panel {
-            padding: 32px 24px 48px;
+            padding: 28px 24px 48px;
             align-items: flex-start;
           }
           .auth-form-inner { 
@@ -599,9 +602,12 @@ export default function Login() {
           .auth-header { padding: 14px 20px; }
           .auth-header-logo { font-size: 14px; }
           .auth-image-panel {
-            height: 38vh; min-height: 220px;
+            height: 40vh; min-height: 250px;
           }
-          .auth-form-panel { padding: 32px 20px 40px; }
+          .auth-hero-img {
+            object-position: center 70% !important;
+          }
+          .auth-form-panel { padding: 24px 20px 40px; }
           .auth-title { font-size: 24px; }
           .otp-box { width: 46px; height: 50px; font-size: 18px; gap: 8px; }
           .otp-boxes { gap: 8px; }
