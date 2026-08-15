@@ -355,57 +355,101 @@ const Home = () => {
   // Section navigation helpers removed
 
 
-  // ── ScrollTrigger setup & Horizontal Slide Effect ─────────────
+  // ── ScrollTrigger setup & Parallax Watch Dial Morph Wipe ─────────────
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. Card text reveal triggers
-    const sections = gsap.utils.toArray('.section');
-    sections.forEach((section: any) => {
-      const card = section.querySelector('.card');
-      if (card) {
-        ScrollTrigger.create({
-          trigger: section,
-          start: "top 75%",
-          end: "bottom 25%",
-          onEnter: () => card.classList.add('in'),
-          onEnterBack: () => card.classList.add('in'),
-        });
-        const rect = section.getBoundingClientRect();
-        if (rect.top < window.innerHeight && rect.bottom > 0) {
-          card.classList.add('in');
+    const ctx = gsap.context(() => {
+      // 1. General Card text reveal triggers for standard hero sections
+      const sections = gsap.utils.toArray('.section');
+      sections.forEach((section: any) => {
+        const card = section.querySelector('.card');
+        if (card) {
+          ScrollTrigger.create({
+            trigger: section,
+            start: "top 75%",
+            end: "bottom 25%",
+            onEnter: () => card.classList.add('in'),
+            onEnterBack: () => card.classList.add('in'),
+          });
+          const rect = section.getBoundingClientRect();
+          if (rect.top < window.innerHeight && rect.bottom > 0) {
+            card.classList.add('in');
+          }
         }
-      }
-    });
+      });
 
-    // 2. Bottom-to-top clip-path wipe reveal (erasing Section 2 from bottom 1% to 100%)
-    if (containerRef.current) {
-      const horizWrap = containerRef.current.querySelector('.horizontal-hero-wrapper');
-      const horizPanel2 = containerRef.current.querySelector('.horiz-panel-2');
+      // 2. Parallax Dial Morph Scrub (Bottom-to-Top Wipe: Image 1 -> Image 2)
+      const wrap = document.querySelector('.dial-parallax-wrapper');
+      const revealLayer = document.querySelector('.dial-layer-reveal');
+      const sweepLine = document.querySelector('.dial-sweep-line');
+      const card1 = document.querySelector('.dial-card-1');
+      const card2 = document.querySelector('.dial-card-2');
 
-      if (horizWrap && horizPanel2) {
-        gsap.to(horizPanel2, {
-          clipPath: 'inset(0% 0 0 0)',
-          ease: 'none',
+      if (wrap && revealLayer) {
+        gsap.set(revealLayer, { clipPath: 'inset(100% 0% 0% 0%)' });
+        if (sweepLine) gsap.set(sweepLine, { top: '100%', opacity: 0 });
+        if (card1) gsap.set(card1, { opacity: 1, y: 0 });
+        if (card2) gsap.set(card2, { opacity: 0, y: 40 });
+
+        const tl = gsap.timeline({
           scrollTrigger: {
-            trigger: horizWrap,
+            trigger: wrap,
             start: 'top top',
-            end: '+=100%',
+            end: '+=160%',
             pin: true,
             pinSpacing: true,
             scrub: 1,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
           }
         });
-      }
-    }
 
-    const timer = setTimeout(() => ScrollTrigger.refresh(), 300);
+        // Wipes image 2 (new dial color) upwards over image 1 from bottom (100%) to top (0%)
+        tl.to(revealLayer, {
+          clipPath: 'inset(0% 0% 0% 0%)',
+          ease: 'none',
+          duration: 1
+        }, 0);
+
+        if (sweepLine) {
+          tl.to(sweepLine, {
+            top: '0%',
+            opacity: 1,
+            ease: 'none',
+            duration: 1
+          }, 0);
+        }
+
+        // Card 1 (Movement) fades out as scroll progresses
+        if (card1) {
+          tl.to(card1, {
+            opacity: 0,
+            y: -40,
+            ease: 'power1.inOut',
+            duration: 0.35
+          }, 0.1);
+        }
+
+        // Card 2 (Design) fades into view as the new dial completes
+        if (card2) {
+          tl.to(card2, {
+            opacity: 1,
+            y: 0,
+            ease: 'power1.inOut',
+            duration: 0.4
+          }, 0.5);
+        }
+      }
+    }, containerRef);
+
+    const timer = setTimeout(() => ScrollTrigger.refresh(), 350);
 
     return () => {
       clearTimeout(timer);
-      ScrollTrigger.getAll().forEach((t: any) => t.kill());
+      ctx.revert();
     };
-  }, [homeSections]);
+  }, [homeSections, banners]);
 
   // Features focal-point animation removed as the section is currently inactive
 
@@ -469,18 +513,88 @@ const Home = () => {
       <style>{`
         .v1-home { background: #F9F9F7; position: relative; }
 
-        /* ── Bottom-to-Top Clip-Path Wipe Hero Wrapper (Section 2 -> Section 3) ── */
-        .horizontal-hero-wrapper {
-          position: relative; width: 100%; height: 100vh; overflow: hidden;
+        /* ── Parallax Watch Dial Morph Section (Bottom-to-Top Dial Color Wipe) ── */
+        .dial-parallax-wrapper {
+          position: relative;
+          width: 100%;
+          height: 100vh;
+          overflow: hidden;
+          background: #000000;
+          z-index: 2;
         }
-        .horiz-panel-1 {
-          position: absolute; inset: 0; z-index: 1; height: 100vh; width: 100%;
+
+        .dial-layer {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100vh;
+          overflow: hidden;
         }
-        .horiz-panel-2 {
-          position: absolute; inset: 0; z-index: 2; height: 100vh; width: 100%;
-          clip-path: inset(100% 0 0 0);
+
+        .dial-layer-base {
+          z-index: 1;
+        }
+
+        .dial-layer-reveal {
+          z-index: 2;
+          clip-path: inset(100% 0% 0% 0%);
           will-change: clip-path;
-          box-shadow: 0 -25px 50px rgba(0,0,0,0.5);
+        }
+
+        .dial-watch-img {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center center;
+          pointer-events: none;
+          -webkit-user-drag: none;
+          user-select: none;
+        }
+
+        .dial-overlay {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at center, transparent 35%, rgba(0,0,0,0.35) 100%);
+          pointer-events: none;
+        }
+
+        .dial-sweep-line {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 0;
+          height: 2px;
+          background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.7) 20%, rgba(255, 255, 255, 0.95) 50%, rgba(212, 175, 55, 0.7) 80%, transparent 100%);
+          box-shadow: 0 0 14px 2px rgba(212, 175, 55, 0.5), 0 0 28px 4px rgba(255, 255, 255, 0.25);
+          pointer-events: none;
+          z-index: 5;
+        }
+
+        .dial-card-container {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+          z-index: 10;
+        }
+
+        .dial-card-1 {
+          opacity: 1;
+        }
+
+        .dial-card-2 {
+          opacity: 0;
+        }
+
+        .dial-card-container .card {
+          pointer-events: auto;
+          opacity: 1 !important;
+          transform: none !important;
         }
 
         .section {
@@ -492,8 +606,6 @@ const Home = () => {
           background-size: cover; background-position: center; background-repeat: no-repeat;
         }
         .s1 { position: sticky; top: 0; z-index: 1; }
-        .s2 { z-index: 2; }
-        .s3 { z-index: 3; }
         .s4 { position: sticky; top: 0; z-index: 4; }
         .s5, .featured-grid-wrap {
           position: relative; z-index: 5; background: #fff;
@@ -511,7 +623,6 @@ const Home = () => {
 
         .section::before { content: ''; position: absolute; inset: 0; z-index: 0; }
         .s1::before { background: linear-gradient(135deg, rgba(10,8,4,0), rgba(40,28,10,.40)); }
-        .s2::before { background: linear-gradient(160deg, rgba(6,4,1,0), rgba(22,14,4,0)); }
         .s1::after, .s4::after {
           content: ''; position: absolute; inset: 0;
           background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.4));
@@ -677,7 +788,6 @@ const Home = () => {
           
         }
 
-        .s3 { background-image: url('/Watch_1.png'); }
         .s1, .s4 { padding: 0 !important; overflow: hidden; position: relative; }
 
         /* ── Video container ── */
@@ -1089,44 +1199,44 @@ const Home = () => {
               </div>
             )}
 
-            {/* ── Pinned Horizontal Transition Group (Section 2 -> Section 3) ── */}
-            <div className="horizontal-hero-wrapper">
-              {/* ── Hero Section 2 ── */}
-              {(homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) && (
-                <div
-                  className="section s2 horiz-panel-1"
-                  ref={el => { sectionsRef.current[1] = el; }}
-                >
-                  <div className="section-bg-inner">
-                    <img src={s2Bg} alt="Movement" className="section-bg-img" />
-                  </div>
-                  <div className="card" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
+            {/* ── Pinned Parallax Watch Dial Morph Section (Section 2 -> Section 3) ── */}
+            {((homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) ||
+              (homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined)) && (
+              <div className="dial-parallax-wrapper" ref={el => { sectionsRef.current[1] = el; }}>
+                {/* Base Layer: Image 1 (Rim / Dial 1) */}
+                <div className="dial-layer dial-layer-base">
+                  <img src={s2Bg} alt="Watch Dial Base" className="dial-watch-img" />
+                  <div className="dial-overlay" />
+                </div>
+
+                {/* Reveal Layer: Image 2 (Watch_1 / Dial 2) Wiped Bottom-to-Top */}
+                <div className="dial-layer dial-layer-reveal">
+                  <img src={s3Bg} alt="Watch Dial Reveal" className="dial-watch-img" />
+                  <div className="dial-overlay" />
+                  <div className="dial-sweep-line" />
+                </div>
+
+                {/* Story Card 1 (Movement - Initial) */}
+                <div className="dial-card-container dial-card-1">
+                  <div className="card in" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
                     <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
                     <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
                     <div className="divider"></div>
                     <p style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.content || 'Hundreds of hand-finished bridges and jewels.<br />A calibre beating 28,800 times each hour.' }} />
                   </div>
                 </div>
-              )}
 
-              {/* ── Hero Section 3 (Slides Horizontally from Right to Left) ── */}
-              {(homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined) && (
-                <div
-                  className="section s3 horiz-panel-2"
-                  ref={el => { sectionsRef.current[2] = el; }}
-                >
-                  <div className="section-bg-inner">
-                    <img src={s3Bg} alt="Design" className="section-bg-img" />
-                  </div>
-                  <div className="card" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
+                {/* Story Card 2 (Design - Revealed with Dial 2) */}
+                <div className="dial-card-container dial-card-2">
+                  <div className="card in" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
                     <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
                     <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
                     <div className="divider"></div>
                     <p style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.content || 'Sapphire crystal, polished steel, supple leather.<br />Every element chosen for eternity, not fashion.' }} />
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* ── Hero Section 4 (video) ── */}
             {(homeSections.s4 || homeSections.home_s4 || homeSections['Section 4'] || homeSections.s4 === undefined) && (
