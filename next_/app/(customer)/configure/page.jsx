@@ -418,12 +418,12 @@ function ConfigureContent() {
         .top-actions { position: fixed; top: 100px; right: 30px; display: flex; align-items: center; gap: 15px; z-index: 999; }
         .close-btn { background: rgba(0,0,0,0.6); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); transition: transform 0.2s; }
         .close-btn:hover { transform: scale(1.1); }
-        .c-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 55vh; padding-bottom: 120px; margin-top: -30px; }
-        .watch-preview { max-width: 80%; max-height: 48vh; object-fit: contain; filter: none !important; transition: transform 0.3s; transform: translateY(-15px); }
+        .c-main { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 55vh; padding-bottom: 120px; margin-top: -55px; }
+        .watch-preview { max-width: 88%; max-height: 56vh; object-fit: contain; filter: none !important; transition: transform 0.3s; transform: translateY(-35px) scale(1.08); }
         .side-thumbnails-bar {
           position: absolute;
           right: 28px;
-          top: 42%;
+          top: 38%;
           transform: translateY(-50%);
           display: flex;
           flex-direction: column;
@@ -464,9 +464,9 @@ function ConfigureContent() {
           .thumb { width: 42px; height: 42px; }
           .top-actions { top: 25px; right: 20px; }
           .top-left-actions { top: 25px; left: 20px; }
-          .c-main { height: calc(100svh - 170px) !important; min-height: auto !important; margin: -25px 0 0 0 !important; padding: 0 !important; overflow: hidden !important; }
-          .watch-preview { max-height: 56vh !important; max-width: 95% !important; transform: translateY(-30px) !important; margin: 0 auto !important; }
-          .side-thumbnails-bar { right: 12px; top: 35%; transform: translateY(-50%); gap: 10px; z-index: 45; pointer-events: auto; }
+          .c-main { height: calc(100svh - 170px) !important; min-height: auto !important; margin: -45px 0 0 0 !important; padding: 0 !important; overflow: hidden !important; }
+          .watch-preview { max-height: 66vh !important; max-width: 98% !important; width: auto !important; transform: translateY(-68px) scale(1.18) !important; margin: 0 auto !important; }
+          .side-thumbnails-bar { right: 12px; top: 26%; transform: translateY(-50%); gap: 10px; z-index: 45; pointer-events: auto; }
           .side-thumb-item { width: 40px; height: 40px; padding: 4px; }
           .c-selection-controls { padding: 12px 16px 8px; gap: 10px; }
           .options-row { gap: 12px; font-size: 14px; }
