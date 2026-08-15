@@ -347,11 +347,11 @@ export default function Login() {
         .auth-hero-img {
           width: 100%; height: 100%;
           object-fit: cover; display: block;
-          object-position: center;
+          object-position: center 38%;
         }
         .auth-image-overlay {
           position: absolute; inset: 0;
-          background: linear-gradient(to right, transparent 70%, #000000 100%);
+          background: linear-gradient(to right, transparent 70%, #000000 100%), linear-gradient(to top, #000000 0%, transparent 22%);
           pointer-events: none;
         }
 

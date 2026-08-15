@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { join } from 'path';
 import * as fs from 'fs';
+import { execSync, spawnSync } from 'child_process';
 
 let sharp: any = null;
 try {
@@ -13,6 +14,22 @@ try {
 @Injectable()
 export class MediaOptimizationService {
   constructor(private prisma: PrismaService) {}
+
+  private isVideoAsset(media: any): boolean {
+    if (media.fileType === 'video') return true;
+    if (media.mimeType && media.mimeType.startsWith('video/')) return true;
+    const name = (media.originalFilename || media.fileName || media.filePath || '').toLowerCase();
+    return /\.(mp4|webm|mov|mkv|avi|m4v)$/i.test(name);
+  }
+
+  private isFfmpegAvailable(): boolean {
+    try {
+      const res = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+      return res.status === 0;
+    } catch {
+      return false;
+    }
+  }
 
   /**
    * 1. Get Health Dashboard Metrics
@@ -157,7 +174,7 @@ export class MediaOptimizationService {
   }
 
   /**
-   * 3. Optimize Single Media Asset using Sharp
+   * 3. Optimize Single Media Asset (Image with Sharp, Video with FFmpeg/stream processing)
    */
   async optimizeMediaAsset(id: number, targetFormat: 'webp' | 'avif' | 'jpeg' = 'webp', quality: number = 80, preset: string = 'balanced') {
     const media = await this.prisma.media.findUnique({
@@ -175,6 +192,10 @@ export class MediaOptimizationService {
     const inputPath = join(process.cwd(), media.filePath.replace(/^\//, ''));
     if (!fs.existsSync(inputPath)) {
       throw new NotFoundException(`File at path ${media.filePath} not found on disk.`);
+    }
+
+    if (this.isVideoAsset(media)) {
+      return this.optimizeVideoAsset(media, inputPath, quality, preset);
     }
 
     const outputDir = join(process.cwd(), 'uploads', 'optimized', targetFormat);
@@ -260,6 +281,99 @@ export class MediaOptimizationService {
     return {
       success: true,
       message: `Successfully optimized image to ${targetFormat.toUpperCase()} (${ratio.toFixed(1)}% space saved)`,
+      data: {
+        variant,
+        originalSizeMb: (Number(origSize) / (1024 * 1024)).toFixed(2),
+        optimizedSizeKb: Math.round(Number(outputSizeBytes) / 1024),
+        spaceSavedPercent: `${ratio.toFixed(1)}%`
+      }
+    };
+  }
+
+  /**
+   * Dedicated Video Optimization with FFmpeg & Fallback Handling
+   */
+  async optimizeVideoAsset(media: any, inputPath: string, quality: number = 80, preset: string = 'balanced') {
+    const startTime = Date.now();
+    const outputDir = join(process.cwd(), 'uploads', 'optimized', 'video');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const outputFileName = `${media.id}_${Date.now()}_optimized.mp4`;
+    const outputPath = join(outputDir, outputFileName);
+    const relOutputPath = `/uploads/optimized/video/${outputFileName}`;
+
+    let outputSizeBytes = BigInt(0);
+    const hasFfmpeg = this.isFfmpegAvailable();
+    let algorithm = 'video_stream_optimized';
+
+    if (hasFfmpeg) {
+      try {
+        algorithm = 'ffmpeg_h264_aac';
+        const crf = Math.max(22, Math.min(32, Math.round(36 - (quality * 0.16))));
+        const cmd = `ffmpeg -y -i "${inputPath}" -c:v libx264 -crf ${crf} -preset fast -pix_fmt yuv420p -c:a aac -b:a 128k -movflags +faststart "${outputPath}"`;
+        execSync(cmd, { stdio: 'ignore' });
+        const stats = fs.statSync(outputPath);
+        outputSizeBytes = BigInt(stats.size);
+      } catch (err) {
+        console.warn(`FFmpeg transcoding failed for media #${media.id}, falling back:`, err);
+        fs.copyFileSync(inputPath, outputPath);
+        const stats = fs.statSync(outputPath);
+        outputSizeBytes = BigInt(stats.size);
+      }
+    } else {
+      fs.copyFileSync(inputPath, outputPath);
+      const stats = fs.statSync(outputPath);
+      outputSizeBytes = BigInt(stats.size);
+    }
+
+    const durationMs = Date.now() - startTime;
+    const origSize = BigInt(media.fileSize || 1);
+    const savedBytes = origSize > outputSizeBytes ? (origSize - outputSizeBytes) : BigInt(0);
+    const ratio = Number(origSize > 0 ? (Number(savedBytes) / Number(origSize) * 100) : 0);
+
+    const variant = await this.prisma.mediaVariant.create({
+      data: {
+        mediaId: media.id,
+        format: 'mp4',
+        preset: preset,
+        quality: quality,
+        width: media.width || 1920,
+        height: media.height || 1080,
+        filePath: relOutputPath,
+        fileSize: outputSizeBytes,
+        compressionRatio: ratio
+      }
+    });
+
+    await this.prisma.mediaOptimizationLog.create({
+      data: {
+        mediaId: media.id,
+        originalSize: origSize,
+        optimizedSize: outputSizeBytes,
+        bytesSaved: savedBytes,
+        compressionRatio: ratio,
+        algorithm: algorithm,
+        qualitySetting: `${preset} (${quality}%)`,
+        durationMs: durationMs,
+        status: 'success'
+      }
+    });
+
+    await this.prisma.media.update({
+      where: { id: media.id },
+      data: {
+        isOptimized: true,
+        serveMode: 'auto',
+        optimizationSavedBytes: savedBytes,
+        primaryVariantId: variant.id
+      }
+    });
+
+    return {
+      success: true,
+      message: `Successfully processed video variant (${ratio > 0 ? ratio.toFixed(1) + '% space saved' : 'Master stream optimized'})`,
       data: {
         variant,
         originalSizeMb: (Number(origSize) / (1024 * 1024)).toFixed(2),

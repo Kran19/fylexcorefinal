@@ -80,7 +80,9 @@ export default function EnterpriseDAMOptimizationCenter() {
     setMessage(null);
     try {
       const res = await api.optimizeSingleAsset(assetId, { format: selectedFormat, quality: qualityPreset });
-      const updatedAsset = { isOptimized: true, serveMode: "auto", optimizedSizeFormatted: res?.data?.optimizedSizeFormatted || "461 KB", savedRatio: res?.data?.spaceSavedPercent || "98.2%" };
+      const optFormatted = res?.data?.optimizedSizeKb ? `${res.data.optimizedSizeKb} KB` : "Optimized";
+      const savedRatio = res?.data?.spaceSavedPercent || "0.0%";
+      const updatedAsset = { isOptimized: true, serveMode: "auto", optimizedSizeFormatted: optFormatted, savedRatio };
       
       setAssets(prev => prev.map(a => a.id === assetId ? { ...a, ...updatedAsset } : a));
       if (tabulatorRef.current) {
@@ -90,7 +92,7 @@ export default function EnterpriseDAMOptimizationCenter() {
       Swal.fire({
         icon: "success",
         title: "Asset Optimized!",
-        text: res?.message || `Compressed asset #${assetId} to ${selectedFormat.toUpperCase()} format successfully.`,
+        text: res?.message || `Compressed asset #${assetId} successfully.`,
         timer: 1800,
         showConfirmButton: false,
         background: "#18181b",
@@ -98,6 +100,7 @@ export default function EnterpriseDAMOptimizationCenter() {
       });
 
       fetchStats();
+      fetchAssets(sortBy);
     } catch (e) {
       console.error(`Failed to optimize asset #${assetId}:`, e);
       Swal.fire({
@@ -350,14 +353,13 @@ export default function EnterpriseDAMOptimizationCenter() {
             const isHeavy = d.originalSize > 3 * 1024 * 1024;
 
             const thumbHtml = isVideo
-              ? `<div style="width:42px;height:42px;border-radius:8px;background:#09090b;overflow:hidden;border:1px solid #3f3f46;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center">
-                   <video src="${mediaUrl}" autoPlay loop muted playsInline style="width:100%;height:100%;object-fit:cover"></video>
-                   <div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;color:#38bdf8">
-                     <i class="fas fa-video" style="font-size:13px"></i>
+              ? `<div style="width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg, #18181b 0%, #27272a 100%);overflow:hidden;border:1px solid #3f3f46;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center">
+                   <div style="width:24px;height:24px;border-radius:50%;background:rgba(56,189,248,0.2);border:1px solid rgba(56,189,248,0.5);display:flex;align-items:center;justify-content:center;color:#38bdf8">
+                     <i class="fas fa-play" style="font-size:10px;margin-left:1px"></i>
                    </div>
                  </div>`
               : `<div style="width:42px;height:42px;border-radius:8px;background:#000000;overflow:hidden;border:1px solid #3f3f46;flex-shrink:0">
-                   <img src="${mediaUrl}" onError="this.onerror=null;this.src='/assets/fylex-watch-v2/meridianblackcase.png'" style="width:100%;height:100%;object-fit:cover" />
+                   <img src="${mediaUrl}" loading="lazy" onError="this.onerror=null;this.src='/assets/fylex-watch-v2/meridianblackcase.png'" style="width:100%;height:100%;object-fit:cover" />
                  </div>`;
 
             return `
@@ -395,9 +397,13 @@ export default function EnterpriseDAMOptimizationCenter() {
           width: 170,
           formatter: (cell) => {
             const mode = cell.getValue();
+            const d = cell.getRow().getData();
+            const name = (d.originalFilename || d.name || d.filePath || "").toLowerCase();
+            const isVid = name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mov") || d.fileType === "video";
+            const fmt = isVid ? "MP4" : "WebP";
             const isAuto = mode === "auto";
             if (isAuto) {
-              return `<span style="background:#14532d;color:#86efac;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid #22c55e;display:inline-flex;align-items:center;gap:4px"><i class="fas fa-check-circle"></i> Accepted (WebP)</span>`;
+              return `<span style="background:#14532d;color:#86efac;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid #22c55e;display:inline-flex;align-items:center;gap:4px"><i class="fas fa-check-circle"></i> Accepted (${fmt})</span>`;
             }
             return `<span style="background:#3f3f46;color:#e4e4e7;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid #71717a;display:inline-flex;align-items:center;gap:4px"><i class="fas fa-file-alt"></i> Raw Master</span>`;
           }
@@ -722,25 +728,35 @@ export default function EnterpriseDAMOptimizationCenter() {
                       </div>
                     </div>
 
-                    {/* Right: Compressed WebP / AVIF */}
+                    {/* Right: Compressed WebP / AVIF / MP4 */}
                     <div style={{ background: "#09090b", borderRadius: "12px", border: "1px solid #15803d", padding: "16px", textAlign: "center" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-                        <span style={{ fontSize: "12px", fontWeight: 800, color: "#22c55e", textTransform: "uppercase" }}>Optimized WebP/AVIF</span>
+                        <span style={{ fontSize: "12px", fontWeight: 800, color: "#22c55e", textTransform: "uppercase" }}>
+                          {isModalVid ? "Optimized Video Variant" : "Optimized WebP/AVIF"}
+                        </span>
                         <div style={{ display: "flex", gap: "6px" }}>
                           <span style={{ fontSize: "12px", background: "#14532d", color: "#86efac", padding: "4px 10px", borderRadius: "6px", fontWeight: 800 }}>
-                            {compareAsset.optimizedSizeFormatted || "461 KB"}
+                            {compareAsset.optimizedSizeFormatted || "Optimized"}
                           </span>
                           <span style={{ fontSize: "12px", background: "#713f12", color: "#fef08a", padding: "4px 10px", borderRadius: "6px", fontWeight: 800 }}>
-                            Saved {compareAsset.savedRatio || "98.2%"}
+                            Saved {compareAsset.savedRatio || "0.0%"}
                           </span>
                         </div>
                       </div>
                       <div style={{ height: "340px", borderRadius: "8px", background: "#000000", overflow: "auto", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #27272a" }}>
                         {isModalVid ? (
-                          <video src={mediaUrl} controls autoPlay loop muted playsInline style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                          <video
+                            src={getFileUrl(compareAsset.bestVariant?.filePath || compareAsset.filePath || compareAsset.url)}
+                            controls
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                          />
                         ) : (
                           <img
-                            src={mediaUrl}
+                            src={getFileUrl(compareAsset.bestVariant?.filePath || compareAsset.filePath || compareAsset.url)}
                             alt="Compressed Variant"
                             style={{ transform: `scale(${zoomLevel})`, transformOrigin: "center center", transition: "transform 0.2s", maxWidth: zoomLevel === 1 ? "100%" : "none", maxHeight: zoomLevel === 1 ? "100%" : "none" }}
                             onError={(e) => { e.target.onerror=null; e.target.src="/assets/fylex-watch-v2/meridianblackcase.png"; }}
