@@ -576,18 +576,30 @@ const Home = () => {
 
         .dial-card-container {
           position: absolute;
-          inset: 0;
+          top: 32px;
+          left: 0;
+          right: 0;
+          bottom: auto;
           display: flex;
           align-items: flex-start;
           justify-content: center;
-          padding-top: 15vh;
+          padding-top: 0;
           pointer-events: none;
           z-index: 10;
         }
 
+        .dial-card-container .card {
+          pointer-events: auto;
+          opacity: 1 !important;
+          transform: none !important;
+          padding: 0 20px !important;
+          margin: 0 !important;
+        }
+
         .dial-card-container .label {
-          font-size: 0.85rem;
+          font-size: 0.95rem;
           letter-spacing: 0.45em;
+          margin-bottom: 0 !important;
         }
 
         .dial-card-1 {
@@ -596,12 +608,6 @@ const Home = () => {
 
         .dial-card-2 {
           opacity: 0;
-        }
-
-        .dial-card-container .card {
-          pointer-events: auto;
-          opacity: 1 !important;
-          transform: none !important;
         }
 
         .section {
