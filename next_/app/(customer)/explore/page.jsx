@@ -631,19 +631,19 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   };
 
   const activeBgColor = isConfiguredMode
-    ? (previewTheme?.preConfigureBg || product.bgColor)
-    : (previewTheme?.discoverBg || product.bgColor);
+    ? (previewTheme?.preConfigureBg || product?.bgColor || '#ffffff')
+    : (previewTheme?.discoverBg || product?.bgColor || '#ffffff');
 
   const activeTextColor = isConfiguredMode
-    ? (previewTheme?.preConfigureTextColor || product.textColor)
-    : (previewTheme?.discoverTextColor || product.textColor);
+    ? (previewTheme?.preConfigureTextColor || product?.textColor || '#111111')
+    : (previewTheme?.discoverTextColor || product?.textColor || '#111111');
 
   const activeAccentColor = isConfiguredMode
-    ? (previewTheme?.preConfigureAccentColor || product.accentColor)
-    : (previewTheme?.discoverAccentColor || product.accentColor);
+    ? (previewTheme?.preConfigureAccentColor || product?.accentColor || '#c4a35a')
+    : (previewTheme?.discoverAccentColor || product?.accentColor || '#c4a35a');
 
   return (
-    <div className={`cfg-page section-${product.theme} ${hasConfig ? 'is-configured' : ''}`}>
+    <div className={`cfg-page section-${product?.theme || 'champagne'} ${hasConfig ? 'is-configured' : ''}`}>
       <style>{`
         /* ═══════════ CONFIGURE PAGE ═══════════ */
         .cfg-page {
@@ -653,12 +653,12 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           overflow-x: hidden;
         }
         .cfg-page.is-configured {
-          background: ${product.gradient || product.bgColor || '#000000'};
+          background: ${product?.gradient || product?.bgColor || '#000000'};
           color: ${activeTextColor || '#ffffff'};
         }
         .cfg-page.is-configured .cfg-heritage-section,
         .cfg-page.is-configured .cfg-desc-section {
-          background: ${product.gradient || product.bgColor || '#000000'} !important;
+          background: ${product?.gradient || product?.bgColor || '#000000'} !important;
         }
         .cfg-page.is-configured .cfg-details-title,
         .cfg-page.is-configured .cfg-details-price,
@@ -666,11 +666,11 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         .cfg-page.is-configured .cfg-desc-text,
         .cfg-page.is-configured .cfg-heritage-heading,
         .cfg-page.is-configured .cfg-heritage-text {
-          color: ${activeTextColor || product.textColor || '#ffffff'} !important;
+          color: ${activeTextColor || product?.textColor || '#ffffff'} !important;
         }
         .cfg-page.is-configured .cfg-details-specs,
         .cfg-page.is-configured .cfg-heritage-eyebrow {
-          color: ${product.textColor || '#ffffff'} !important;
+          color: ${product?.textColor || '#ffffff'} !important;
           opacity: 0.7;
         }
 
@@ -736,7 +736,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           font-weight: 700;
           letter-spacing: 0.25em;
           text-transform: uppercase;
-          color: ${product.accentColor};
+          color: ${product?.accentColor || '#c4a35a'};
           margin-bottom: 15px;
           display: block;
         }
@@ -744,12 +744,12 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
           font-size: 1.8rem;
           margin-bottom: 20px;
-          color: ${product.textColor};
+          color: ${product?.textColor || '#111111'};
         }
         .cfg-choice-desc {
           font-size: 0.95rem;
           line-height: 1.7;
-          color: ${product.textColor};
+          color: ${product?.textColor || '#111111'};
           max-width: 280px;
           margin: 0 auto;
         }
@@ -2219,13 +2219,13 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           {/* Bottom Left Details */}
           <div className="cfg-details-box" style={{ zIndex: 10 }}>
             <div className="cfg-details-left">
-              <h1 className="cfg-details-title" style={product.heroBgImage ? { color: '#ffffff' } : { color: product.textColor || '#111111' }}>{product.title}</h1>
+              <h1 className="cfg-details-title" style={product?.heroBgImage ? { color: '#ffffff' } : { color: product?.textColor || '#111111' }}>{product?.title || ''}</h1>
 
               {hasConfig && (
                 <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {Object.entries(selections).map(([key, val]) => {
-                    const tc = product.textColor || '#111111';
-                    const isLight = !product.heroBgImage;
+                    const tc = product?.textColor || '#111111';
+                    const isLight = !product?.heroBgImage;
                     return (
                       <span key={key} style={{ fontSize: '0.8rem', padding: '6px 12px', background: isLight ? `${tc}12` : 'rgba(255,255,255,0.1)', borderRadius: '20px', color: isLight ? tc : '#ffffff', border: isLight ? `1px solid ${tc}22` : '1px solid rgba(255,255,255,0.2)', textTransform: 'capitalize', fontWeight: '500' }}>
                         <span style={{opacity: 0.6, marginRight: '4px'}}>{key}:</span> {val}
@@ -2235,8 +2235,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 </div>
               )}
               <div className="cfg-price-add-row">
-                <div className="cfg-details-price" style={product.heroBgImage ? { color: '#ffffff' } : { color: activeTextColor || product.textColor || '#111111' }}>
-                  {product.formattedPrice || (typeof product.price === 'number' ? `₹ ${product.price.toLocaleString()}` : product.price) || '₹ 25,000'}
+                <div className="cfg-details-price" style={product?.heroBgImage ? { color: '#ffffff' } : { color: activeTextColor || product?.textColor || '#111111' }}>
+                  {product?.formattedPrice || (typeof product?.price === 'number' ? `₹ ${product.price.toLocaleString()}` : product?.price) || '₹ 25,000'}
                 </div>
 
                 <div className="cfg-actions-group" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -2258,15 +2258,15 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     </Link>
                   )}
                   {hasConfig && (
-                    <div className="cfg-details-right" style={{ color: product.heroBgImage ? '#ffffff' : (product.textColor || '#1a1a1a') }}>
+                    <div className="cfg-details-right" style={{ color: product?.heroBgImage ? '#ffffff' : (product?.textColor || '#1a1a1a') }}>
                       <div
-                        className={`cfg-fav-inline ${isInWishlist(product.currentVariantId || product.variantId) ? 'active' : ''}`}
-                        onClick={() => toggleWishlist({ ...product, variantId: product.currentVariantId || product.variantId })}
-                        title={isInWishlist(product.currentVariantId || product.variantId) ? 'Remove from Favourite' : 'Add to Favourite'}
+                        className={`cfg-fav-inline ${isInWishlist(product?.currentVariantId || product?.variantId) ? 'active' : ''}`}
+                        onClick={() => toggleWishlist({ ...product, variantId: product?.currentVariantId || product?.variantId })}
+                        title={isInWishlist(product?.currentVariantId || product?.variantId) ? 'Remove from Favourite' : 'Add to Favourite'}
                       >
                         <svg
                           viewBox="0 0 24 24"
-                          fill={isInWishlist(product.currentVariantId || product.variantId) ? "currentColor" : "none"}
+                          fill={isInWishlist(product?.currentVariantId || product?.variantId) ? "currentColor" : "none"}
                           stroke="currentColor"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -2289,7 +2289,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 <div
                   key={p.id}
                   className={`cfg-nav-dash ${initialIndex === idx ? 'active' : ''}`}
-                  style={product.discoverHeroBgImage && initialIndex === idx ? { background: '#ffffff' } : product.discoverHeroBgImage ? { background: 'rgba(255,255,255,0.4)' } : {}}
+                  style={product?.discoverHeroBgImage && initialIndex === idx ? { background: '#ffffff' } : product?.discoverHeroBgImage ? { background: 'rgba(255,255,255,0.4)' } : {}}
                   onClick={() => {
                     const params = new URLSearchParams(searchParams);
                     params.set('watch', p.id);
@@ -2302,17 +2302,17 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         </section>
 
         {/* ── SECONDARY SECTION ("your timepiece") ── */}
-        {product.longDesc ? (
+        {product?.longDesc ? (
           <section id="description" className="cfg-desc-section" style={{
-            background: product.heroBgImage ? 'rgba(0,0,0,0.85)' : (product.bgColor || '#ffffff'),
-            color: product.textColor || '#111111'
+            background: product?.heroBgImage ? 'rgba(0,0,0,0.85)' : (product?.bgColor || '#ffffff'),
+            color: product?.textColor || '#111111'
           }}>
                   <div className="cfg-mist-layer" style={{
-                    background: `radial-gradient(circle at 70% 40%, ${product.accentColor || '#c4a35a'}22 0%, transparent 70%)`
+                    background: `radial-gradient(circle at 70% 40%, ${product?.accentColor || '#c4a35a'}22 0%, transparent 70%)`
                   }}></div>
                   <div className="cfg-desc-content" style={{ position: 'relative', zIndex: 2 }}>
-                    <span className="cfg-heritage-eyebrow" style={{ color: product.heroBgImage ? '#aaaaaa' : '#666666' }}>your timepiece.</span>
-                    <h2 className="cfg-desc-heading" style={{ color: product.heroBgImage ? '#ffffff' : (product.textColor || '#111111') }}>{product.variantName || product.subtitle || 'Crafted with passion'}</h2>
+                    <span className="cfg-heritage-eyebrow" style={{ color: product?.heroBgImage ? '#aaaaaa' : '#666666' }}>your timepiece.</span>
+                    <h2 className="cfg-desc-heading" style={{ color: product?.heroBgImage ? '#ffffff' : (product?.textColor || '#111111') }}>{product?.variantName || product?.subtitle || 'Crafted with passion'}</h2>
                     {product.longDesc.startsWith('<') ? (
                       <div className="cfg-desc-text" dangerouslySetInnerHTML={{ __html: product.longDesc }} />
                     ) : (
@@ -2321,7 +2321,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   </div>
                   {effectiveImageCount >= 2 && !isConfiguredMode && (
                     <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
-                      <img src={displayStoryImg} alt={product.title} className="cfg-desc-img" />
+                      <img src={displayStoryImg} alt={product?.title || 'Timepiece'} className="cfg-desc-img" />
                     </div>
                   )}
                 </section>
