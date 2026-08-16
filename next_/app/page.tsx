@@ -562,6 +562,7 @@ const Home = () => {
         }
 
         .dial-sweep-line {
+          display: none;
           position: absolute;
           left: 0;
           right: 0;
