@@ -161,22 +161,37 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     return getFileUrl(mPath);
                   }).filter(Boolean)
                 : (p.images || []).map(img => getFileUrl(img.startsWith('http') || img.startsWith('/') ? img : `/uploads/${img}`)),
-              combinations: (p.variants || []).map(v => {
-                const vDisplay = getDisplayData(p, v);
-                return {
-                  id: v.id.toString(),
-                  name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label).join(' • ') || v.name || v.sku,
-                  img: vDisplay.image,
-                  price: vDisplay.price,
-                  formattedPrice: vDisplay.formattedPrice,
-                  isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
-                  fakeSoldCount: Number(v.fakeSoldCount) || 0,
-                  attributes: v.variantAttributes?.map(va => ({
-                    name: va.attributeValue?.attribute?.name?.toLowerCase(),
-                    value: va.attributeValue?.label
-                  })) || []
+              combinations: (() => {
+                const isVInStock = (v) => {
+                  if (!v) return false;
+                  if (v.isActive === false || v.isAvailable === false) return false;
+                  if (v.status === 'OUT_OF_STOCK' || v.status === 'INACTIVE') return false;
+                  const qty = Number(v.qty !== undefined ? v.qty : (v.stock !== undefined ? v.stock : 1));
+                  const reserved = Number(v.reservedQuantity || 0);
+                  return (qty - reserved) > 0;
                 };
-              }),
+                const rawV = p.variants || [];
+                const inStockV = rawV.filter(isVInStock);
+                const vPool = inStockV.length > 0 ? inStockV : rawV;
+
+                return vPool.map(v => {
+                  const vDisplay = getDisplayData(p, v);
+                  return {
+                    id: v.id.toString(),
+                    name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label).join(' • ') || v.name || v.sku,
+                    img: vDisplay.image,
+                    price: vDisplay.price,
+                    formattedPrice: vDisplay.formattedPrice,
+                    isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
+                    fakeSoldCount: Number(v.fakeSoldCount) || 0,
+                    inStock: isVInStock(v),
+                    attributes: v.variantAttributes?.map(va => ({
+                      name: va.attributeValue?.attribute?.name?.toLowerCase(),
+                      value: va.attributeValue?.label
+                    })) || []
+                  };
+                });
+              })(),
               specs: (() => {
                 const specsObj = {};
                 if (Array.isArray(p.specifications) && p.specifications.length > 0) {
@@ -209,7 +224,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 }
                 return specsObj;
               })(),
-              productBelts: p.productBelts?.map(pb => {
+              productBelts: (p.productBelts || []).filter(pb => (pb.belt?.stock === undefined || pb.belt?.stock > 0)).map(pb => {
                 const bImg = pb.belt?.image?.url || pb.belt?.image?.filePath || pb.belt?.image?.path || pb.belt?.image?.fileName || (typeof pb.belt?.image === 'string' ? pb.belt?.image : null);
                 return {
                   id: pb.belt.id,
@@ -218,7 +233,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   stock: pb.belt.stock,
                   image: bImg ? getFileUrl(bImg) : null
                 };
-              }) || [],
+              }),
               productBoxes: universalBoxes,
               totalSoldConfigurations: (p.variants || []).reduce((sum, v) => sum + (v.fakeSoldCount || 0), 0)
             };

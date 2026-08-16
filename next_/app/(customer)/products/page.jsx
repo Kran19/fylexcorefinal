@@ -133,10 +133,23 @@ const Products = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const isVariantInStock = (v) => {
+    if (!v) return false;
+    if (v.isActive === false || v.isAvailable === false) return false;
+    if (v.status === 'OUT_OF_STOCK' || v.status === 'INACTIVE') return false;
+    const qty = Number(v.qty !== undefined ? v.qty : (v.stock !== undefined ? v.stock : 1));
+    const reserved = Number(v.reservedQuantity || 0);
+    return (qty - reserved) > 0;
+  };
+
   const openInfoModal = async (col) => {
+    const rawColVariants = col.variants || [];
+    const inStockColVariants = rawColVariants.filter(isVariantInStock);
+    const colVariantPool = inStockColVariants.length > 0 ? inStockColVariants : rawColVariants;
+
     const initialList = (col.combinations && col.combinations.length > 0) 
-      ? col.combinations 
-      : (col.variants || []).map(v => {
+      ? col.combinations.filter(c => c.inStock !== false)
+      : colVariantPool.map(v => {
           const vDisplay = getDisplayData(col, v);
           return {
             id: v.id.toString(),
@@ -146,6 +159,7 @@ const Products = () => {
             formattedPrice: vDisplay.formattedPrice,
             isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
             fakeSoldCount: Number(v.fakeSoldCount) || 0,
+            inStock: isVariantInStock(v),
           };
         }).filter(combo => Boolean(combo.isSoldConfiguration === true || combo.isSoldConfiguration === 1 || combo.isSoldConfiguration === 'true' || col.isSoldConfiguration === true));
 
@@ -155,8 +169,10 @@ const Products = () => {
       const res = await fetchProduct(col.id);
       const fullProduct = (res && res.data) ? res.data : col;
       const rawVariants = fullProduct.variants || col.variants || [];
+      const inStockVariants = rawVariants.filter(isVariantInStock);
+      const variantPool = inStockVariants.length > 0 ? inStockVariants : rawVariants;
       
-      const soldConfigs = rawVariants
+      const soldConfigs = variantPool
         .filter(v => Boolean(
           v.isSoldConfiguration === true || 
           v.isSoldConfiguration === 1 || 
@@ -173,6 +189,7 @@ const Products = () => {
             formattedPrice: vDisplay.formattedPrice,
             isSoldConfiguration: true,
             fakeSoldCount: Number(v.fakeSoldCount) || 0,
+            inStock: isVariantInStock(v),
           };
         });
 

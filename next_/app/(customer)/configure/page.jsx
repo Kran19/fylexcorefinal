@@ -82,6 +82,15 @@ function ConfigureContent() {
           .filter(Boolean);
         setMedia360(threeSixty);
 
+        const isVariantInStock = (v) => {
+          if (!v) return false;
+          if (v.isActive === false || v.isAvailable === false) return false;
+          if (v.status === 'OUT_OF_STOCK' || v.status === 'INACTIVE') return false;
+          const qty = Number(v.qty !== undefined ? v.qty : (v.stock !== undefined ? v.stock : 1));
+          const reserved = Number(v.reservedQuantity || 0);
+          return (qty - reserved) > 0;
+        };
+
         const attrMap = {};
         (p.variants || []).forEach(v => {
           (v.variantAttributes || []).forEach(va => {
@@ -109,11 +118,84 @@ function ConfigureContent() {
         setStepsData(dynamicSteps);
         setVariants(p.variants || []);
 
-        // Load selections from URL or defaults
+        // Helper to normalize attribute names
+        const normalizeKey = (k) => {
+          if (!k) return '';
+          const clean = k.toLowerCase().trim();
+          if (clean.includes('dial')) return 'dial';
+          if (clean.includes('belt') || clean.includes('strap')) return 'belt';
+          if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
+          return clean;
+        };
+
+        // Helper to get in-stock compatible options given intermediate selections
+        const getValidOptionsForStep = (step, currentSelections, allSteps, allVariants) => {
+          if (!step || !step.options) return [];
+          if (!allVariants || allVariants.length === 0) return step.options;
+
+          const inStockPool = allVariants.filter(isVariantInStock);
+          const pool = inStockPool.length > 0 ? inStockPool : allVariants;
+
+          const currentStepIdx = allSteps.findIndex(s => s.id === step.id);
+          const currentNormKey = normalizeKey(step.id);
+
+          if (currentStepIdx <= 0) {
+            const filtered = step.options.filter(opt => {
+              const optNormLabel = opt.name.toLowerCase().trim();
+              return pool.some(v => {
+                const vAttrs = v.variantAttributes || [];
+                return vAttrs.some(va => {
+                  const attrKey = normalizeKey(va.attributeValue?.attribute?.name);
+                  const label = (va.attributeValue?.label || '').toLowerCase().trim();
+                  return attrKey === currentNormKey && label === optNormLabel;
+                });
+              });
+            });
+            return filtered.length > 0 ? filtered : step.options;
+          }
+
+          const prevSteps = allSteps.slice(0, currentStepIdx);
+          const prevSelections = {};
+          prevSteps.forEach(pStep => {
+            const selectedVal = currentSelections[pStep.id];
+            if (selectedVal) {
+              prevSelections[normalizeKey(pStep.id)] = selectedVal.toLowerCase().trim();
+            }
+          });
+
+          const compatible = step.options.filter(opt => {
+            const optNormLabel = opt.name.toLowerCase().trim();
+            return pool.some(v => {
+              const vAttrs = v.variantAttributes || [];
+
+              const hasCurrentOpt = vAttrs.some(va => {
+                const attrKey = normalizeKey(va.attributeValue?.attribute?.name);
+                const label = (va.attributeValue?.label || '').toLowerCase().trim();
+                return attrKey === currentNormKey && label === optNormLabel;
+              });
+
+              if (!hasCurrentOpt) return false;
+
+              return Object.entries(prevSelections).every(([pKey, pVal]) => {
+                return vAttrs.some(va => {
+                  const attrKey = normalizeKey(va.attributeValue?.attribute?.name);
+                  const label = (va.attributeValue?.label || '').toLowerCase().trim();
+                  return attrKey === pKey && label === pVal;
+                });
+              });
+            });
+          });
+
+          return compatible.length > 0 ? compatible : step.options;
+        };
+
+        // Load selections from URL or defaults, prioritizing in-stock combinations
         const initialSelections = {};
         dynamicSteps.forEach(step => {
           const urlVal = searchParams.get(step.id);
-          initialSelections[step.id] = urlVal || step.options[0]?.name;
+          const validOpts = getValidOptionsForStep(step, initialSelections, dynamicSteps, p.variants || []);
+          const matchOpt = validOpts.find(o => o.name.toLowerCase() === (urlVal || '').toLowerCase());
+          initialSelections[step.id] = matchOpt ? matchOpt.name : (validOpts[0]?.name || step.options[0]?.name);
         });
         setUserSelections(initialSelections);
 
@@ -146,30 +228,63 @@ function ConfigureContent() {
     loadProduct();
   }, [watchId]);
 
-  const getCompatibleOptions = (step) => {
+  const isVariantInStock = (v) => {
+    if (!v) return false;
+    if (v.isActive === false || v.isAvailable === false) return false;
+    if (v.status === 'OUT_OF_STOCK' || v.status === 'INACTIVE') return false;
+    const qty = Number(v.qty !== undefined ? v.qty : (v.stock !== undefined ? v.stock : 1));
+    const reserved = Number(v.reservedQuantity || 0);
+    return (qty - reserved) > 0;
+  };
+
+  const normalizeAttrKey = (k) => {
+    if (!k) return '';
+    const clean = k.toLowerCase().trim();
+    if (clean.includes('dial')) return 'dial';
+    if (clean.includes('belt') || clean.includes('strap')) return 'belt';
+    if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
+    return clean;
+  };
+
+  const getCompatibleOptionsForSelections = (step, selections) => {
     if (!step || !step.options) return [];
     if (!variants || variants.length === 0) return step.options;
 
+    const inStockPool = variants.filter(isVariantInStock);
+    const pool = inStockPool.length > 0 ? inStockPool : variants;
+
     const currentStepIdx = stepsData.findIndex(s => s.id === step.id);
+    const currentNormKey = normalizeAttrKey(step.id);
 
-    // Step 0 (First step, e.g. Case Color): ALWAYS show all options!
-    if (currentStepIdx <= 0) return step.options;
+    // Step 0: Filter so only options that have at least one in-stock variant appear
+    if (currentStepIdx <= 0) {
+      const available = step.options.filter(opt => {
+        const optNormLabel = opt.name.toLowerCase().trim();
+        return pool.some(v => {
+          const vAttrs = v.variantAttributes || [];
+          return vAttrs.some(va => {
+            const attrKey = normalizeAttrKey(va.attributeValue?.attribute?.name);
+            const label = (va.attributeValue?.label || '').toLowerCase().trim();
+            return attrKey === currentNormKey && label === optNormLabel;
+          });
+        });
+      });
+      return available.length > 0 ? available : step.options;
+    }
 
-    // Subsequent steps: Filter based ONLY on PREVIOUS steps' selections!
+    // Subsequent steps: Filter based ONLY on PREVIOUS steps' selections AND in-stock!
     const prevSteps = stepsData.slice(0, currentStepIdx);
     const prevSelections = {};
     prevSteps.forEach(pStep => {
-      const selectedVal = userSelections[pStep.id];
+      const selectedVal = selections[pStep.id];
       if (selectedVal) {
         prevSelections[normalizeAttrKey(pStep.id)] = selectedVal.toLowerCase().trim();
       }
     });
 
-    const currentNormKey = normalizeAttrKey(step.id);
-
     const compatible = step.options.filter(opt => {
       const optNormLabel = opt.name.toLowerCase().trim();
-      return variants.some(v => {
+      return pool.some(v => {
         const vAttrs = v.variantAttributes || [];
 
         const hasCurrentOpt = vAttrs.some(va => {
@@ -193,109 +308,36 @@ function ConfigureContent() {
     return compatible.length > 0 ? compatible : step.options;
   };
 
-  const previewImgRef = useRef(null);
-  const configuratorRef = useRef(null);
-  const storyRef = useRef(null);
-  const parallaxInited = useRef(false);
-
-  useEffect(() => {
-    const lenis = new Lenis({ lerp: 0.1, smoothWheel: true, syncTouch: true });
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => lenis.raf(time * 1000));
-    return () => {
-      lenis.destroy();
-      gsap.ticker.remove((time) => lenis.raf(time * 1000));
-    };
-  }, []);
-
-  const isLastStep = currentStep >= 0 && currentStep === stepsData.length - 1;
-  const isDialStep = currentStep >= 0 && currentStep < stepsData.length && stepsData[currentStep].id === 'dial';
-
-  useEffect(() => {
-    if (isLastStep) setTimeout(() => ScrollTrigger.refresh(), 120);
-  }, [isLastStep]);
-
-  useEffect(() => {
-    if (isDialStep && !appliedDial) setAppliedDial(dialOptions[0]?.dialImg);
-  }, [isDialStep, appliedDial, dialOptions]);
-
-  if (loading) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: '#111' }}>Initializing Configurator...</div>;
-  if (!product) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', color: '#111' }}>Product not found.</div>;
-
-  const handleCategoryClick = (idx) => {
-    setCurrentStep(idx);
-    setViewMode('variants');
-  };
-
-  const resetToOverview = () => {
-    setCurrentStep(-1);
-    setViewMode('angles');
-  };
-
-  const updatePreviewImage = (src) => {
-    if (!src) return;
-    setPreviewSrc(src);
-    if (previewImgRef.current) {
-      gsap.fromTo(
-        previewImgRef.current,
-        { scale: 0.95, opacity: 0.7 },
-        { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' }
-      );
-    }
-  };
-
-  const handlePrevStep = () => {
-    if (currentStep > 0) {
-      const prevStepIdx = currentStep - 1;
-      setCurrentStep(prevStepIdx);
-
-      const prevStepId = stepsData[prevStepIdx].id;
-      const savedSelection = userSelections[prevStepId];
-      const optIdx = stepsData[prevStepIdx].options.findIndex(o => o.name === savedSelection);
-      setActiveOpt(optIdx >= 0 ? optIdx : 0);
-      setActiveThumb(0);
-
-      const match = findMatchingVariant(userSelections);
-      if (match) {
-        const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media;
-        const vPath = getFileUrl(vImg);
-        updatePreviewImage(vPath || stepsData[prevStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
-        setDisplayPrice(`₹${Number(match.sellingPrice || 0).toLocaleString('en-IN')}`);
-
-        const vBgPath = resolveProductBackground(product, match);
-        const matchGallery = (match.variantImages || []).map(vi =>
-          getFileUrl(vi.media || vi)
-        ).filter(Boolean);
-        setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath, heroImage: vPath || prev.heroImage }));
-      } else {
-        updatePreviewImage(stepsData[prevStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
-      }
-    } else if (currentStep === 0) {
-      resetToOverview();
-    }
-  };
-
-
-
-  const normalizeAttrKey = (k) => {
-    if (!k) return '';
-    const clean = k.toLowerCase().trim();
-    if (clean.includes('dial')) return 'dial';
-    if (clean.includes('belt') || clean.includes('strap')) return 'belt';
-    if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
-    return clean;
+  const getCompatibleOptions = (step) => {
+    return getCompatibleOptionsForSelections(step, userSelections);
   };
 
   const findMatchingVariant = (targetSelections) => {
     if (!variants || variants.length === 0) return null;
+
+    const inStockPool = variants.filter(isVariantInStock);
+    const pool = inStockPool.length > 0 ? inStockPool : variants;
 
     const normalizedTarget = {};
     Object.entries(targetSelections).forEach(([k, v]) => {
       if (v) normalizedTarget[normalizeAttrKey(k)] = v.toLowerCase().trim();
     });
 
-    // 1. Try exact match for all normalized attributes
-    const exact = variants.find(v => {
+    // 1. Try exact in-stock match
+    const exactInStock = inStockPool.find(v => {
+      const vAttrs = v.variantAttributes || [];
+      return Object.entries(normalizedTarget).every(([normKey, normVal]) => {
+        return vAttrs.some(va => {
+          const attrName = normalizeAttrKey(va.attributeValue?.attribute?.name);
+          const label = (va.attributeValue?.label || '').toLowerCase().trim();
+          return attrName === normKey && label === normVal;
+        });
+      });
+    });
+    if (exactInStock) return exactInStock;
+
+    // 2. Exact match in full pool
+    const exact = pool.find(v => {
       const vAttrs = v.variantAttributes || [];
       return Object.entries(normalizedTarget).every(([normKey, normVal]) => {
         return vAttrs.some(va => {
@@ -307,11 +349,11 @@ function ConfigureContent() {
     });
     if (exact) return exact;
 
-    // 2. Carry-forward fallback: score variants by highest number of matching attributes
-    let bestMatch = variants[0];
+    // 3. Fallback: Score variants by highest number of matching attributes
+    let bestMatch = pool[0] || variants[0];
     let highestScore = -1;
 
-    variants.forEach(v => {
+    pool.forEach(v => {
       const vAttrs = v.variantAttributes || [];
       let score = 0;
       Object.entries(normalizedTarget).forEach(([normKey, normVal]) => {
@@ -335,10 +377,21 @@ function ConfigureContent() {
     const stepId = stepsData[currentStep]?.id;
     if (!stepId || !optName) return;
 
-    // Explicit user choice for current step and carry-forward selections
-    const targetSelections = { ...userSelections, [stepId]: optName };
+    // Build tentative new selections
+    let targetSelections = { ...userSelections, [stepId]: optName };
 
-    // Retain explicit user choices for userSelections
+    // Auto-reconcile subsequent steps so all remaining attributes stay in stock!
+    for (let i = currentStep + 1; i < stepsData.length; i++) {
+      const nextStep = stepsData[i];
+      const validOptions = getCompatibleOptionsForSelections(nextStep, targetSelections);
+      const currentNextVal = targetSelections[nextStep.id];
+      if (!validOptions.some(o => o.name.toLowerCase() === (currentNextVal || '').toLowerCase())) {
+        if (validOptions[0]?.name) {
+          targetSelections[nextStep.id] = validOptions[0].name;
+        }
+      }
+    }
+
     setUserSelections(targetSelections);
 
     const match = findMatchingVariant(targetSelections);
@@ -346,7 +399,7 @@ function ConfigureContent() {
       const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media || match;
       const vPath = getFileUrl(vImg);
       updatePreviewImage(vPath || src);
-      setDisplayPrice(`₹${Number(match.sellingPrice || 0).toLocaleString('en-IN')}`);
+      setDisplayPrice(`₹${Number(match.sellingPrice || match.price || 0).toLocaleString('en-IN')}`);
 
       const vBgPath = resolveProductBackground(product, match);
       const matchGallery = (match.variantImages || []).map(vi =>
@@ -359,23 +412,33 @@ function ConfigureContent() {
     setActiveThumb(-1);
   };
 
-  const handleNextStep = () => {
-    if (currentStep < stepsData.length - 1) {
-      const nextStepIdx = currentStep + 1;
-      setCurrentStep(nextStepIdx);
+  const handlePrevStep = () => {
+    if (currentStep > 0) {
+      const prevStepIdx = currentStep - 1;
+      const prevStep = stepsData[prevStepIdx];
+      const prevStepId = prevStep.id;
 
-      const nextStepId = stepsData[nextStepIdx].id;
-      const savedSelection = userSelections[nextStepId];
-      const optIdx = stepsData[nextStepIdx].options.findIndex(o => o.name === savedSelection);
+      const validOptions = getCompatibleOptionsForSelections(prevStep, userSelections);
+      let selectedName = userSelections[prevStepId];
+
+      if (!validOptions.some(o => o.name.toLowerCase() === (selectedName || '').toLowerCase())) {
+        selectedName = validOptions[0]?.name || '';
+      }
+
+      const updatedSelections = { ...userSelections, [prevStepId]: selectedName };
+      setUserSelections(updatedSelections);
+      setCurrentStep(prevStepIdx);
+
+      const optIdx = validOptions.findIndex(o => o.name === selectedName);
       setActiveOpt(optIdx >= 0 ? optIdx : 0);
       setActiveThumb(0);
 
-      const match = findMatchingVariant(userSelections);
+      const match = findMatchingVariant(updatedSelections);
       if (match) {
         const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media || match;
         const vPath = getFileUrl(vImg);
-        updatePreviewImage(vPath || stepsData[nextStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
-        setDisplayPrice(`₹${Number(match.sellingPrice || 0).toLocaleString('en-IN')}`);
+        updatePreviewImage(vPath || validOptions[optIdx >= 0 ? optIdx : 0]?.img);
+        setDisplayPrice(`₹${Number(match.sellingPrice || match.price || 0).toLocaleString('en-IN')}`);
 
         const vBgPath = resolveProductBackground(product, match);
         const matchGallery = (match.variantImages || []).map(vi =>
@@ -383,7 +446,48 @@ function ConfigureContent() {
         ).filter(Boolean);
         setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath, heroImage: vPath || prev.heroImage }));
       } else {
-        updatePreviewImage(stepsData[nextStepIdx].options[optIdx >= 0 ? optIdx : 0].img);
+        updatePreviewImage(validOptions[optIdx >= 0 ? optIdx : 0]?.img);
+      }
+    } else if (currentStep === 0) {
+      resetToOverview();
+    }
+  };
+
+  const handleNextStep = () => {
+    if (currentStep < stepsData.length - 1) {
+      const nextStepIdx = currentStep + 1;
+      const nextStep = stepsData[nextStepIdx];
+      const nextStepId = nextStep.id;
+
+      const validOptions = getCompatibleOptionsForSelections(nextStep, userSelections);
+      let selectedName = userSelections[nextStepId];
+
+      if (!validOptions.some(o => o.name.toLowerCase() === (selectedName || '').toLowerCase())) {
+        selectedName = validOptions[0]?.name || '';
+      }
+
+      const updatedSelections = { ...userSelections, [nextStepId]: selectedName };
+      setUserSelections(updatedSelections);
+      setCurrentStep(nextStepIdx);
+
+      const optIdx = validOptions.findIndex(o => o.name === selectedName);
+      setActiveOpt(optIdx >= 0 ? optIdx : 0);
+      setActiveThumb(0);
+
+      const match = findMatchingVariant(updatedSelections);
+      if (match) {
+        const vImg = match.variantImages?.find(vi => vi.type === 'MAIN')?.media || match.variantImages?.[0]?.media || match;
+        const vPath = getFileUrl(vImg);
+        updatePreviewImage(vPath || validOptions[optIdx >= 0 ? optIdx : 0]?.img);
+        setDisplayPrice(`₹${Number(match.sellingPrice || match.price || 0).toLocaleString('en-IN')}`);
+
+        const vBgPath = resolveProductBackground(product, match);
+        const matchGallery = (match.variantImages || []).map(vi =>
+          getFileUrl(vi.media || vi)
+        ).filter(Boolean);
+        setProduct(prev => ({ ...prev, galleryImages: matchGallery, heroBgImage: vBgPath, heroImage: vPath || prev.heroImage }));
+      } else {
+        updatePreviewImage(validOptions[optIdx >= 0 ? optIdx : 0]?.img);
       }
     } else {
       // Final completed step - Navigate to /configured outcome page!
@@ -632,7 +736,21 @@ function ConfigureContent() {
           <div className="c-summary-footer">
             <div className="f-info">
               <h3 className="f-title">{product.title}</h3>
-              <span className="f-price">{displayPrice}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="f-price">{displayPrice}</span>
+                {(() => {
+                  const match = findMatchingVariant(userSelections);
+                  const inStock = isVariantInStock(match);
+                  if (match && !inStock) {
+                    return (
+                      <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', background: 'rgba(239, 68, 68, 0.12)', padding: '2px 8px', borderRadius: '4px' }}>
+                        Out of Stock
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
               {Boolean((product?.variants || []).find(v => {
                 const vAttrs = v.variantAttributes || [];
                 return Object.entries(userSelections).every(([sKey, sVal]) => 
