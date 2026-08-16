@@ -74,6 +74,24 @@ function ConfigureContent() {
     setViewMode('angles');
   };
 
+  const isVariantInStock = (v) => {
+    if (!v) return false;
+    if (v.isActive === false || v.isAvailable === false) return false;
+    if (v.status === 'OUT_OF_STOCK' || v.status === 'INACTIVE') return false;
+    const qty = Number(v.qty !== undefined ? v.qty : (v.stock !== undefined ? v.stock : 1));
+    const reserved = Number(v.reservedQuantity || 0);
+    return (qty - reserved) > 0;
+  };
+
+  const normalizeAttrKey = (k) => {
+    if (!k) return '';
+    const clean = String(k).toLowerCase().trim();
+    if (clean.includes('dial')) return 'dial';
+    if (clean.includes('belt') || clean.includes('strap')) return 'belt';
+    if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
+    return clean;
+  };
+
   // Sync state to URL
   useEffect(() => {
     if (Object.keys(userSelections).length > 0) {
@@ -118,15 +136,6 @@ function ConfigureContent() {
           .map(m => getFileUrl(m.media || m))
           .filter(Boolean);
         setMedia360(threeSixty);
-
-        const isVariantInStock = (v) => {
-          if (!v) return false;
-          if (v.isActive === false || v.isAvailable === false) return false;
-          if (v.status === 'OUT_OF_STOCK' || v.status === 'INACTIVE') return false;
-          const qty = Number(v.qty !== undefined ? v.qty : (v.stock !== undefined ? v.stock : 1));
-          const reserved = Number(v.reservedQuantity || 0);
-          return (qty - reserved) > 0;
-        };
 
         const attrMap = {};
         (p.variants || []).forEach(v => {
@@ -267,24 +276,6 @@ function ConfigureContent() {
     };
     loadProduct();
   }, [watchId]);
-
-  const isVariantInStock = (v) => {
-    if (!v) return false;
-    if (v.isActive === false || v.isAvailable === false) return false;
-    if (v.status === 'OUT_OF_STOCK' || v.status === 'INACTIVE') return false;
-    const qty = Number(v.qty !== undefined ? v.qty : (v.stock !== undefined ? v.stock : 1));
-    const reserved = Number(v.reservedQuantity || 0);
-    return (qty - reserved) > 0;
-  };
-
-  const normalizeAttrKey = (k) => {
-    if (!k) return '';
-    const clean = k.toLowerCase().trim();
-    if (clean.includes('dial')) return 'dial';
-    if (clean.includes('belt') || clean.includes('strap')) return 'belt';
-    if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
-    return clean;
-  };
 
   const getCompatibleOptionsForSelections = (step, selections) => {
     if (!step || !step.options) return [];
@@ -812,21 +803,6 @@ function ConfigureContent() {
                   return null;
                 })()}
               </div>
-              {Boolean((product?.variants || []).find(v => {
-                const vAttrs = v.variantAttributes || [];
-                return Object.entries(userSelections).every(([sKey, sVal]) => 
-                  vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim() === sVal.toLowerCase().trim())
-                );
-              })?.isSoldConfiguration || product?.isSoldConfiguration || (product?.variants || []).some(v => v.isSoldConfiguration)) && (
-                <span style={{ fontSize: '11px', color: '#008767', fontWeight: '700', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  Sold Configuration &bull; {(product?.variants || []).find(v => {
-                    const vAttrs = v.variantAttributes || [];
-                    return Object.entries(userSelections).every(([sKey, sVal]) => 
-                      vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim() === sVal.toLowerCase().trim())
-                    );
-                  })?.fakeSoldCount || product?.fakeSoldCount || (product?.variants || []).find(v => (v.fakeSoldCount || 0) > 0)?.fakeSoldCount || 0} Built
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -837,22 +813,6 @@ function ConfigureContent() {
           <button className="alert-top-close" onClick={() => setShowCustomAlert(false)}><X size={22} /></button>
           <div className="alert-content-grid">
             <h2 className="alert-watch-title">{product?.title || ''}</h2>
-            {Boolean((product?.variants || []).find(v => {
-              const vAttrs = v.variantAttributes || [];
-              return Object.entries(userSelections).every(([sKey, sVal]) => 
-                vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim() === sVal.toLowerCase().trim())
-              );
-            })?.isSoldConfiguration || product?.isSoldConfiguration || (product?.variants || []).some(v => v.isSoldConfiguration)) && (
-              <div style={{ margin: '6px 0 16px 0', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'rgba(0, 135, 103, 0.12)', border: '1px solid rgba(0, 135, 103, 0.3)', borderRadius: '999px', color: '#008767', fontSize: '11px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#008767', display: 'inline-block' }}></span>
-                Sold Configuration &bull; {(product?.variants || []).find(v => {
-                  const vAttrs = v.variantAttributes || [];
-                  return Object.entries(userSelections).every(([sKey, sVal]) => 
-                    vAttrs.some(va => normalizeAttrKey(va.attributeValue?.attribute?.name) === sKey && (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim() === sVal.toLowerCase().trim())
-                  );
-                })?.fakeSoldCount || product?.fakeSoldCount || (product?.variants || []).find(v => (v.fakeSoldCount || 0) > 0)?.fakeSoldCount || 0} Built
-              </div>
-            )}
             <div className="alert-selections-bar">
               {Object.entries(userSelections).map(([key, val], idx, arr) => {
                 let formattedKey = key
