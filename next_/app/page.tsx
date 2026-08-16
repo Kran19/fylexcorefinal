@@ -578,10 +578,16 @@ const Home = () => {
           position: absolute;
           inset: 0;
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: center;
+          padding-top: 15vh;
           pointer-events: none;
           z-index: 10;
+        }
+
+        .dial-card-container .label {
+          font-size: 0.85rem;
+          letter-spacing: 0.45em;
         }
 
         .dial-card-1 {
