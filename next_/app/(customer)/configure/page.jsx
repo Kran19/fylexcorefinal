@@ -37,6 +37,43 @@ function ConfigureContent() {
   const [userSelections, setUserSelections] = useState({});
   const [displayPrice, setDisplayPrice] = useState('');
 
+  const previewImgRef = useRef(null);
+  const configuratorRef = useRef(null);
+  const storyRef = useRef(null);
+  const parallaxInited = useRef(false);
+
+  useEffect(() => {
+    const lenis = new Lenis({ lerp: 0.1, smoothWheel: true, syncTouch: true });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    return () => {
+      lenis.destroy();
+      gsap.ticker.remove((time) => lenis.raf(time * 1000));
+    };
+  }, []);
+
+  const updatePreviewImage = (src) => {
+    if (!src) return;
+    setPreviewSrc(src);
+    if (previewImgRef.current) {
+      gsap.fromTo(
+        previewImgRef.current,
+        { scale: 0.95, opacity: 0.7 },
+        { scale: 1, opacity: 1, duration: 0.4, ease: 'power2.out' }
+      );
+    }
+  };
+
+  const handleCategoryClick = (idx) => {
+    setCurrentStep(idx);
+    setViewMode('variants');
+  };
+
+  const resetToOverview = () => {
+    setCurrentStep(-1);
+    setViewMode('angles');
+  };
+
   // Sync state to URL
   useEffect(() => {
     if (Object.keys(userSelections).length > 0) {
