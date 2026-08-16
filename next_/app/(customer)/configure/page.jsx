@@ -132,15 +132,17 @@ function ConfigureContent() {
         (p.variants || []).forEach(v => {
           (v.variantAttributes || []).forEach(va => {
             const attr = va.attributeValue?.attribute;
-            if (!attr) return;
+            if (!attr || !attr.name) return;
+            const valLabel = va.attributeValue?.label || va.attributeValue?.value || '';
+            if (!valLabel) return;
             if (!attrMap[attr.name]) {
               attrMap[attr.name] = { id: attr.id, title: `Choose your ${attr.name.toLowerCase()}`, options: [] };
             }
-            if (!attrMap[attr.name].options.some(o => o.name === va.attributeValue.label)) {
+            if (!attrMap[attr.name].options.some(o => o.name === valLabel)) {
               attrMap[attr.name].options.push({
-                name: va.attributeValue.label,
+                name: valLabel,
                 img: resolveProductImage(p, v),
-                dialImg: va.attributeValue.label.toLowerCase().includes('dial') ? resolveProductImage(p, v) : null
+                dialImg: valLabel.toLowerCase().includes('dial') ? resolveProductImage(p, v) : null
               });
             }
           });
@@ -178,12 +180,12 @@ function ConfigureContent() {
 
           if (currentStepIdx <= 0) {
             const filtered = step.options.filter(opt => {
-              const optNormLabel = opt.name.toLowerCase().trim();
+              const optNormLabel = (opt.name || '').toLowerCase().trim();
               return pool.some(v => {
                 const vAttrs = v.variantAttributes || [];
                 return vAttrs.some(va => {
                   const attrKey = normalizeKey(va.attributeValue?.attribute?.name);
-                  const label = (va.attributeValue?.label || '').toLowerCase().trim();
+                  const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
                   return attrKey === currentNormKey && label === optNormLabel;
                 });
               });
@@ -201,13 +203,13 @@ function ConfigureContent() {
           });
 
           const compatible = step.options.filter(opt => {
-            const optNormLabel = opt.name.toLowerCase().trim();
+            const optNormLabel = (opt.name || '').toLowerCase().trim();
             return pool.some(v => {
               const vAttrs = v.variantAttributes || [];
 
               const hasCurrentOpt = vAttrs.some(va => {
                 const attrKey = normalizeKey(va.attributeValue?.attribute?.name);
-                const label = (va.attributeValue?.label || '').toLowerCase().trim();
+                const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
                 return attrKey === currentNormKey && label === optNormLabel;
               });
 
@@ -216,7 +218,7 @@ function ConfigureContent() {
               return Object.entries(prevSelections).every(([pKey, pVal]) => {
                 return vAttrs.some(va => {
                   const attrKey = normalizeKey(va.attributeValue?.attribute?.name);
-                  const label = (va.attributeValue?.label || '').toLowerCase().trim();
+                  const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
                   return attrKey === pKey && label === pVal;
                 });
               });
@@ -231,8 +233,8 @@ function ConfigureContent() {
         dynamicSteps.forEach(step => {
           const urlVal = searchParams.get(step.id);
           const validOpts = getValidOptionsForStep(step, initialSelections, dynamicSteps, p.variants || []);
-          const matchOpt = validOpts.find(o => o.name.toLowerCase() === (urlVal || '').toLowerCase());
-          initialSelections[step.id] = matchOpt ? matchOpt.name : (validOpts[0]?.name || step.options[0]?.name);
+          const matchOpt = validOpts.find(o => (o.name || '').toLowerCase() === (urlVal || '').toLowerCase());
+          initialSelections[step.id] = matchOpt ? matchOpt.name : (validOpts[0]?.name || step.options[0]?.name || '');
         });
         setUserSelections(initialSelections);
 
@@ -241,8 +243,9 @@ function ConfigureContent() {
           const vAttrs = v.variantAttributes || [];
           if (vAttrs.length === 0) return false;
           return vAttrs.every(va => {
-            const attrName = va.attributeValue?.attribute?.name?.toLowerCase();
-            return initialSelections[attrName] === va.attributeValue?.label;
+            const attrName = (va.attributeValue?.attribute?.name || '').toLowerCase();
+            const valLabel = va.attributeValue?.label || va.attributeValue?.value || '';
+            return initialSelections[attrName] === valLabel;
           });
         });
 
@@ -296,12 +299,12 @@ function ConfigureContent() {
     // Step 0: Filter so only options that have at least one in-stock variant appear
     if (currentStepIdx <= 0) {
       const available = step.options.filter(opt => {
-        const optNormLabel = opt.name.toLowerCase().trim();
+        const optNormLabel = (opt.name || '').toLowerCase().trim();
         return pool.some(v => {
           const vAttrs = v.variantAttributes || [];
           return vAttrs.some(va => {
             const attrKey = normalizeAttrKey(va.attributeValue?.attribute?.name);
-            const label = (va.attributeValue?.label || '').toLowerCase().trim();
+            const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
             return attrKey === currentNormKey && label === optNormLabel;
           });
         });
@@ -315,18 +318,18 @@ function ConfigureContent() {
     prevSteps.forEach(pStep => {
       const selectedVal = selections[pStep.id];
       if (selectedVal) {
-        prevSelections[normalizeAttrKey(pStep.id)] = selectedVal.toLowerCase().trim();
+        prevSelections[normalizeAttrKey(pStep.id)] = String(selectedVal).toLowerCase().trim();
       }
     });
 
     const compatible = step.options.filter(opt => {
-      const optNormLabel = opt.name.toLowerCase().trim();
+      const optNormLabel = (opt.name || '').toLowerCase().trim();
       return pool.some(v => {
         const vAttrs = v.variantAttributes || [];
 
         const hasCurrentOpt = vAttrs.some(va => {
           const attrKey = normalizeAttrKey(va.attributeValue?.attribute?.name);
-          const label = (va.attributeValue?.label || '').toLowerCase().trim();
+          const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
           return attrKey === currentNormKey && label === optNormLabel;
         });
 
@@ -335,7 +338,7 @@ function ConfigureContent() {
         return Object.entries(prevSelections).every(([pKey, pVal]) => {
           return vAttrs.some(va => {
             const attrKey = normalizeAttrKey(va.attributeValue?.attribute?.name);
-            const label = (va.attributeValue?.label || '').toLowerCase().trim();
+            const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
             return attrKey === pKey && label === pVal;
           });
         });
@@ -356,8 +359,8 @@ function ConfigureContent() {
     const pool = inStockPool.length > 0 ? inStockPool : variants;
 
     const normalizedTarget = {};
-    Object.entries(targetSelections).forEach(([k, v]) => {
-      if (v) normalizedTarget[normalizeAttrKey(k)] = v.toLowerCase().trim();
+    Object.entries(targetSelections || {}).forEach(([k, v]) => {
+      if (v) normalizedTarget[normalizeAttrKey(k)] = String(v).toLowerCase().trim();
     });
 
     // 1. Try exact in-stock match
@@ -366,7 +369,7 @@ function ConfigureContent() {
       return Object.entries(normalizedTarget).every(([normKey, normVal]) => {
         return vAttrs.some(va => {
           const attrName = normalizeAttrKey(va.attributeValue?.attribute?.name);
-          const label = (va.attributeValue?.label || '').toLowerCase().trim();
+          const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
           return attrName === normKey && label === normVal;
         });
       });
@@ -379,7 +382,7 @@ function ConfigureContent() {
       return Object.entries(normalizedTarget).every(([normKey, normVal]) => {
         return vAttrs.some(va => {
           const attrName = normalizeAttrKey(va.attributeValue?.attribute?.name);
-          const label = (va.attributeValue?.label || '').toLowerCase().trim();
+          const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
           return attrName === normKey && label === normVal;
         });
       });
@@ -396,7 +399,7 @@ function ConfigureContent() {
       Object.entries(normalizedTarget).forEach(([normKey, normVal]) => {
         const matches = vAttrs.some(va => {
           const attrName = normalizeAttrKey(va.attributeValue?.attribute?.name);
-          const label = (va.attributeValue?.label || '').toLowerCase().trim();
+          const label = (va.attributeValue?.label || va.attributeValue?.value || '').toLowerCase().trim();
           return attrName === normKey && label === normVal;
         });
         if (matches) score += (normKey === 'case' ? 4 : normKey === 'dial' ? 2 : 1);
@@ -453,12 +456,13 @@ function ConfigureContent() {
     if (currentStep > 0) {
       const prevStepIdx = currentStep - 1;
       const prevStep = stepsData[prevStepIdx];
+      if (!prevStep) return;
       const prevStepId = prevStep.id;
 
       const validOptions = getCompatibleOptionsForSelections(prevStep, userSelections);
       let selectedName = userSelections[prevStepId];
 
-      if (!validOptions.some(o => o.name.toLowerCase() === (selectedName || '').toLowerCase())) {
+      if (!validOptions.some(o => (o.name || '').toLowerCase() === (selectedName || '').toLowerCase())) {
         selectedName = validOptions[0]?.name || '';
       }
 
@@ -466,7 +470,7 @@ function ConfigureContent() {
       setUserSelections(updatedSelections);
       setCurrentStep(prevStepIdx);
 
-      const optIdx = validOptions.findIndex(o => o.name === selectedName);
+      const optIdx = validOptions.findIndex(o => (o.name || '').toLowerCase() === (selectedName || '').toLowerCase());
       setActiveOpt(optIdx >= 0 ? optIdx : 0);
       setActiveThumb(0);
 
@@ -494,12 +498,13 @@ function ConfigureContent() {
     if (currentStep < stepsData.length - 1) {
       const nextStepIdx = currentStep + 1;
       const nextStep = stepsData[nextStepIdx];
+      if (!nextStep) return;
       const nextStepId = nextStep.id;
 
       const validOptions = getCompatibleOptionsForSelections(nextStep, userSelections);
       let selectedName = userSelections[nextStepId];
 
-      if (!validOptions.some(o => o.name.toLowerCase() === (selectedName || '').toLowerCase())) {
+      if (!validOptions.some(o => (o.name || '').toLowerCase() === (selectedName || '').toLowerCase())) {
         selectedName = validOptions[0]?.name || '';
       }
 
@@ -507,7 +512,7 @@ function ConfigureContent() {
       setUserSelections(updatedSelections);
       setCurrentStep(nextStepIdx);
 
-      const optIdx = validOptions.findIndex(o => o.name === selectedName);
+      const optIdx = validOptions.findIndex(o => (o.name || '').toLowerCase() === (selectedName || '').toLowerCase());
       setActiveOpt(optIdx >= 0 ? optIdx : 0);
       setActiveThumb(0);
 
@@ -757,7 +762,7 @@ function ConfigureContent() {
                   const stepKey = stepsData[currentStep]?.id;
                   const selectedVal = userSelections[stepKey];
                   const isSelected = selectedVal
-                    ? selectedVal.toLowerCase() === opt.name.toLowerCase()
+                    ? String(selectedVal).toLowerCase() === (opt?.name || '').toLowerCase()
                     : i === 0;
 
                   return (
@@ -772,9 +777,9 @@ function ConfigureContent() {
                         whiteSpace: 'nowrap',
                         marginRight: '16px'
                       }}
-                      onClick={() => handleOptClick(opt.name, opt.img)}
+                      onClick={() => handleOptClick(opt?.name, opt?.img)}
                     >
-                      {opt.name}
+                      {opt?.name || ''}
                     </span>
                   );
                 })}
