@@ -514,11 +514,30 @@ function ConfigureContent() {
     setFrameIndex(Math.abs(newIndex));
   };
 
+  if (loading) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#09090b', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
+        Initializing Configurator...
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#09090b', color: '#fff', fontFamily: "'Inter', sans-serif", gap: '16px' }}>
+        <p style={{ fontSize: '18px', fontWeight: 600 }}>Product not found.</p>
+        <Link href="/products" style={{ padding: '10px 24px', background: '#fff', color: '#000', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '13px' }}>
+          Back to Collections
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="customize-root">
       <style>{`
-        .customize-root { font-family: 'Inter', sans-serif; background: #f0f2f5; color: ${product.textColor}; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
-        #configurator { flex: 1; width: 100%; background: ${product.bgColor || product.gradient || 'radial-gradient(circle at center, #FFFFFF 0%, #ebedf0 100%)'}; position: relative; overflow: hidden; display: flex; flex-direction: column; z-index: 5; }
+        .customize-root { font-family: 'Inter', sans-serif; background: #f0f2f5; color: ${product?.textColor || '#1a1a1a'}; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
+        #configurator { flex: 1; width: 100%; background: ${product?.bgColor || product?.gradient || 'radial-gradient(circle at center, #FFFFFF 0%, #ebedf0 100%)'}; position: relative; overflow: hidden; display: flex; flex-direction: column; z-index: 5; }
         .top-actions { position: fixed; top: 100px; right: 30px; display: flex; align-items: center; gap: 15px; z-index: 999; }
         .close-btn { background: rgba(0,0,0,0.6); color: #fff; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); transition: transform 0.2s; }
         .close-btn:hover { transform: scale(1.1); }
@@ -735,7 +754,7 @@ function ConfigureContent() {
 
           <div className="c-summary-footer">
             <div className="f-info">
-              <h3 className="f-title">{product.title}</h3>
+              <h3 className="f-title">{product?.title || ''}</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span className="f-price">{displayPrice}</span>
                 {(() => {
@@ -775,7 +794,7 @@ function ConfigureContent() {
         <div className="alert-box">
           <button className="alert-top-close" onClick={() => setShowCustomAlert(false)}><X size={22} /></button>
           <div className="alert-content-grid">
-            <h2 className="alert-watch-title">{product.title}</h2>
+            <h2 className="alert-watch-title">{product?.title || ''}</h2>
             {Boolean((product?.variants || []).find(v => {
               const vAttrs = v.variantAttributes || [];
               return Object.entries(userSelections).every(([sKey, sVal]) => 
@@ -814,7 +833,7 @@ function ConfigureContent() {
               })}
             </div>
             <div className="alert-image-center">
-              <img src={previewSrc} alt={product.title} className="alert-watch-preview" />
+              <img src={previewSrc} alt={product?.title || 'Watch'} className="alert-watch-preview" />
             </div>
             <button className="alert-footer-btn" onClick={() => {
               const params = new URLSearchParams({ watch: watchId, ...userSelections });
