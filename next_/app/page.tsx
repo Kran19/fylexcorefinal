@@ -223,6 +223,10 @@ const GalleryCarousel = ({ items }: { items?: any[] }) => {
                   src={g.src} 
                   alt={g.alt || 'Atelier'} 
                   draggable={false} 
+                  style={g.rotation ? {
+                    transform: `rotate(${g.rotation}deg) ${(g.rotation % 180 !== 0) ? 'scale(1.35)' : 'scale(1)'}`,
+                    transition: 'transform 0.3s ease'
+                  } : undefined}
                   onError={(e: any) => {
                     e.currentTarget.onerror = null;
                     e.currentTarget.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1920';
@@ -322,7 +326,8 @@ const Home = () => {
         if (cImages && cImages.length > 0) {
           setCommunityImages(cImages.map((img: any) => ({
             src: getFileUrl(img.image || img.imageUrl || img.image_url || img.url),
-            alt: img.title || 'The FYLEX World'
+            alt: img.title || 'The FYLEX World',
+            rotation: Number(img.rotation) || 0,
           })));
         }
       } catch (err) {

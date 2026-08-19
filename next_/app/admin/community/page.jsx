@@ -19,7 +19,7 @@ const CommunityPage = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ title: '', image: '', sortOrder: 0, isActive: true });
+  const [formData, setFormData] = useState({ title: '', image: '', sortOrder: 0, isActive: true, rotation: 0 });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -58,6 +58,18 @@ const CommunityPage = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleRotateCard = async (e, img) => {
+    e.stopPropagation();
+    const nextRot = ((img.rotation || 0) + 90) % 360;
+    const res = await api.updateCommunityImage(img.id, { rotation: nextRot });
+    if (!res.error) {
+      toast?.success?.(`Image rotated to ${nextRot}°`);
+      fetchImages();
+    } else {
+      toast?.error?.(res.error);
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.image && !imageFile) {
       toast?.error?.('Please select an image from Media Library');
@@ -85,6 +97,7 @@ const CommunityPage = () => {
       image: imagePath,
       sortOrder: Number(formData.sortOrder) || 0,
       isActive: formData.isActive,
+      rotation: Number(formData.rotation) || 0,
     };
 
     let res;
@@ -105,7 +118,7 @@ const CommunityPage = () => {
   };
 
   const handleAdd = () => {
-    setFormData({ title: '', image: '', sortOrder: images.length, isActive: true });
+    setFormData({ title: '', image: '', sortOrder: images.length, isActive: true, rotation: 0 });
     setImageFile(null);
     setImagePreview('');
     setShowModal(true);
@@ -119,6 +132,7 @@ const CommunityPage = () => {
       image: img.image || '',
       sortOrder: img.sortOrder ?? 0,
       isActive: img.isActive ?? true,
+      rotation: img.rotation ?? 0,
     });
     setImageFile(null);
     setImagePreview(img.image ? getFileUrl(img.image) : '');
@@ -251,34 +265,49 @@ const CommunityPage = () => {
                     onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)'; }}
                     >
                       {/* Image */}
-                      <div style={{ position: 'relative', paddingTop: '100%', background: '#18181b' }}>
+                      <div style={{ position: 'relative', paddingTop: '100%', background: '#18181b', overflow: 'hidden' }}>
                         <img
                           src={resolvedUrl}
                           alt={img.title || 'Community'}
                           style={{
                             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                            objectFit: 'cover'
+                            objectFit: 'cover',
+                            transform: `rotate(${img.rotation || 0}deg) ${(img.rotation || 0) % 180 !== 0 ? 'scale(1.35)' : 'scale(1)'}`,
+                            transition: 'transform 0.3s ease'
                           }}
                         />
 
                         {/* Overlay actions */}
                         <div style={{
                           position: 'absolute', inset: 0,
-                          background: 'linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)',
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)',
                           opacity: 0, transition: 'opacity 0.25s', display: 'flex',
                           alignItems: 'flex-end', justifyContent: 'center',
-                          padding: '0 12px 14px', gap: 8
+                          padding: '0 8px 12px', gap: 6
                         }}
                         onMouseEnter={e => e.currentTarget.style.opacity = '1'}
                         onMouseLeave={e => e.currentTarget.style.opacity = '0'}
                         >
                           <button
+                            onClick={(e) => handleRotateCard(e, img)}
+                            title="Rotate 90°"
+                            style={{
+                              padding: '7px 10px', background: 'rgba(99,102,241,0.95)',
+                              border: 'none', borderRadius: 8, cursor: 'pointer',
+                              fontSize: 12, fontWeight: 600, color: '#fff',
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              backdropFilter: 'blur(8px)'
+                            }}
+                          >
+                            <i className="fas fa-redo"></i> Rotate
+                          </button>
+                          <button
                             onClick={() => handleEdit(img)}
                             style={{
-                              padding: '7px 14px', background: 'rgba(255,255,255,0.95)',
+                              padding: '7px 10px', background: 'rgba(255,255,255,0.95)',
                               border: 'none', borderRadius: 8, cursor: 'pointer',
                               fontSize: 12, fontWeight: 600, color: '#111',
-                              display: 'flex', alignItems: 'center', gap: 6,
+                              display: 'flex', alignItems: 'center', gap: 4,
                               backdropFilter: 'blur(8px)'
                             }}
                           >
@@ -287,28 +316,39 @@ const CommunityPage = () => {
                           <button
                             onClick={() => toggleStatus(img)}
                             style={{
-                              padding: '7px 14px',
+                              padding: '7px 10px',
                               background: img.isActive ? 'rgba(245,158,11,0.9)' : 'rgba(16,185,129,0.9)',
                               border: 'none', borderRadius: 8, cursor: 'pointer',
                               fontSize: 12, fontWeight: 600, color: '#fff',
-                              display: 'flex', alignItems: 'center', gap: 6
+                              display: 'flex', alignItems: 'center', gap: 4
                             }}
                           >
                             <i className={`fas fa-eye${img.isActive ? '-slash' : ''}`}></i>
-                            {img.isActive ? 'Hide' : 'Show'}
                           </button>
                           <button
                             onClick={() => setDeleteTarget(img)}
                             style={{
-                              padding: '7px 14px', background: 'rgba(239,68,68,0.9)',
+                              padding: '7px 10px', background: 'rgba(239,68,68,0.9)',
                               border: 'none', borderRadius: 8, cursor: 'pointer',
                               fontSize: 12, fontWeight: 600, color: '#fff',
-                              display: 'flex', alignItems: 'center', gap: 6
+                              display: 'flex', alignItems: 'center', gap: 4
                             }}
                           >
                             <i className="fas fa-trash-alt"></i>
                           </button>
                         </div>
+
+                        {/* Rotation indicator pill */}
+                        {Boolean(img.rotation) && (
+                          <div style={{
+                            position: 'absolute', top: 10, left: 10,
+                            padding: '3px 8px', borderRadius: 20,
+                            background: 'rgba(99,102,241,0.9)', color: '#fff',
+                            fontSize: 10, fontWeight: 700, backdropFilter: 'blur(4px)'
+                          }}>
+                            {img.rotation}°
+                          </div>
+                        )}
 
                         {/* Status badge */}
                         <div style={{
@@ -385,9 +425,24 @@ const CommunityPage = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Image Upload/Preview */}
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Image *
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', margin: 0 }}>
+                  Image *
+                </label>
+                {formData.image && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, rotation: ((prev.rotation || 0) + 90) % 360 }))}
+                    style={{
+                      padding: '4px 10px', background: '#e0e7ff', color: '#4338ca',
+                      border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                    }}
+                  >
+                    <i className="fas fa-redo"></i> Rotate ({formData.rotation || 0}°)
+                  </button>
+                )}
+              </div>
               <div 
                 onClick={() => setIsPickerOpen(true)}
                 style={{
@@ -402,7 +457,11 @@ const CommunityPage = () => {
                     <img
                       src={getFileUrl(formData.image)}
                       alt="Preview"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      style={{
+                        width: '100%', height: '100%', objectFit: 'cover',
+                        transform: `rotate(${formData.rotation || 0}deg) ${(formData.rotation || 0) % 180 !== 0 ? 'scale(1.35)' : 'scale(1)'}`,
+                        transition: 'transform 0.3s ease'
+                      }}
                     />
                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', opacity: 0, transition: '0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 13 }} className="hover:opacity-100 opacity-hover">
                       <i className="fas fa-folder-open mr-2"></i> Select from Media Library

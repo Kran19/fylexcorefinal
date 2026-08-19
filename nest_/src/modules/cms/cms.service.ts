@@ -253,6 +253,7 @@ export class CmsService {
         image: data.image,
         sortOrder: Number(data.sortOrder) || 0,
         isActive: data.isActive !== undefined ? data.isActive : true,
+        rotation: data.rotation !== undefined ? Number(data.rotation) : 0,
       },
     });
     return { success: true, data: image };
@@ -264,6 +265,7 @@ export class CmsService {
     if (data.image !== undefined) updateData.image = data.image;
     if (data.sortOrder !== undefined) updateData.sortOrder = Number(data.sortOrder);
     if (data.isActive !== undefined) updateData.isActive = data.isActive === true || data.isActive === 'true';
+    if (data.rotation !== undefined) updateData.rotation = Number(data.rotation);
 
     const image = await this.prisma.communityImage.update({
       where: { id: Number(id) },
