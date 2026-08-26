@@ -653,3 +653,17 @@
 - **Testing Completed:** Verified DTO validation for 6-digit inputs.
 - **Rollback Strategy:** Revert `login-otp.dto.ts`.
 - **Status:** Complete
+
+## Task 53: Non-Bold Model Name & Price-Proportional Info Icon Size on Products Page
+- **Task Number:** 53
+- **Task Name:** Non-Bold Model Name & Price-Proportional Info Icon Size on Products Page
+- **Files Modified:** `next_/app/(customer)/products/page.jsx`
+- **Reason:** Updated product card styling on `/products` page by changing `.p-title` font-weight to `300` (light non-bold) and scaling down `.i-info-icon` dimensions to `13px` (desktop) and `11px` (mobile), matching price font height (`₹5,599`).
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Clean light-weight model titles (`Element`, `Axis`, `Origin`, etc.) and delicate, price-proportional info icon sizing.
+- **Backend Impact:** None
+- **Testing Completed:** Verified font weights and icon dimensions across mobile and desktop breakpoints.
+- **Rollback Strategy:** Revert `.p-title` font-weight and `.i-info-icon` rules in `next_/app/(customer)/products/page.jsx`.
+- **Status:** Complete

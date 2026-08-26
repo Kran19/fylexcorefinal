@@ -518,7 +518,7 @@ const Products = () => {
         .p-title {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
           font-size: clamp(2.8rem, 6vw, 4.8rem);
-          font-weight: 500;
+          font-weight: 300;
           line-height: 1.05;
           margin: 0 0 6px;
           color: #ffffff;
@@ -629,9 +629,9 @@ const Products = () => {
           letter-spacing: 0.02em;
         }
         .i-info-icon {
-          width: 16px; /* slightly increased from 14px */
-          height: 16px;
-          opacity: 0.65; /* slightly increased opacity to pop a bit more */
+          width: 13px;
+          height: 13px;
+          opacity: 0.65;
           cursor: pointer;
           transition: all 0.3s;
         }
@@ -999,11 +999,12 @@ const Products = () => {
               letter-spacing: 0.1em; 
               line-height: 1.3;
            }
-           .p-title { font-size: 1.85rem; line-height: 1.15; margin-bottom: 4px; font-weight: 600; }
+           .p-title { font-size: 1.85rem; line-height: 1.15; margin-bottom: 4px; font-weight: 300; }
            .p-tagline { display: none !important; }
            .p-description { display: none !important; }
            .p-price-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; margin-bottom: 8px; }
            .p-price-tag { font-size: 0.95rem; margin: 0; opacity: 0.85; }
+           .i-info-icon { width: 11px; height: 11px; }
            .p-inventory-status { font-size: 0.8rem; margin: 0; display: inline-flex; align-items: center; }
            .p-link-luxury { font-size: 0.65rem; padding: 5px 10px; }
            .p-link-luxury svg { width: 12px; height: 12px; }
