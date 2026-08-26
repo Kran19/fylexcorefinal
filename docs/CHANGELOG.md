@@ -639,3 +639,17 @@
 - **Testing Completed:** Verified 6-digit OTP generation, full E.164 phone formatting (`916354351080`), delivery, and UI 6-box input alignment.
 - **Rollback Strategy:** Revert `whatsapp.service.ts` and `login/page.jsx`.
 - **Status:** Complete
+
+## Task 52: Backend DTO Length Validation Update for 6-Digit OTP
+- **Task Number:** 52
+- **Task Name:** Backend DTO Length Validation Update for 6-Digit OTP
+- **Files Modified:** `nest_/src/modules/auth/dto/login-otp.dto.ts`
+- **Reason:** Updated `LoginOtpDto` validation constraint `@Length(4, 4)` to `@Length(4, 8)`, resolving DTO validation rejection when 6-digit OTPs are submitted.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** None
+- **Backend Impact:** Accepts 6-digit OTP strings in `login-otp` endpoint payload.
+- **Testing Completed:** Verified DTO validation for 6-digit inputs.
+- **Rollback Strategy:** Revert `login-otp.dto.ts`.
+- **Status:** Complete

@@ -7,7 +7,7 @@ export class LoginOtpDto {
 
   @IsNotEmpty()
   @IsString()
-  @Length(4, 4)
+  @Length(4, 8)
   otp: string;
 }
 
