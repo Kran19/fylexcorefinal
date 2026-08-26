@@ -44,6 +44,18 @@ export class OrderController {
     return this.orderService.handleShiprocketWebhook(payload);
   }
 
+  // Zaple WhatsApp Chatbot Track Order API
+  @Get('track')
+  async trackOrder(@Query('order_id') orderId: string, @Query('mobile') mobile: string) {
+    return this.orderService.trackOrder(orderId, mobile);
+  }
+
+  // Zaple WhatsApp Chatbot Customer Orders API
+  @Get('by-mobile')
+  async getOrdersByMobile(@Query('mobile') mobile: string, @Query('type') type?: string) {
+    return this.orderService.getOrdersByMobile(mobile, type);
+  }
+
   @Get(':id')
   async getOrderById(@Query('customerId') customerId: string, @Param('id') id: string) {
     return this.orderService.getOrderById(customerId, id);

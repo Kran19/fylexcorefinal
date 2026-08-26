@@ -415,6 +415,155 @@ export class OrderService {
 
     return { success: true, orderId: order.id, status: newOrderStatus, shippingStatus: newShippingStatus };
   }
+
+  async trackOrder(orderId: string, mobile: string) {
+    if (!orderId || !mobile) {
+      throw new NotFoundException({
+        success: false,
+        message: 'No order found',
+        data: null
+      });
+    }
+
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    const cleanOrderId = orderId.trim();
+
+    if (!cleanMobile || cleanMobile.length !== 10) {
+      throw new NotFoundException({
+        success: false,
+        message: 'No order found',
+        data: null
+      });
+    }
+
+    const order = await this.prisma.order.findFirst({
+      where: {
+        AND: [
+          {
+            OR: [
+              { orderNumber: cleanOrderId },
+              { orderNumber: `ORD-${cleanOrderId}` },
+              { id: !isNaN(Number(cleanOrderId)) ? Number(cleanOrderId) : -1 }
+            ]
+          },
+          {
+            OR: [
+              { customerMobile: { contains: cleanMobile } },
+              { orderAddresses: { some: { phone: { contains: cleanMobile } } } },
+              { customer: { mobile: { contains: cleanMobile } } }
+            ]
+          }
+        ]
+      },
+      include: {
+        items: true,
+        orderAddresses: true,
+        history: true
+      }
+    });
+
+    if (!order) {
+      throw new NotFoundException({
+        success: false,
+        message: 'No order found',
+        data: null
+      });
+    }
+
+    const rawStatus = order.shippingStatus || order.status || 'Processing';
+    const formattedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+
+    const createdDate = order.createdAt ? new Date(order.createdAt) : new Date();
+    const deliveryDate = new Date(createdDate.getTime() + 4 * 24 * 60 * 60 * 1000);
+    const expectedDeliveryStr = deliveryDate.toISOString().split('T')[0];
+
+    const latestHistoryWithAwb = (order.history || []).find(h => h.notes && h.notes.includes('AWB:'));
+    let awbCode = `FYL${order.id}${cleanMobile.slice(-4)}`;
+    if (latestHistoryWithAwb && latestHistoryWithAwb.notes) {
+      const match = latestHistoryWithAwb.notes.match(/AWB:\s*([^\s)]+)/);
+      if (match && match[1] && match[1] !== 'N/A') {
+        awbCode = match[1];
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Order found',
+      data: {
+        order_number: order.orderNumber || `ORD-${order.id}`,
+        status: formattedStatus,
+        courier: 'Delhivery',
+        expected_delivery: expectedDeliveryStr,
+        tracking_number: awbCode
+      }
+    };
+  }
+
+  async getOrdersByMobile(mobile: string, type?: string) {
+    if (!mobile) {
+      throw new NotFoundException({
+        success: false,
+        message: 'No order found for this mobile number',
+        data: []
+      });
+    }
+
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+
+    const orders = await this.prisma.order.findMany({
+      where: {
+        OR: [
+          { customerMobile: { contains: cleanMobile } },
+          { orderAddresses: { some: { phone: { contains: cleanMobile } } } },
+          { customer: { mobile: { contains: cleanMobile } } }
+        ]
+      },
+      include: {
+        items: true,
+        orderAddresses: true,
+        history: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!orders || orders.length === 0) {
+      throw new NotFoundException({
+        success: false,
+        message: 'No order found for this mobile number',
+        data: []
+      });
+    }
+
+    let filtered = orders;
+    if (type === 'active') {
+      filtered = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled' && o.shippingStatus !== 'delivered');
+    }
+
+    const data = filtered.map(order => {
+      const rawStatus = order.shippingStatus || order.status || 'Processing';
+      const formattedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
+      const createdDate = order.createdAt ? new Date(order.createdAt) : new Date();
+      const deliveryDate = new Date(createdDate.getTime() + 4 * 24 * 60 * 60 * 1000);
+
+      return {
+        order_number: order.orderNumber || `ORD-${order.id}`,
+        status: formattedStatus,
+        courier: 'Delhivery',
+        expected_delivery: deliveryDate.toISOString().split('T')[0],
+        tracking_number: `FYL${order.id}${cleanMobile.slice(-4)}`,
+        grand_total: Number(order.grandTotal),
+        items: order.items.map(i => i.productName),
+        created_at: createdDate.toISOString().split('T')[0]
+      };
+    });
+
+    return {
+      success: true,
+      message: 'Orders retrieved successfully',
+      count: data.length,
+      data
+    };
+  }
   }
 
   // Update Status (Admin)

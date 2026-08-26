@@ -699,3 +699,21 @@
 - **Testing Completed:** Verified order payload structure, Shiprocket authentication, Rajkot pickup pincode (`360002`), and Webhook status mapping.
 - **Rollback Strategy:** Revert `OrderController` and `OrderService` changes.
 - **Status:** Complete
+
+## Task 56: Zaple WhatsApp Chatbot Track Order & Customer Orders APIs
+- **Task Number:** 56
+- **Task Name:** Zaple WhatsApp Chatbot Track Order & Customer Orders APIs
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+  - `nest_/src/modules/order/order.controller.ts`
+- **Reason:** Implemented two public endpoints for Zaple WhatsApp Chatbot flow:
+  1. `GET /api/orders/track?order_id=FYL12345&mobile=916354351080` — Returns single order status matching `order_id` and `mobile` with HTTP 200/404 JSON response.
+  2. `GET /api/orders/by-mobile?mobile=916354351080&type=active` — Returns active/all customer orders associated with a mobile number.
+- **Risk:** Low
+- **API Impact:** Added `GET /orders/track` and `GET /orders/by-mobile` endpoints.
+- **Database Impact:** None
+- **Frontend Impact:** Automated WhatsApp Chatbot order status lookup.
+- **Backend Impact:** Single order lookup and customer orders query by mobile number.
+- **Testing Completed:** Verified query parameters, mobile number clean extraction (10-digit), HTTP 200/404 payloads.
+- **Rollback Strategy:** Revert `OrderController` and `OrderService` changes.
+- **Status:** Complete
