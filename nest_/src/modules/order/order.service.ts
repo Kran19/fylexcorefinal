@@ -564,7 +564,6 @@ export class OrderService {
       data
     };
   }
-  }
 
   // Update Status (Admin)
   async updateStatus(orderId: string, status: string, notes?: string, adminId?: string) {
