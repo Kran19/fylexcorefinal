@@ -78,7 +78,7 @@ export class OrderService {
     }
 
     // 6. Create Order via Transaction
-    return this.prisma.$transaction(async (tx) => {
+    const createdOrder = await this.prisma.$transaction(async (tx) => {
       const subtotal = Number(cart.subtotal);
       const discountAmount = appliedOffer ? this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0;
       const totalDiscount = discountAmount + pointDiscount;
@@ -334,6 +334,87 @@ export class OrderService {
         }
       });
     });
+
+    // Asynchronously push new order to Shiprocket Merchant Dashboard
+    this.syncOrderToShiprocket(createdOrder, shippingAddr).catch(err => {
+      this.logger.error(`Automatic Shiprocket sync error for order ${createdOrder?.id}: ${err.message}`);
+    });
+
+    return createdOrder;
+  }
+
+  async syncOrderToShiprocket(order: any, shippingAddr?: any) {
+    if (!order) return;
+    try {
+      const res = await this.shiprocketService.createOrderFromFylexOrder(order, shippingAddr);
+      this.logger.log(`Shiprocket order created for ${order.orderNumber || order.id}: ${JSON.stringify(res)}`);
+      return res;
+    } catch (error) {
+      this.logger.error(`Failed to push order ${order.id} to Shiprocket: ${error.message}`);
+    }
+  }
+
+  async handleShiprocketWebhook(payload: any) {
+    this.logger.log(`Shiprocket Webhook received: ${JSON.stringify(payload)}`);
+    if (!payload) return { success: false, message: 'Empty payload' };
+
+    const orderNumber = payload.order_id || payload.channel_order_id;
+    if (!orderNumber) {
+      return { success: false, message: 'Order ID missing' };
+    }
+
+    const order = await this.prisma.order.findFirst({
+      where: {
+        OR: [
+          { orderNumber: orderNumber.toString() },
+          { id: !isNaN(Number(orderNumber)) ? Number(orderNumber) : -1 }
+        ]
+      }
+    });
+
+    if (!order) {
+      this.logger.warn(`Shiprocket Webhook: Order not found for order_id ${orderNumber}`);
+      return { success: false, message: 'Order not found' };
+    }
+
+    const shiprocketStatus = (payload.current_status || payload.status || '').toUpperCase();
+    let newShippingStatus = order.shippingStatus;
+    let newOrderStatus = order.status;
+
+    if (shiprocketStatus.includes('PICKUP SCHEDULED') || shiprocketStatus.includes('PICKUP QUEUED') || shiprocketStatus.includes('MANIFEST GENERATED')) {
+      newShippingStatus = 'processing';
+    } else if (shiprocketStatus.includes('IN TRANSIT') || shiprocketStatus.includes('SHIPPED') || shiprocketStatus.includes('DISPATCHED')) {
+      newShippingStatus = 'shipped';
+      newOrderStatus = 'processing';
+    } else if (shiprocketStatus.includes('OUT FOR DELIVERY')) {
+      newShippingStatus = 'out_for_delivery';
+    } else if (shiprocketStatus.includes('DELIVERED')) {
+      newShippingStatus = 'delivered';
+      newOrderStatus = 'completed';
+    } else if (shiprocketStatus.includes('CANCELLED') || shiprocketStatus.includes('CANCELED')) {
+      newShippingStatus = 'cancelled';
+      newOrderStatus = 'cancelled';
+    } else if (shiprocketStatus.includes('RTO')) {
+      newShippingStatus = 'rto';
+    }
+
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        shippingStatus: newShippingStatus,
+        status: newOrderStatus,
+        updatedAt: new Date()
+      }
+    });
+
+    await this.historyService.createHistory(
+      order.id,
+      newOrderStatus,
+      `Shiprocket Webhook Update: ${shiprocketStatus} (AWB: ${payload.awb || payload.courier_name || 'N/A'})`
+    );
+
+    return { success: true, orderId: order.id, status: newOrderStatus, shippingStatus: newShippingStatus };
+  }
   }
 
   // Update Status (Admin)

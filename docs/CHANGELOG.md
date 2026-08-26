@@ -681,3 +681,21 @@
 - **Testing Completed:** Verified checkbox checked/unchecked state animations and checkmark icon rendering.
 - **Rollback Strategy:** Revert `.auth-terms-custom` CSS in `next_/app/(customer)/signup/page.jsx`.
 - **Status:** Complete
+
+## Task 55: Automatic Shiprocket Order Creation & Live Webhook Order Status Tracking Sync
+- **Task Number:** 55
+- **Task Name:** Automatic Shiprocket Order Creation & Live Webhook Order Status Tracking Sync
+- **Files Modified:**
+  - `nest_/src/modules/order/shiprocket.service.ts`
+  - `nest_/src/modules/order/order.service.ts`
+  - `nest_/src/modules/order/order.controller.ts`
+  - `nest_/.env`
+- **Reason:** Integrated automatic order creation on Shiprocket merchant dashboard for new customer orders (COD and Online) with Rajkot pickup location details (`6/11, Radhika Times, Rajkot - 360002`). Added `@Post('shiprocket-webhook')` endpoint for real-time tracking status synchronization (`PICKUP SCHEDULED`, `SHIPPED`, `IN TRANSIT`, `DELIVERED`, `CANCELLED`).
+- **Risk:** Low
+- **API Impact:** Added `POST /orders/shiprocket-webhook` endpoint.
+- **Database Impact:** Real-time updates to `order.shippingStatus`, `order.status`, and tracking history.
+- **Frontend Impact:** Automated tracking updates on customer order details pages.
+- **Backend Impact:** Automatic order dispatch to Shiprocket API and Webhook event listener.
+- **Testing Completed:** Verified order payload structure, Shiprocket authentication, Rajkot pickup pincode (`360002`), and Webhook status mapping.
+- **Rollback Strategy:** Revert `OrderController` and `OrderService` changes.
+- **Status:** Complete

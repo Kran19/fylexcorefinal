@@ -39,6 +39,11 @@ export class OrderController {
     return this.orderService.calculateOrderTotal(customerId, pincode, couponCode);
   }
 
+  @Post('shiprocket-webhook')
+  async handleShiprocketWebhook(@Body() payload: any) {
+    return this.orderService.handleShiprocketWebhook(payload);
+  }
+
   @Get(':id')
   async getOrderById(@Query('customerId') customerId: string, @Param('id') id: string) {
     return this.orderService.getOrderById(customerId, id);
