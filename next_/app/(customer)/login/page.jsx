@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { checkMobileApi, sendOtpApi, fetchSettings } from '@/lib/api';
 
 /* ─── OTP Input Boxes ─── */
-function OtpBoxes({ value, onChange, length = 4 }) {
+function OtpBoxes({ value, onChange, length = 6 }) {
   const refs = useRef([]);
   const digits = value.split('').concat(Array(length).fill('')).slice(0, length);
 
@@ -133,8 +133,8 @@ export default function Login() {
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!otp || otp.length !== 4) {
-      setError('Please enter the 4-digit OTP.');
+    if (!otp || otp.length !== 6) {
+      setError('Please enter the 6-digit OTP.');
       setShake(true);
       setTimeout(() => setShake(false), 600);
       return;
@@ -233,11 +233,11 @@ export default function Login() {
               <>
                 <h1 className="auth-title">Verify your access</h1>
                 <p className="auth-subtitle">
-                  Enter the 4-digit code sent to <span className="auth-phone-highlight">+91 {maskPhone(mobile)}</span> phone and WhatsApp.
+                  Enter the 6-digit code sent to <span className="auth-phone-highlight">+91 {maskPhone(mobile)}</span> phone and WhatsApp.
                 </p>
 
                 <form onSubmit={handleOtpSubmit} className="auth-form" noValidate>
-                  <OtpBoxes value={otp} onChange={setOtp} length={4} />
+                  <OtpBoxes value={otp} onChange={setOtp} length={6} />
 
                   <button type="button" className="auth-resend-link" onClick={() => { /* resend logic */ }}>
                     Didn&apos;t receive it? <span className="auth-resend-action">Resend code</span>

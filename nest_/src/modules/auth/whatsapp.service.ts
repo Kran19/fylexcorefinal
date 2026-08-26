@@ -24,8 +24,8 @@ export class WhatsappService {
       throw new BadRequestException('Invalid mobile number');
     }
 
-    // Generate random 4-digit OTP
-    const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate random 6-digit OTP
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
     this.otpStore.set(cleanMobile, { otp: generatedOtp, expiresAt });
@@ -73,9 +73,10 @@ export class WhatsappService {
 
   private dispatchZapleWhatsapp(mobile: string, otp: string): Promise<any> {
     return new Promise((resolve, reject) => {
+      const fullMobile = mobile.length === 10 ? `91${mobile}` : mobile;
       const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
       const body = 
-        `--${boundary}\r\nContent-Disposition: form-data; name="send_to"\r\n\r\n${mobile}\r\n` +
+        `--${boundary}\r\nContent-Disposition: form-data; name="send_to"\r\n\r\n${fullMobile}\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="country_code"\r\n\r\n91\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="template_id"\r\n\r\n${this.templateId}\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="template_argument1"\r\n\r\n${otp}\r\n` +

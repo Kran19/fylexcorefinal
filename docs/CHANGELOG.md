@@ -623,3 +623,19 @@
 - **Testing Completed:** Verified label positioning and font scale across desktop and mobile viewports.
 - **Rollback Strategy:** Revert `.dial-card-container` CSS in `next_/app/page.tsx`.
 - **Status:** Complete
+
+## Task 51: 6-Digit OTP Alignment Across WhatsApp Service & Frontend Login UI
+- **Task Number:** 51
+- **Task Name:** 6-Digit OTP Alignment Across WhatsApp Service & Frontend Login UI
+- **Files Modified:**
+  - `nest_/src/modules/auth/whatsapp.service.ts`
+  - `next_/app/(customer)/login/page.jsx`
+- **Reason:** Aligned OTP length to 6 digits across backend generation (`whatsapp.service.ts`) and frontend UI input boxes (`login/page.jsx`), matching Meta's approved Zaple WhatsApp template specification (`XXXXXX is your verification code`).
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** 6-digit OTP input boxes (`length={6}`) and updated subtitle prompt ("Enter the 6-digit code sent to...").
+- **Backend Impact:** 6-digit OTP generation (`Math.floor(100000 + Math.random() * 900000)`).
+- **Testing Completed:** Verified 6-digit OTP generation, full E.164 phone formatting (`916354351080`), delivery, and UI 6-box input alignment.
+- **Rollback Strategy:** Revert `whatsapp.service.ts` and `login/page.jsx`.
+- **Status:** Complete
