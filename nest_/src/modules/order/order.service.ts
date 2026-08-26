@@ -407,7 +407,7 @@ export class OrderService {
       }
     });
 
-    await this.historyService.createHistory(
+    await this.historyService.logHistory(
       order.id,
       newOrderStatus,
       `Shiprocket Webhook Update: ${shiprocketStatus} (AWB: ${payload.awb || payload.courier_name || 'N/A'})`
