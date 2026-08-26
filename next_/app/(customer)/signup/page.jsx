@@ -479,16 +479,33 @@ export default function Signup() {
         }
         .auth-terms-check { display: none; }
         .auth-terms-custom {
-          width: 16px; height: 16px; min-width: 16px;
+          width: 18px; height: 18px; min-width: 18px;
           border-radius: 4px;
-          border: 1.5px solid rgba(255, 255, 255, 0.2);
+          border: 1.5px solid rgba(255, 255, 255, 0.25);
           background: rgba(255, 255, 255, 0.04);
-          display: inline-block; margin-top: 1px;
-          transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 1px;
+          transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+          position: relative;
+        }
+        .auth-terms-custom::after {
+          content: '';
+          width: 5px;
+          height: 9px;
+          border: solid #ffffff;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg) scale(0);
+          margin-bottom: 2px;
+          transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
         }
         .auth-terms-check:checked + .auth-terms-custom {
           background: #1a3a2a;
-          border-color: rgba(94, 196, 158, 0.4);
+          border-color: #5ec49e;
+        }
+        .auth-terms-check:checked + .auth-terms-custom::after {
+          transform: rotate(45deg) scale(1);
         }
         .auth-terms-link {
           color: rgba(255, 255, 255, 0.7);

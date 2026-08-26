@@ -667,3 +667,17 @@
 - **Testing Completed:** Verified font weights and icon dimensions across mobile and desktop breakpoints.
 - **Rollback Strategy:** Revert `.p-title` font-weight and `.i-info-icon` rules in `next_/app/(customer)/products/page.jsx`.
 - **Status:** Complete
+
+## Task 54: Registration Page Custom Checkmark Icon Rendering Fix
+- **Task Number:** 54
+- **Task Name:** Registration Page Custom Checkmark Icon Rendering Fix
+- **Files Modified:** `next_/app/(customer)/signup/page.jsx`
+- **Reason:** Added `.auth-terms-custom::after` CSS rotated tick sign rules to render a crisp white checkmark (`✓`) when checking the Terms & Privacy policy checkbox on the registration page (`/signup`).
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Clear white checkmark sign inside dark emerald box (`#1a3a2a`) when checked.
+- **Backend Impact:** None
+- **Testing Completed:** Verified checkbox checked/unchecked state animations and checkmark icon rendering.
+- **Rollback Strategy:** Revert `.auth-terms-custom` CSS in `next_/app/(customer)/signup/page.jsx`.
+- **Status:** Complete
