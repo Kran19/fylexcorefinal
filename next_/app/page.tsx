@@ -581,7 +581,7 @@ const Home = () => {
 
         .dial-card-container {
           position: absolute;
-          top: 32px;
+          top: clamp(140px, 22vh, 260px);
           left: 0;
           right: 0;
           bottom: auto;
@@ -602,8 +602,9 @@ const Home = () => {
         }
 
         .dial-card-container .label {
-          font-size: 0.95rem;
-          letter-spacing: 0.45em;
+          font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+          font-weight: 600;
+          letter-spacing: 0.4em;
           margin-bottom: 0 !important;
         }
 

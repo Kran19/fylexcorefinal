@@ -8,6 +8,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 
+import { WhatsappService } from './whatsapp.service';
+
 type AuthRole = 'customer' | 'admin';
 
 @Injectable()
@@ -15,7 +17,12 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private whatsappService: WhatsappService,
   ) {}
+
+  async sendOtp(mobile: string) {
+    return await this.whatsappService.sendOtp(mobile);
+  }
 
   private sanitizeUser<T extends Record<string, any>>(user: T, role: AuthRole) {
     const { password, ...result } = user;
@@ -59,7 +66,8 @@ export class AuthService {
   }
 
   async validateCustomerByOtp(mobile: string, otp: string) {
-    if (otp !== '1234') {
+    const isValid = this.whatsappService.verifyOtp(mobile, otp);
+    if (!isValid) {
       return null;
     }
 
@@ -120,8 +128,11 @@ export class AuthService {
   async registerCustomer(dto: RegisterDto) {
     const { email, password, name, mobile, otp, address, gender, dob, city } = dto;
 
-    if (otp !== '1234') {
-      throw new BadRequestException('Invalid OTP');
+    if (mobile && otp) {
+      const isValid = this.whatsappService.verifyOtp(mobile, otp);
+      if (!isValid) {
+        throw new BadRequestException('Invalid or expired OTP');
+      }
     }
 
     const existingCustomer = await this.prisma.customer.findUnique({

@@ -517,8 +517,8 @@ const Products = () => {
         }
         .p-title {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: clamp(2.5rem, 5vw, 4.2rem);
-          font-weight: 400;
+          font-size: clamp(2.8rem, 6vw, 4.8rem);
+          font-weight: 500;
           line-height: 1.05;
           margin: 0 0 6px;
           color: #ffffff;
@@ -610,12 +610,13 @@ const Products = () => {
         }
         .p-price-tag {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: 2rem;
+          font-size: 1.35rem;
           font-weight: 400;
           color: #ffffff;
           letter-spacing: -0.02em;
           margin-bottom: 0;
           display: inline-block;
+          opacity: 0.85;
         }
         .p-inventory-status {
           display: inline-flex;
@@ -921,7 +922,7 @@ const Products = () => {
           .p-tagline { font-size: 1rem; }
           .p-description { font-size: 0.9rem; margin: 16px 0 24px; line-height: 1.6; }
           .p-subtitle { margin-bottom: 12px; font-size: 0.65rem; }
-          .p-title { font-size: 1.8rem; }
+          .p-title { font-size: 2.2rem; }
           
           .p-diffusion-glow {
             display: block !important;
@@ -941,8 +942,7 @@ const Products = () => {
             max-width: 100%;
           }
           .p-price-tag {
-            font-size: 1.4rem;
-            // margin-bottom: 12px;
+            font-size: 1.15rem;
           }
           .p-actions-row {
             // margin-top: 16px;
@@ -999,11 +999,11 @@ const Products = () => {
               letter-spacing: 0.1em; 
               line-height: 1.3;
            }
-           .p-title { font-size: 1.4rem; line-height: 1.15; margin-bottom: 4px; }
+           .p-title { font-size: 1.85rem; line-height: 1.15; margin-bottom: 4px; font-weight: 600; }
            .p-tagline { display: none !important; }
            .p-description { display: none !important; }
            .p-price-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; margin-bottom: 8px; }
-           .p-price-tag { font-size: 1.25rem; margin: 0; }
+           .p-price-tag { font-size: 0.95rem; margin: 0; opacity: 0.85; }
            .p-inventory-status { font-size: 0.8rem; margin: 0; display: inline-flex; align-items: center; }
            .p-link-luxury { font-size: 0.65rem; padding: 5px 10px; }
            .p-link-luxury svg { width: 12px; height: 12px; }

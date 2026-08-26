@@ -8,6 +8,8 @@ import { jwtConstants } from './constants';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 
+import { WhatsappService } from './whatsapp.service';
+
 @Module({
   imports: [
     PrismaModule,
@@ -18,8 +20,8 @@ import { LocalStrategy } from './strategies/local.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, LocalStrategy, JwtStrategy, WhatsappService],
+  exports: [AuthService, WhatsappService],
 })
 export class AuthModule {}
 

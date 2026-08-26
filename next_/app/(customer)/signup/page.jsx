@@ -34,11 +34,12 @@ function InputField({ label, type = 'text', id, value, onChange, placeholder, hi
 export default function Signup() {
   const searchParams = useSearchParams();
   const mobileFromLogin = searchParams.get('mobile') || '';
+  const otpFromLogin = searchParams.get('otp') || '';
 
   const [data, setData] = useState({
     name: '', email: '',
     mobile: mobileFromLogin,
-    otp: '', address: '', pincode: '', area: '',
+    otp: otpFromLogin, address: '', pincode: '', area: '',
     gender: '', dob: '', city: ''
   });
   const [loaded, setLoaded] = useState(false);
@@ -108,7 +109,7 @@ export default function Signup() {
         email: data.email,
         mobile: data.mobile,
         address: `${data.address}${data.area ? `, ${data.area}` : ''}${data.pincode ? ` - ${data.pincode}` : ''}`,
-        otp: '1234', // Default OTP since already verified in login flow
+        otp: data.otp,
         gender: data.gender,
         dob: data.dob,
         city: data.city || data.area,

@@ -36,6 +36,13 @@ export class AuthController {
     return result;
   }
 
+  @Post('send-otp')
+  @HttpCode(HttpStatus.OK)
+  async sendOtp(@Body() body: { mobile: string }) {
+    this.logger.log(`Send OTP request received for mobile=${body?.mobile}`);
+    return await this.authService.sendOtp(body.mobile);
+  }
+
   @Post('login-otp')
   @HttpCode(HttpStatus.OK)
   async loginOtp(@Body() loginOtpDto: LoginOtpDto) {

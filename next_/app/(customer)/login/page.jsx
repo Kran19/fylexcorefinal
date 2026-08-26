@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { checkMobileApi, fetchSettings } from '@/lib/api';
+import { checkMobileApi, sendOtpApi, fetchSettings } from '@/lib/api';
 
 /* ─── OTP Input Boxes ─── */
 function OtpBoxes({ value, onChange, length = 4 }) {
@@ -113,12 +113,16 @@ export default function Login() {
     setSubmitting(true);
     try {
       const result = await checkMobileApi({ mobile });
-      // Store registration status — proceed to OTP regardless
       setIsRegistered(!!result?.success);
+      await sendOtpApi({ mobile });
       setStep(2);
     } catch (err) {
-      // Even on error, allow OTP step (backend might still send OTP)
       setIsRegistered(false);
+      try {
+        await sendOtpApi({ mobile });
+      } catch (e) {
+        console.warn('Send OTP failed', e);
+      }
       setStep(2);
     } finally {
       setSubmitting(false);
@@ -139,21 +143,15 @@ export default function Login() {
     setSubmitting(true);
     try {
       if (isRegistered) {
-        // User exists → log them in → go home
+        // User exists → log them in via dynamic OTP
         await loginOtp({ mobile, otp });
         navigate.push('/');
       } else {
-        // User is NOT registered → verify OTP locally, then go to signup
-        if (otp !== '1234') {
-          setError('Invalid OTP. Please try again.');
-          setShake(true);
-          setTimeout(() => setShake(false), 600);
-          return;
-        }
-        navigate.push(`/signup?mobile=${mobile}`);
+        // User is NOT registered → pass mobile and otp to signup
+        navigate.push(`/signup?mobile=${encodeURIComponent(mobile)}&otp=${encodeURIComponent(otp)}`);
       }
     } catch (err) {
-      setError(err?.message || 'Invalid OTP. Please try again.');
+      setError(err?.message || 'Invalid or expired OTP. Please try again.');
       setShake(true);
       setTimeout(() => setShake(false), 600);
     } finally {

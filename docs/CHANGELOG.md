@@ -559,3 +559,67 @@
 - **Testing Completed:** Verified button alignment across desktop (>768px) and mobile (<=768px) media queries.
 - **Rollback Strategy:** Revert `.btn-container` and `.btn-configure` CSS rules in `next_/app/(customer)/pre-configure/page.jsx`.
 - **Status:** Complete
+
+## Task 47: Full-Width Mobile Product Description Placement in Technical Details Accordion
+- **Task Number:** 47
+- **Task Name:** Full-Width Mobile Product Description Placement in Technical Details Accordion
+- **Files Modified:** `next_/app/(customer)/explore/page.jsx`
+- **Reason:** Updated Technical Details accordion item mapping and CSS to render Product Description (and full-paragraph spec items) using `.full-width-row` and `width: 100% !important`, eliminating the 40% empty left-margin space on mobile screens.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** 100% full-width description text layout on mobile viewports for accordion sections.
+- **Backend Impact:** None
+- **Testing Completed:** Verified description text container width and spec row formatting on mobile and desktop breakpoints.
+- **Rollback Strategy:** Revert `.full-width-row` CSS and spec mapping in `next_/app/(customer)/explore/page.jsx`.
+- **Status:** Complete
+
+## Task 48: Typography Hierarchy Update on Products Page (Bigger Model Name, Smaller Price)
+- **Task Number:** 48
+- **Task Name:** Typography Hierarchy Update on Products Page (Bigger Model Name, Smaller Price)
+- **Files Modified:** `next_/app/(customer)/products/page.jsx`
+- **Reason:** Enhanced typography hierarchy on product collection cards by increasing `.p-title` font size (model names `Origin`, `Genesis`, `Meridian`, `Atlas`) and scaling down `.p-price-tag` (`₹7,799`) across desktop, tablet, and mobile viewports.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Prominent model name titles and refined, smaller price indicators on watch cards.
+- **Backend Impact:** None
+- **Testing Completed:** Verified font scales on mobile (640px), tablet (1024px), and desktop breakpoints.
+- **Rollback Strategy:** Revert `.p-title` and `.p-price-tag` font sizes in `next_/app/(customer)/products/page.jsx`.
+- **Status:** Complete
+
+## Task 49: Integration of Zaple.ai WhatsApp OTP API & Removal of Hardcoded 1234/123456 Bypass
+- **Task Number:** 49
+- **Task Name:** Integration of Zaple.ai WhatsApp OTP API & Removal of Hardcoded 1234/123456 Bypass
+- **Files Modified:**
+  - `nest_/src/modules/auth/whatsapp.service.ts`
+  - `nest_/src/modules/auth/auth.service.ts`
+  - `nest_/src/modules/auth/auth.controller.ts`
+  - `nest_/src/modules/auth/auth.module.ts`
+  - `nest_/.env`
+  - `next_/lib/api.js`
+  - `next_/app/(customer)/login/page.jsx`
+  - `next_/app/(customer)/signup/page.jsx`
+- **Reason:** Integrated production Zaple.ai WhatsApp API (`POST https://app.zaple.ai/api/v2/send-template-message`) for dynamic OTP generation and dispatching to customer mobile numbers. Removed static hardcoded `1234`/`123456` OTP bypasses.
+- **Risk:** Low
+- **API Impact:** Added `POST /auth/send-otp` endpoint in Nest.js backend.
+- **Database Impact:** None
+- **Frontend Impact:** Real-time WhatsApp OTP delivery during mobile login and signup flows.
+- **Backend Impact:** Dynamic OTP generation, 10-minute expiration memory store, and Zaple.ai WhatsApp dispatch.
+- **Testing Completed:** Verified Zaple API authentication, HTTP request payload, template ID `424883717876429003545862`, `template_argument1` parameter, and confirmed message dispatch to `6354351080` (`Message queued successfully`, message_id: `bR178773096272268waQEQizCqcU1UMBS`).
+- **Rollback Strategy:** Revert AuthController, AuthService, and Login/Signup components.
+- **Status:** Complete
+
+## Task 50: Home Page Sections 2 & 3 Label Font Size Increase & Repositioning to Green Square Focal Area
+- **Task Number:** 50
+- **Task Name:** Home Page Sections 2 & 3 Label Font Size Increase & Repositioning to Green Square Focal Area
+- **Files Modified:** `next_/app/page.tsx`
+- **Reason:** Increased section label font size (`YOUR WATCH`, `YOUR STRAP`) to `clamp(1.15rem, 2.2vw, 1.45rem)` with `font-weight: 600`, and updated `.dial-card-container` top position from `top: 32px` to `top: clamp(140px, 22vh, 260px)` to align directly inside the green square center focal area.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Prominent, centered section label placement inside the watch grid gap on Home page dial morph sections.
+- **Backend Impact:** None
+- **Testing Completed:** Verified label positioning and font scale across desktop and mobile viewports.
+- **Rollback Strategy:** Revert `.dial-card-container` CSS in `next_/app/page.tsx`.
+- **Status:** Complete

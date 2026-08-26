@@ -175,6 +175,7 @@ export const fetchProfileDashboardApi = () => request('GET', '/customers/me/dash
 export const updateMyProfileApi = (payload) => request('PUT', '/customers/me', payload);
 
 export const checkMobileApi = (payload) => request('POST', '/auth/check-mobile', payload);
+export const sendOtpApi = (payload) => request('POST', '/auth/send-otp', payload);
 export const signupApi = (userData) => request('POST', '/auth/register', userData);
 export const loginApi = (credentials) => request('POST', '/auth/login', credentials);
 export const loginOtpApi = (payload) => request('POST', '/auth/login-otp', payload);

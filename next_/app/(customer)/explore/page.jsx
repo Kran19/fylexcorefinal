@@ -2102,17 +2102,37 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         .cfg-spec-row:last-child {
           border-bottom: none;
         }
+        .cfg-spec-row.full-width-row {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          width: 100%;
+          border-bottom: none;
+          padding: 14px 0 18px;
+        }
         .cfg-spec-label {
           color: #1a1a1a !important;
           font-weight: 600;
           width: 45%;
           word-wrap: break-word;
         }
+        .cfg-spec-label.full-width-label {
+          width: 100% !important;
+          margin-bottom: 8px;
+        }
         .cfg-spec-value {
           color: #444444 !important;
           text-align: left;
           width: 50%;
           line-height: 1.5;
+        }
+        .cfg-spec-value.full-width-val,
+        .cfg-spec-row.full-width-row .cfg-spec-value {
+          width: 100% !important;
+          text-align: left !important;
+          font-size: 1rem;
+          line-height: 1.7;
+          color: #333333 !important;
         }
 
         @media (max-width: 640px) {
@@ -2124,6 +2144,18 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           }
           .cfg-spec-value {
             width: 55%;
+          }
+          .cfg-spec-row.full-width-row {
+            flex-direction: column !important;
+            width: 100% !important;
+            padding: 10px 0 15px !important;
+          }
+          .cfg-spec-row.full-width-row .cfg-spec-label,
+          .cfg-spec-row.full-width-row .cfg-spec-value {
+            width: 100% !important;
+            text-align: left !important;
+            font-size: 0.95rem;
+            line-height: 1.65;
           }
         }
 
@@ -2394,12 +2426,32 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                             </button>
                             <div className="cfg-spec-content">
                               <div className="cfg-spec-inner">
-                                {(product.specs[groupName] || []).map((spec, sIdx) => (
-                                  <div key={sIdx} className="cfg-spec-row">
-                                    <span className="cfg-spec-label">{spec.label}</span>
-                                    <span className="cfg-spec-value">{spec.value}</span>
-                                  </div>
-                                ))}
+                                {(product.specs[groupName] || []).map((spec, sIdx) => {
+                                  const labelText = (spec.label || '').trim();
+                                  const valText = (spec.value || '').trim();
+                                  const isDescGroup = groupName.toLowerCase().includes('description') || groupName.toLowerCase().includes('about') || groupName.toLowerCase().includes('detail');
+                                  const isFullParagraph = !labelText || labelText.toLowerCase() === groupName.toLowerCase() || labelText.toLowerCase() === 'description' || valText.length > 80;
+
+                                  if (isDescGroup || isFullParagraph) {
+                                    return (
+                                      <div key={sIdx} className="cfg-spec-row full-width-row">
+                                        {labelText && labelText.toLowerCase() !== groupName.toLowerCase() && labelText.toLowerCase() !== 'description' && (
+                                          <span className="cfg-spec-label full-width-label">{labelText}</span>
+                                        )}
+                                        <span className="cfg-spec-value full-width-val">
+                                          {valText || labelText}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+
+                                  return (
+                                    <div key={sIdx} className="cfg-spec-row">
+                                      <span className="cfg-spec-label">{spec.label}</span>
+                                      <span className="cfg-spec-value">{spec.value}</span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
