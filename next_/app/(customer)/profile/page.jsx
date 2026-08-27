@@ -27,6 +27,16 @@ const statusStyles = {
   FAILED:     'status-cancelled',
 };
 
+const resolveOrderImg = (order) => {
+  if (!order) return '/Rim.webp';
+  const rawPath = order.preview?.image ||
+                  order.items?.[0]?.image ||
+                  order.items?.[0]?.productVariant?.variantImages?.[0]?.media?.filePath ||
+                  order.items?.[0]?.product?.heroImage ||
+                  order.heroImage;
+  return getFileUrl(rawPath) || '/Rim.webp';
+};
+
 const Profile = () => {
   const { logout, loading, isAuthenticated, verifySession } = useAuth();
   const navigate = useRouter();

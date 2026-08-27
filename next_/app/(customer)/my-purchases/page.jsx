@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useOrder } from '@/context/OrderContext';
 import { downloadInvoice } from '@/services/order.service';
+import { getFileUrl } from '@/lib/utils';
 
 export default function MyPurchases() {
   const { orders } = useOrder();
@@ -294,7 +295,11 @@ export default function MyPurchases() {
                 className="purchase-card"
               >
                 <div className="purchase-img-wrap">
-                  <img src={unit.image || unit.heroImage} alt={unit.title} />
+                  <img
+                    src={getFileUrl(unit.image || unit.heroImage || unit.productVariant?.variantImages?.[0]?.media?.filePath) || '/Rim.webp'}
+                    alt={unit.title}
+                    onError={(e) => { e.currentTarget.src = '/Rim.webp'; }}
+                  />
                 </div>
                 <div className="purchase-info">
                   <div className="purchase-meta">

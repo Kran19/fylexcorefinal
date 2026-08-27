@@ -759,3 +759,19 @@
 - **Testing Completed:** Verified button click handlers, invoice PDF download trigger, and watch card URL parameter routing.
 - **Rollback Strategy:** Revert `next_/app/(customer)/my-purchases/page.jsx`.
 - **Status:** Complete
+
+## Task 60: Watch Photo Resolution in My Account (Profile) & Collection Pages
+- **Task Number:** 60
+- **Task Name:** Watch Photo Resolution in My Account (Profile) & Collection Pages
+- **Files Modified:**
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/app/(customer)/my-purchases/page.jsx`
+- **Reason:** Defined `resolveOrderImg(order)` in `profile/page.jsx` and wrapped watch image sources with `getFileUrl(...)` in `my-purchases/page.jsx`, resolving relative and backend upload paths into valid timepiece thumbnail URLs instead of falling back to `/Rim.webp`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Purchased watch images correctly display on customer account dashboard (`/profile` - Recent Acquisitions) and collection page (`/my-purchases`).
+- **Backend Impact:** None
+- **Testing Completed:** Verified `resolveOrderImg` helper logic, `getFileUrl` URL resolution, and thumbnail rendering across customer pages.
+- **Rollback Strategy:** Revert `profile/page.jsx` and `my-purchases/page.jsx`.
+- **Status:** Complete
