@@ -876,3 +876,19 @@
 - **Testing Completed:** Verified pickupLocation parameter fallback in ShiprocketService.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 67: Update Shiprocket Pickup Location Nickname to "work"
+- **Task Number:** 67
+- **Task Name:** Update Shiprocket Pickup Location Nickname to "work"
+- **Files Modified:**
+  - `nest_/src/modules/order/shiprocket.service.ts`
+  - `nest_/.env`
+- **Reason:** Corrected pickup location parameter to `work` (where `PRIMARY` is Shiprocket's status badge in the dashboard), matching the exact Address Nickname string expected by Shiprocket API.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** None
+- **Backend Impact:** Order creation payload passes `pickup_location: "work"` to Shiprocket API.
+- **Testing Completed:** Verified pickupLocation parameter fallback in ShiprocketService.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete
