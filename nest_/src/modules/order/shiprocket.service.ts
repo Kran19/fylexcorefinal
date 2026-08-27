@@ -58,6 +58,8 @@ export class ShiprocketService {
       .replace('T', ' ')
       .slice(0, 16);
 
+    const addr = shippingAddr || order.addresses?.find((a: any) => a.type === 'shipping') || order.addresses?.[0];
+
     const items = (order.items || []).map((item: any) => ({
       name: item.productName || item.productVariant?.product?.name || 'Fylex Timepiece',
       sku: item.sku || item.productVariant?.sku || 'FYLEX-ITEM',
@@ -74,15 +76,15 @@ export class ShiprocketService {
       pickup_location: pickupLocation,
       channel_id: '',
       comment: 'Fylex Luxury Watch Order',
-      billing_customer_name: order.customerFirstName || shippingAddr?.firstName || 'Customer',
-      billing_last_name: order.customerLastName || shippingAddr?.lastName || 'Name',
-      billing_address: shippingAddr?.address1 || shippingAddr?.address || '6/11, Radhika Times',
-      billing_city: shippingAddr?.city || 'Rajkot',
-      billing_pincode: shippingAddr?.postcode || shippingAddr?.pincode || '360002',
-      billing_state: shippingAddr?.state || 'Gujarat',
-      billing_country: shippingAddr?.country || 'India',
-      billing_email: shippingAddr?.email || order.customer?.email || 'customer@fylex.com',
-      billing_phone: shippingAddr?.phone || shippingAddr?.mobile || order.customerMobile || '7069211020',
+      billing_customer_name: addr?.firstName || order.customerFirstName || 'Customer',
+      billing_last_name: addr?.lastName || order.customerLastName || 'Name',
+      billing_address: addr?.address1 || addr?.address || '6/11, Radhika Times',
+      billing_city: addr?.city || 'Rajkot',
+      billing_pincode: addr?.postcode || addr?.pincode || process.env.SHIPROCKET_PICKUP_PINCODE || '360002',
+      billing_state: addr?.state || 'Gujarat',
+      billing_country: addr?.country || 'India',
+      billing_email: addr?.email || order.customer?.email || 'customer@fylex.com',
+      billing_phone: addr?.phone || addr?.mobile || order.customerMobile || '7069211020',
       shipping_is_billing: true,
       order_items: items,
       payment_method: isCod ? 'COD' : 'Prepaid',
@@ -93,6 +95,7 @@ export class ShiprocketService {
       weight: 0.5,
     };
 
+    console.log('Sending payload to Shiprocket:', JSON.stringify(payload, null, 2));
     return this.createOrder(payload);
   }
 

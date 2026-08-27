@@ -9,9 +9,12 @@ export class InvoiceService {
   constructor(private prisma: PrismaService) {}
 
   async generateInvoicePdf(orderId: string, res: any): Promise<void> {
-    const oId = Number(orderId);
-    const order = await this.prisma.order.findUnique({
-      where: { id: oId },
+    const orderIdStr = orderId?.toString() || '';
+    const isNumeric = !isNaN(Number(orderIdStr)) && !orderIdStr.startsWith('ORD-') && orderIdStr !== '';
+    const oId = isNumeric ? Number(orderIdStr) : null;
+
+    const order = await this.prisma.order.findFirst({
+      where: oId ? { id: oId } : { orderNumber: orderIdStr },
       include: {
         items: {
           include: {

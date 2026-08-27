@@ -843,3 +843,20 @@
 - **Testing Completed:** Verified redirect rule configuration and navigation handlers.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 65: Automatic Shiprocket Merchant Dashboard Sync & Invoice PDF Route Resolution
+- **Task Number:** 65
+- **Task Name:** Automatic Shiprocket Merchant Dashboard Sync & Invoice PDF Route Resolution
+- **Files Modified:**
+  - `nest_/src/modules/order/invoice.service.ts`
+  - `nest_/src/modules/order/shiprocket.service.ts`
+  - `nest_/src/modules/order/order.service.ts`
+- **Reason:** Supported both integer ID and string `orderNumber` parameters in `InvoiceService`, fixing PDF loading failures, and updated `ShiprocketService.createOrderFromFylexOrder` payload address resolution so all completed orders automatically push to the merchant's Shiprocket Dashboard.
+- **Risk:** Low
+- **API Impact:** `GET /orders/:id/invoice` streams PDF correctly for order number strings like `ORD-1787835086413`.
+- **Database Impact:** None
+- **Frontend Impact:** Download Invoice button streams tax invoice PDF without "Failed to load PDF document" error.
+- **Backend Impact:** Orders automatically push to Shiprocket dashboard with pickup location `Primary` (`360002` Rajkot).
+- **Testing Completed:** Verified string `orderNumber` resolution in InvoiceService and payload construction in ShiprocketService.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete
