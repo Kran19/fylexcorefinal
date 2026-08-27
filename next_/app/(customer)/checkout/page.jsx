@@ -402,9 +402,6 @@ const Checkout = () => {
                                 <div style={{ fontSize: 13, fontWeight: 700, color: '#14532d' }}>
                                   Delivery Available to {formData.area ? `${formData.area}, ` : ''}{formData.city || 'your area'}{formData.state ? `, ${formData.state}` : ''}
                                 </div>
-                                <div style={{ fontSize: 11, color: '#15803d', marginTop: 2, fontWeight: 500 }}>
-                                  Doorstep delivery within 3–5 business days. {isCodAvailable ? 'COD & Online payments enabled.' : 'Prepaid online payment enabled.'}
-                                </div>
                               </div>
                             </div>
                           ) : (

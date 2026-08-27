@@ -717,3 +717,17 @@
 - **Testing Completed:** Verified query parameters, mobile number clean extraction (10-digit), HTTP 200/404 payloads.
 - **Rollback Strategy:** Revert `OrderController` and `OrderService` changes.
 - **Status:** Complete
+
+## Task 57: Removal of Subtitle Line from Checkout Serviceability Banner
+- **Task Number:** 57
+- **Task Name:** Removal of Subtitle Line from Checkout Serviceability Banner
+- **Files Modified:** `next_/app/(customer)/checkout/page.jsx`
+- **Reason:** Removed the second subtitle line (`Doorstep delivery within 3–5 business days...`) from the green pincode serviceability success box on `/checkout`, retaining only `Delivery Available to [Area], [City], [State]`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Clean, single-line delivery availability confirmation box on checkout screen.
+- **Backend Impact:** None
+- **Testing Completed:** Verified pincode entry and green box rendering.
+- **Rollback Strategy:** Revert `next_/app/(customer)/checkout/page.jsx`.
+- **Status:** Complete
