@@ -478,28 +478,30 @@ const Checkout = () => {
                       </div>
                       <div className="card-radio" />
                     </div>
-                    {isCodAvailable && (
-                      <div
-                        className={`payment-card ${formData.paymentMethod === 'cod' ? 'selected' : ''}`}
-                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod' }))}
-                      >
-                        <div className="card-info">
-                          <div className="card-icon">🚚</div>
-                          <div>
-                            <div className="card-type">Cash on Delivery</div>
-                            <div className="card-desc">Pay when you receive the product</div>
+
+                    {/* Disabled Cash on Delivery Option */}
+                    <div
+                      className="payment-card payment-card-disabled"
+                      style={{
+                        opacity: 0.6,
+                        cursor: 'not-allowed',
+                        pointerEvents: 'none',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                      }}
+                    >
+                      <div className="card-info">
+                        <div className="card-icon" style={{ opacity: 0.5 }}>🚚</div>
+                        <div>
+                          <div className="card-type" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Cash on Delivery</div>
+                          <div className="card-desc" style={{ color: '#e11d48', fontWeight: 600, fontSize: '0.8rem', marginTop: '2px' }}>
+                            COD not available at your location
                           </div>
                         </div>
-                        <div className="card-radio" />
                       </div>
-                    )}
-                  </div>
-
-                  {!isCodAvailable && formData.postalCode.length === 6 && (
-                    <div className="cod-unavailable-hint">
-                       Note: Cash on Delivery is not available for your location (<b>{formData.postalCode}</b>).
+                      <div className="card-radio" style={{ opacity: 0.3 }} />
                     </div>
-                  )}
+                  </div>
 
                   {formData.paymentMethod === 'razorpay' && (
                     <div className="payment-notice">

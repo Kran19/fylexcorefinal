@@ -731,3 +731,17 @@
 - **Testing Completed:** Verified pincode entry and green box rendering.
 - **Rollback Strategy:** Revert `next_/app/(customer)/checkout/page.jsx`.
 - **Status:** Complete
+
+## Task 58: Disabled COD Payment Option & "COD not available at your location" Warning Message
+- **Task Number:** 58
+- **Task Name:** Disabled COD Payment Option & "COD not available at your location" Warning Message
+- **Files Modified:** `next_/app/(customer)/checkout/page.jsx`
+- **Reason:** Rendered Cash on Delivery option card as permanently disabled (`pointer-events: none`, `opacity: 0.6`) with explicit red/amber warning text `COD not available at your location` on `/checkout` Step 3 (Review & Payment), defaulting all orders to Razorpay online payment.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Disabled COD card with subtext warning `COD not available at your location` and default Razorpay selection.
+- **Backend Impact:** None
+- **Testing Completed:** Verified disabled COD card rendering, subtext warning, and Razorpay selection.
+- **Rollback Strategy:** Revert `next_/app/(customer)/checkout/page.jsx`.
+- **Status:** Complete
