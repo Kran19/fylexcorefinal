@@ -775,3 +775,19 @@
 - **Testing Completed:** Verified `resolveOrderImg` helper logic, `getFileUrl` URL resolution, and thumbnail rendering across customer pages.
 - **Rollback Strategy:** Revert `profile/page.jsx` and `my-purchases/page.jsx`.
 - **Status:** Complete
+
+## Task 61: 100% Free Shipping All Over India Policy Enforcement
+- **Task Number:** 61
+- **Task Name:** 100% Free Shipping All Over India Policy Enforcement
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+  - `next_/app/(customer)/checkout/page.jsx`
+- **Reason:** Fixed `shippingTotal = 0` across `checkout`, `calculateOrderTotal`, and `calculateShipping` in Nest.js backend while preserving pincode serviceability checks, enforcing ₹0 shipping fee (Free Shipping) for all orders across India.
+- **Risk:** Low
+- **API Impact:** `POST /orders/calculate-total` and `POST /orders/calculate-shipping` now return `shipping: 0` and `rate: 0`.
+- **Database Impact:** `shippingTotal` is stored as `0` on order creation.
+- **Frontend Impact:** Checkout Order Summary displays `Shipping: Free` and total equals exact subtotal without shipping charges.
+- **Backend Impact:** Guaranteed ₹0 shipping fee in calculations and Razorpay payment order initiation.
+- **Testing Completed:** Verified zero shipping calculation, free shipping label rendering, and total calculation.
+- **Rollback Strategy:** Revert `nest_/src/modules/order/order.service.ts` and `next_/app/(customer)/checkout/page.jsx`.
+- **Status:** Complete

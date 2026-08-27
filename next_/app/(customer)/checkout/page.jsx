@@ -155,7 +155,8 @@ const Checkout = () => {
             setTotals(prev => ({
                 ...prev,
                 subtotal: cartTotals.subtotal,
-                total: cartTotals.subtotal + prev.shipping
+                shipping: 0,
+                total: cartTotals.subtotal
             }));
         }
         setIsCalculating(false);

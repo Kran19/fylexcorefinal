@@ -97,10 +97,10 @@ export class OrderService {
       }
 
       const isCod = dto.paymentMethod === 'cod';
-      let shippingTotal = 500; // Default fallback
+      let shippingTotal = 0; // FREE SHIPPING ALL OVER INDIA
 
       try {
-        const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || '380001';
+        const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || '360002';
         const rateData = await this.shiprocketService.checkServiceability(
           pickupPincode,
           shippingAddr.pincode,
@@ -120,12 +120,9 @@ export class OrderService {
         if (rateData.serviceable === null) {
           this.logger.error(`Technical failure in shipping API for pincode: ${shippingAddr.pincode}`);
         }
-
-        shippingTotal = rateData.rate ?? 500;
       } catch (e) {
         if (e instanceof BadRequestException) throw e;
         this.logger.error(`Shiprocket rate calculation failed: ${e.message}`);
-        shippingTotal = 500;
       }
 
       const isOnline = dto.paymentMethod === 'online';
@@ -139,10 +136,10 @@ export class OrderService {
           shippingStatus: 'pending',
           paymentMethod: dto.paymentMethod || 'cod',
           subtotal: Number(subtotal),
-          shippingTotal: Number(shippingTotal),
+          shippingTotal: 0,
           taxTotal: Number(0),
           discountTotal: Number(totalDiscount),
-          grandTotal: Number(Math.max(0, subtotal + shippingTotal - totalDiscount)),
+          grandTotal: Number(Math.max(0, subtotal - totalDiscount)),
           customerNote: dto.notes,
           customerFirstName: cart.customer?.name?.split(' ')[0] || 'Customer',
           customerLastName: cart.customer?.name?.split(' ')?.slice(1)?.join(' ') || 'Name',
@@ -801,17 +798,15 @@ export class OrderService {
     }
 
     const subtotal = cart.subtotal ? Number(cart.subtotal) : 0;
-    let shippingTotal = 0;
-    let message = '';
+    let shippingTotal = 0; // FREE SHIPPING ALL OVER INDIA
+    let message = 'Free Shipping All Over India';
 
     if (pincode && pincode.length === 6) {
       try {
         const rateData = await this.calculateShipping(customerId, pincode);
-        shippingTotal = rateData.rate ?? 500;
-        message = rateData.message || '';
+        message = rateData.message || 'Free Shipping All Over India';
       } catch (e) {
         this.logger.error(`Error calculating shipping in total: ${e.message}`);
-        shippingTotal = 500;
       }
     }
 
@@ -836,11 +831,11 @@ export class OrderService {
 
     return {
       subtotal,
-      shipping: shippingTotal,
+      shipping: 0,
       tax: 0,
       discount,
-      total: Math.max(0, subtotal + shippingTotal - discount),
-      message,
+      total: Math.max(0, subtotal - discount),
+      message: 'Free Shipping All Over India',
       couponError,
       offerDescription: appliedOffer?.description || appliedOffer?.name || ''
     };
@@ -856,7 +851,7 @@ export class OrderService {
       include: { items: { include: { productVariant: true } } }
     });
 
-    if (!cart || cart.items.length === 0) return { serviceable: false, rate: null, message: "Cart is empty" };
+    if (!cart || cart.items.length === 0) return { serviceable: false, rate: 0, message: "Cart is empty" };
 
     let totalWeight = 0;
     for (const item of cart.items) {
@@ -867,14 +862,18 @@ export class OrderService {
       totalWeight += itemWeight * item.quantity;
     }
 
-    const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || '380001';
+    const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || '360002';
     const rateData = await this.shiprocketService.checkServiceability(
       pickupPincode,
       pincode,
       totalWeight
     );
 
-    return rateData;
+    return {
+      ...rateData,
+      rate: 0,
+      shippingCharge: 0,
+    };
   }
 
   // Update Tracking (Admin)
