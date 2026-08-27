@@ -745,3 +745,17 @@
 - **Testing Completed:** Verified disabled COD card rendering, subtext warning, and Razorpay selection.
 - **Rollback Strategy:** Revert `next_/app/(customer)/checkout/page.jsx`.
 - **Status:** Complete
+
+## Task 59: Collection Page Buttons Functionality & Watch Card Navigation Fix
+- **Task Number:** 59
+- **Task Name:** Collection Page Buttons Functionality & Watch Card Navigation Fix
+- **Files Modified:** `next_/app/(customer)/my-purchases/page.jsx`
+- **Reason:** Fixed empty placeholder handlers for `TRACK ORDER DETAILS` (now routes to `/order-confirmation?order_id=...`) and `DOWNLOAD INVOICE` (now triggers `downloadInvoice(unit.orderId, true)` PDF download). Corrected watch card click navigation from `/discover` to `/explore?watch=[id]`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Working order tracking navigation, direct PDF invoice downloads, and accurate timepiece page routing from "Your Collection" screen.
+- **Backend Impact:** None
+- **Testing Completed:** Verified button click handlers, invoice PDF download trigger, and watch card URL parameter routing.
+- **Rollback Strategy:** Revert `next_/app/(customer)/my-purchases/page.jsx`.
+- **Status:** Complete

@@ -3,30 +3,22 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useOrder } from '@/context/OrderContext';
+import { downloadInvoice } from '@/services/order.service';
 
 export default function MyPurchases() {
   const { orders } = useOrder();
   const router = useRouter();
 
-  // Helper to build redirect URL to discover page
+  // Helper to build redirect URL to explore page
   const buildRedirectUrl = (item) => {
     const productId = item.productId || item.product?.id || item.product_id;
-    if (!productId) return '/discover';
+    if (!productId) return '/explore';
     
-    let url = `/discover?watch=${productId}`;
+    let url = `/explore?watch=${productId}`;
     const variant = item.productVariant || item.variant;
     
-    if (variant) {
+    if (variant && variant.id) {
       url += `&variant=${variant.id}`;
-      if (variant.variantAttributes) {
-        variant.variantAttributes.forEach(va => {
-          const attrName = va.attributeValue?.attribute?.name?.toLowerCase();
-          const valLabel = va.attributeValue?.label;
-          if (attrName && valLabel) {
-            url += `&${attrName.replace(/\s+/g, '+')}=${encodeURIComponent(valLabel)}`;
-          }
-        });
-      }
     }
     return url;
   };
@@ -47,6 +39,7 @@ export default function MyPurchases() {
         ...item,
         orderDate: order.date,
         orderId: order.id,
+        orderNumber: order.orderNumber || order.id,
         redirectUrl: buildRedirectUrl(item),
         variantDisplay: getVariantName(item)
       }))
@@ -318,7 +311,7 @@ export default function MyPurchases() {
                       className="btn-support" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Placeholder for track order
+                        router.push(`/order-confirmation?order_id=${unit.orderNumber || unit.orderId}`);
                       }}
                     >
                       Track Order Details
@@ -326,9 +319,11 @@ export default function MyPurchases() {
                     <button 
                       className="btn-support" 
                       style={{ background: 'transparent', color: '#fff', border: '1px solid #fff' }}
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        // Placeholder for download invoice
+                        if (unit.orderId) {
+                          await downloadInvoice(unit.orderId, true);
+                        }
                       }}
                     >
                       Download Invoice
