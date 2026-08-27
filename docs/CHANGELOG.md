@@ -791,3 +791,17 @@
 - **Testing Completed:** Verified zero shipping calculation, free shipping label rendering, and total calculation.
 - **Rollback Strategy:** Revert `nest_/src/modules/order/order.service.ts` and `next_/app/(customer)/checkout/page.jsx`.
 - **Status:** Complete
+
+## Task 62: Subpath Deployment (/preload) & Nginx Domain Setup for Razorpay SSL Verification
+- **Task Number:** 62
+- **Task Name:** Subpath Deployment (/preload) & Nginx Domain Setup for Razorpay SSL Verification
+- **Files Modified:** `next_/next.config.ts`
+- **Reason:** Added `basePath: '/preload'` to `next.config.ts` to host Fylex store app cleanly under `https://fylexwatches.com/preload`, preserving existing landing page at `https://fylexwatches.com/` (port 3000) and enabling SSL domain verification for live Razorpay payments.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** App served under `https://fylexwatches.com/preload` base path with all assets properly namespaced.
+- **Backend Impact:** None
+- **Testing Completed:** Verified `basePath` configuration in Next.js config.
+- **Rollback Strategy:** Revert `next_/next.config.ts`.
+- **Status:** Complete
