@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
         destination: '/:path*',
         permanent: true,
       },
+      {
+        source: '/order-confirmation',
+        destination: '/thank-you',
+        permanent: false,
+      },
     ];
   },
 };

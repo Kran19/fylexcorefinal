@@ -316,7 +316,7 @@ export default function MyPurchases() {
                       className="btn-support" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/order-confirmation?order_id=${unit.orderNumber || unit.orderId}`);
+                        router.push(`/thank-you?order_id=${unit.orderNumber || unit.orderId}`);
                       }}
                     >
                       Track Order Details

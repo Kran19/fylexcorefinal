@@ -826,3 +826,20 @@
 - **Testing Completed:** Verified API base URL generation and `/preload` asset resolution.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 64: Order Confirmation Route Redirect (/order-confirmation -> /thank-you)
+- **Task Number:** 64
+- **Task Name:** Order Confirmation Route Redirect (/order-confirmation -> /thank-you)
+- **Files Modified:**
+  - `next_/next.config.ts`
+  - `next_/app/(customer)/my-purchases/page.jsx`
+  - `next_/app/(customer)/thank-you/page.jsx`
+- **Reason:** Added redirect in `next.config.ts` from `/order-confirmation` to `/thank-you` and updated navigation links, resolving 404 page errors when opening order confirmation URLs under `/preload`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** `/order-confirmation?order_id=...` smoothly redirects to Thank You page displaying order confirmation details.
+- **Backend Impact:** None
+- **Testing Completed:** Verified redirect rule configuration and navigation handlers.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete

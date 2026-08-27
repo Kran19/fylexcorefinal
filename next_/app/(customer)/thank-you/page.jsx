@@ -15,7 +15,7 @@ const ThankYouPage = () => {
     <div className="thank-you-container">
       <div className={`thank-you-card ${visible ? 'fade-in' : ''}`}>
         <div className="icon-wrapper">
-          <img src="/logo.png" alt="Fylex" className="logo-icon" />
+          <img src="/preload/fylex_logo.png" alt="Fylex" className="logo-icon" onError={(e) => { e.currentTarget.src = '/fylex_logo.png'; }} />
         </div>
 
         <h1 className="title">Thank You</h1>
