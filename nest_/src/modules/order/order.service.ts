@@ -449,7 +449,7 @@ export class OrderService {
           {
             OR: [
               { customerMobile: { contains: cleanMobile } },
-              { orderAddresses: { some: { phone: { contains: cleanMobile } } } },
+              { addresses: { some: { phone: { contains: cleanMobile } } } },
               { customer: { mobile: { contains: cleanMobile } } }
             ]
           }
@@ -457,8 +457,8 @@ export class OrderService {
       },
       include: {
         items: true,
-        orderAddresses: true,
-        history: true
+        addresses: true,
+        statusHistory: true
       }
     });
 
@@ -477,7 +477,7 @@ export class OrderService {
     const deliveryDate = new Date(createdDate.getTime() + 4 * 24 * 60 * 60 * 1000);
     const expectedDeliveryStr = deliveryDate.toISOString().split('T')[0];
 
-    const latestHistoryWithAwb = (order.history || []).find(h => h.notes && h.notes.includes('AWB:'));
+    const latestHistoryWithAwb = ((order as any).statusHistory || []).find((h: any) => h.notes && h.notes.includes('AWB:'));
     let awbCode = `FYL${order.id}${cleanMobile.slice(-4)}`;
     if (latestHistoryWithAwb && latestHistoryWithAwb.notes) {
       const match = latestHistoryWithAwb.notes.match(/AWB:\s*([^\s)]+)/);
@@ -514,14 +514,14 @@ export class OrderService {
       where: {
         OR: [
           { customerMobile: { contains: cleanMobile } },
-          { orderAddresses: { some: { phone: { contains: cleanMobile } } } },
+          { addresses: { some: { phone: { contains: cleanMobile } } } },
           { customer: { mobile: { contains: cleanMobile } } }
         ]
       },
       include: {
         items: true,
-        orderAddresses: true,
-        history: true
+        addresses: true,
+        statusHistory: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -539,7 +539,7 @@ export class OrderService {
       filtered = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled' && o.shippingStatus !== 'delivered');
     }
 
-    const data = filtered.map(order => {
+    const data = filtered.map((order: any) => {
       const rawStatus = order.shippingStatus || order.status || 'Processing';
       const formattedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
       const createdDate = order.createdAt ? new Date(order.createdAt) : new Date();
@@ -552,7 +552,7 @@ export class OrderService {
         expected_delivery: deliveryDate.toISOString().split('T')[0],
         tracking_number: `FYL${order.id}${cleanMobile.slice(-4)}`,
         grand_total: Number(order.grandTotal),
-        items: order.items.map(i => i.productName),
+        items: order.items ? order.items.map((i: any) => i.productName || 'Watch') : [],
         created_at: createdDate.toISOString().split('T')[0]
       };
     });
