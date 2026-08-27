@@ -10,8 +10,8 @@ if (typeof window !== 'undefined') {
       API_BASE_URL = `http://${window.location.hostname}:5000/api`;
     } else {
       const protocol = window.location.protocol;
-      const hostname = window.location.hostname;
-      API_BASE_URL = `${protocol}//${hostname}/api`;
+      const host = window.location.host;
+      API_BASE_URL = `${protocol}//${host}/api`;
     }
   } catch (e) {
     console.warn('Failed to parse API_BASE_URL', e);

@@ -805,3 +805,24 @@
 - **Testing Completed:** Verified `basePath` configuration in Next.js config.
 - **Rollback Strategy:** Revert `next_/next.config.ts`.
 - **Status:** Complete
+
+## Task 63: Mixed Content (HTTPS / API) Fix & Subpath Asset Resolution (/preload)
+- **Task Number:** 63
+- **Task Name:** Mixed Content (HTTPS / API) Fix & Subpath Asset Resolution (/preload)
+- **Files Modified:**
+  - `next_/services/api.ts`
+  - `next_/services/adminApi.js`
+  - `next_/lib/api.js`
+  - `next_/lib/utils.js`
+  - `next_/components/Header.jsx`
+  - `next_/components/Footer.jsx`
+  - `next_/app/page.tsx`
+- **Reason:** Dynamic scheme and host evaluation (`window.location.protocol` + `window.location.host`) eliminated all browser Mixed Content errors (`http://` blocked on `https://`), while subpath prefixing (`/preload/`) restored static logo images and watch thumbnails.
+- **Risk:** Low
+- **API Impact:** API requests match client protocol (`https://fylexwatches.com/api`).
+- **Database Impact:** None
+- **Frontend Impact:** 0 Mixed Content errors in browser console, static logo images and watch assets render cleanly.
+- **Backend Impact:** None
+- **Testing Completed:** Verified API base URL generation and `/preload` asset resolution.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete

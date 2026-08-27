@@ -23,14 +23,13 @@ const api: AxiosInstance = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Add dynamic hostname fallback for client browser requests
     if (typeof window !== 'undefined') {
       try {
-        const currentBase = config.baseURL || BASE_URL;
-        const url = new URL(currentBase);
-        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-          url.hostname = window.location.hostname;
-          config.baseURL = url.toString().replace(/\/$/, '');
+        const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocalHost) {
+          config.baseURL = `http://${window.location.hostname}:5000/api`;
+        } else {
+          config.baseURL = `${window.location.protocol}//${window.location.host}/api`;
         }
       } catch (e) {}
 

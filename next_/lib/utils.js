@@ -23,13 +23,14 @@ export function getFileUrl(path) {
 
   // 2. Relative frontend static assets (/assets/...)
   if (cleanPath.startsWith('/assets/') || cleanPath.startsWith('assets/')) {
-    return cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+    const assetPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
+    return `/preload${assetPath}`;
   }
 
   // 3. Fallback for static watch PNG filenames (e.g. Olive-green-dial.png, white-gold.png)
   const basename = cleanPath.split('/').pop().split('\\').pop();
   if (basename.match(/^(36mm|40mm|Chocolate-dial|Diamond-paved|Diamondpavedial|Flutted|Olive-green-dial|brilliant-diamond-set|chocolate|everose-gold|goldwatch|left-side|metorite|metoritedial|olive-green|only-dial|premium|right-side|white-gold)\.png$/i)) {
-    return `/assets/fylex-watch-v2/${basename}`;
+    return `/preload/assets/fylex-watch-v2/${basename}`;
   }
 
   // 4. Dynamic Backend API Uploads (NestJS server with /api prefix)
@@ -41,27 +42,14 @@ export function getFileUrl(path) {
   }
 
   if (typeof window !== 'undefined') {
-    // If running on standard HTTP/HTTPS ports (production server behind Nginx)
-    if (!window.location.port || window.location.port === '80' || window.location.port === '443') {
-      return `/api/uploads/${fileKey}`;
+    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocalHost) {
+      return `http://${window.location.hostname}:5000/api/uploads/${fileKey}`;
     }
-    
-    // Otherwise fallback for custom dev ports (e.g. localhost:3002)
-    let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
-    try {
-      const url = new URL(rawApiUrl);
-      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-        url.hostname = window.location.hostname;
-      }
-      rawApiUrl = url.toString().replace(/\/$/, '');
-    } catch (e) {}
-    const apiPrefix = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
-    return `${apiPrefix}/uploads/${fileKey}`;
+    return `${window.location.protocol}//${window.location.host}/api/uploads/${fileKey}`;
   }
 
-  let rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
-  const apiPrefix = rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl.replace(/\/$/, '')}/api`;
-  return `${apiPrefix}/uploads/${fileKey}`;
+  return `/api/uploads/${fileKey}`;
 }
 
 function extractMediaPath(item) {

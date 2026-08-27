@@ -352,7 +352,7 @@ const Header = () => {
 
         <div className="header-middle">
           <Link className="logo-v1" href="/" onClick={closeAll}>
-            <img src="/fylex_logo.png" alt="FYLEX" />
+            <img src="/preload/fylex_logo.png" alt="FYLEX" onError={(e) => { e.currentTarget.src = '/fylex_logo.png'; }} />
           </Link>
         </div>
 

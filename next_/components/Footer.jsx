@@ -89,7 +89,7 @@ const Footer = () => {
         <div className="footer-main-v1">
           <div className="footer-col-v1 footer-brand-v1">
             <Link href="/" className="footer-logo-v1">
-              <img src="/fylex_logo_name.png" alt="Fylex" />
+              <img src="/preload/fylex_logo_name.png" alt="Fylex" onError={(e) => { e.currentTarget.src = '/fylex_logo_name.png'; }} />
             </Link>
             <p>Built On Experience, Designed Around Choice.</p>
           </div>
