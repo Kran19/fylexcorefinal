@@ -52,7 +52,7 @@ export class ShiprocketService {
   }
 
   async createOrderFromFylexOrder(order: any, shippingAddr?: any) {
-    const pickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary';
+    const pickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || 'work PRIMARY';
     const dateStr = new Date(order.createdAt || Date.now())
       .toISOString()
       .replace('T', ' ')

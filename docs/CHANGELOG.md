@@ -860,3 +860,19 @@
 - **Testing Completed:** Verified string `orderNumber` resolution in InvoiceService and payload construction in ShiprocketService.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 66: Update Shiprocket Pickup Location Tag to "work PRIMARY"
+- **Task Number:** 66
+- **Task Name:** Update Shiprocket Pickup Location Tag to "work PRIMARY"
+- **Files Modified:**
+  - `nest_/src/modules/order/shiprocket.service.ts`
+  - `nest_/.env`
+- **Reason:** Updated default Shiprocket pickup location nickname to `work PRIMARY` matching the merchant's exact warehouse configuration in Shiprocket dashboard (`6/11, Radhika Times, Rajkot, Gujarat - 360002`, SPOC: Heet Limbasiya | 7069211020).
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** None
+- **Backend Impact:** Order creation payload passes `pickup_location: "work PRIMARY"` to Shiprocket API.
+- **Testing Completed:** Verified pickupLocation parameter fallback in ShiprocketService.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete
