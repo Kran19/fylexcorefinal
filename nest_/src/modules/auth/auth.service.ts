@@ -168,6 +168,13 @@ export class AuthService {
         },
       });
 
+      // Dispatch WhatsApp Welcome Template message if mobile number is present
+      if (customer.mobile) {
+        this.whatsappService.sendWelcomeMessage(customer.mobile, customer.name).catch((err) => {
+          console.error('Failed to send welcome WhatsApp message:', err?.message || err);
+        });
+      }
+
       return this.sanitizeUser(customer, 'customer');
     } catch (error) {
       throw new BadRequestException('Failed to register customer: ' + error.message);

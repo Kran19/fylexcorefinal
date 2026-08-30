@@ -934,3 +934,30 @@
   .md\:hidden { display: none !important; }
   .md\:flex   { display: flex !important; }
 }
+
+/* ─── HORIZONTAL TOUCH & SWIPE SCROLL (iOS & Android) ──────── */
+.order-pills-scroll {
+  display: flex !important;
+  gap: 10px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x !important;
+  overscroll-behavior-x: contain !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  padding-bottom: 8px !important;
+  margin-bottom: 24px !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  cursor: grab;
+  user-select: none;
+}
+.order-pills-scroll::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.order-pills-scroll:active {
+  cursor: grabbing;
+}

@@ -332,23 +332,173 @@ export class OrderService {
       });
     });
 
-    // Asynchronously push new order to Shiprocket Merchant Dashboard
-    this.syncOrderToShiprocket(createdOrder, shippingAddr).catch(err => {
-      this.logger.error(`Automatic Shiprocket sync error for order ${createdOrder?.id}: ${err.message}`);
-    });
-
     return createdOrder;
   }
 
-  async syncOrderToShiprocket(order: any, shippingAddr?: any) {
-    if (!order) return;
-    try {
-      const res = await this.shiprocketService.createOrderFromFylexOrder(order, shippingAddr);
-      this.logger.log(`Shiprocket order created for ${order.orderNumber || order.id}: ${JSON.stringify(res)}`);
-      return res;
-    } catch (error) {
-      this.logger.error(`Failed to push order ${order.id} to Shiprocket: ${error.message}`);
+  /**
+   * Pushes confirmed order to Shiprocket, creates shipment, and assigns AWB.
+   */
+  async sendToShiprocket(orderId: string | number, adminId?: string) {
+    const oId = Number(orderId);
+    const order = await this.prisma.order.findUnique({
+      where: { id: oId },
+      include: {
+        items: {
+          include: {
+            productVariant: {
+              include: { product: true }
+            }
+          }
+        },
+        addresses: true,
+        customer: true,
+        shipments: true,
+      }
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
     }
+
+    try {
+      this.logger.log(`Dispatching order #${order.orderNumber || order.id} to Shiprocket...`);
+      const srResponse = await this.shiprocketService.createOrderFromFylexOrder(order);
+      this.logger.log(`Shiprocket API response for order #${order.id}: ${JSON.stringify(srResponse)}`);
+
+      const srOrderId = srResponse?.order_id || srResponse?.data?.order_id;
+      const srShipmentId = srResponse?.shipment_id || srResponse?.data?.shipment_id;
+      const srAwb = srResponse?.awb_code || srResponse?.data?.awb_code || null;
+      const srCourier = srResponse?.courier_name || srResponse?.data?.courier_name || 'Standard Luxury Courier';
+
+      // Auto-attempt AWB generation if shipment ID exists
+      let finalAwb = srAwb;
+      if (!finalAwb && srShipmentId) {
+        try {
+          const awbRes = await this.shiprocketService.generateAwb(srShipmentId);
+          finalAwb = awbRes?.response?.data?.awb_code || awbRes?.awb_code || null;
+        } catch (awbErr: any) {
+          this.logger.warn(`AWB assignment pending: ${awbErr.message}`);
+        }
+      }
+
+      // Upsert OrderShipment record
+      const existingShipment = order.shipments?.[0];
+      if (existingShipment) {
+        await this.prisma.orderShipment.update({
+          where: { id: existingShipment.id },
+          data: {
+            carrier: srCourier,
+            trackingNumber: finalAwb || String(srShipmentId || srOrderId),
+            status: 'processing',
+            trackingUrl: finalAwb ? `https://shiprocket.co/tracking/${finalAwb}` : null,
+          }
+        });
+      } else {
+        await this.prisma.orderShipment.create({
+          data: {
+            orderId: order.id,
+            carrier: srCourier,
+            carrierService: 'Standard Delivery',
+            trackingNumber: finalAwb || String(srShipmentId || srOrderId),
+            status: 'processing',
+            trackingUrl: finalAwb ? `https://shiprocket.co/tracking/${finalAwb}` : null,
+          }
+        });
+      }
+
+      // Update Order Status to Processing
+      const now = new Date();
+      const updatedOrder = await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'processing',
+          shippingStatus: 'processing',
+          processingAt: now,
+          confirmedAt: order.confirmedAt || now,
+          updatedAt: now,
+        },
+        include: {
+          shipments: true,
+          items: true,
+          addresses: true,
+          statusHistory: true,
+        }
+      });
+
+      // Log status history
+      await this.prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: 'processing',
+          notes: `Dispatched to Shiprocket (Shipment ID: ${srShipmentId || 'N/A'}, AWB: ${finalAwb || 'Pending'})`,
+          adminId: adminId ? Number(adminId) : null,
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Order successfully sent to Shiprocket!',
+        data: {
+          order: updatedOrder,
+          shiprocket: {
+            order_id: srOrderId,
+            shipment_id: srShipmentId,
+            awb_code: finalAwb,
+            courier_name: srCourier,
+          }
+        }
+      };
+    } catch (error: any) {
+      this.logger.error(`Failed to push order #${order.id} to Shiprocket: ${error.message}`);
+      throw new InternalServerErrorException(`Shiprocket Fulfillment Error: ${error.message}`);
+    }
+  }
+
+  async syncShiprocketTracking(orderId: string | number) {
+    const oId = Number(orderId);
+    const order = await this.prisma.order.findUnique({
+      where: { id: oId },
+      include: { shipments: true }
+    });
+
+    if (!order) throw new NotFoundException('Order not found');
+
+    const awb = order.shipments?.[0]?.trackingNumber;
+    let trackingData: any = null;
+    if (awb && !awb.startsWith('ORD-') && !awb.startsWith('SHP-') && awb.length >= 8) {
+      trackingData = await this.shiprocketService.getTracking(awb);
+    } else {
+      trackingData = await this.shiprocketService.getTrackingByOrderId(order.orderNumber || order.id);
+    }
+
+    if (trackingData?.tracking_data?.track_status) {
+      const statusStr = (trackingData.tracking_data.track_status || '').toUpperCase();
+      let newOrderStatus = order.status;
+      let newShippingStatus = order.shippingStatus;
+
+      if (statusStr.includes('DELIVERED')) {
+        newOrderStatus = 'delivered';
+        newShippingStatus = 'delivered';
+      } else if (statusStr.includes('IN TRANSIT') || statusStr.includes('SHIPPED') || statusStr.includes('OUT FOR DELIVERY')) {
+        newOrderStatus = 'shipped';
+        newShippingStatus = 'shipped';
+      }
+
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: newOrderStatus,
+          shippingStatus: newShippingStatus,
+          updatedAt: new Date(),
+        }
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Tracking synchronized with Shiprocket',
+      data: trackingData || { message: 'No live tracking data available yet from courier.' }
+    };
   }
 
   async handleShiprocketWebhook(payload: any) {
@@ -366,7 +516,8 @@ export class OrderService {
           { orderNumber: orderNumber.toString() },
           { id: !isNaN(Number(orderNumber)) ? Number(orderNumber) : -1 }
         ]
-      }
+      },
+      include: { shipments: true }
     });
 
     if (!order) {
@@ -375,40 +526,70 @@ export class OrderService {
     }
 
     const shiprocketStatus = (payload.current_status || payload.status || '').toUpperCase();
+    const awb = payload.awb || payload.awb_code || null;
+    const courier = payload.courier_name || null;
+    const now = new Date();
+
     let newShippingStatus = order.shippingStatus;
     let newOrderStatus = order.status;
+    const updateData: any = { updatedAt: now };
 
     if (shiprocketStatus.includes('PICKUP SCHEDULED') || shiprocketStatus.includes('PICKUP QUEUED') || shiprocketStatus.includes('MANIFEST GENERATED')) {
       newShippingStatus = 'processing';
+      newOrderStatus = 'processing';
+      if (!order.processingAt) updateData.processingAt = now;
     } else if (shiprocketStatus.includes('IN TRANSIT') || shiprocketStatus.includes('SHIPPED') || shiprocketStatus.includes('DISPATCHED')) {
       newShippingStatus = 'shipped';
-      newOrderStatus = 'processing';
+      newOrderStatus = 'shipped';
+      if (!order.shippedAt) updateData.shippedAt = now;
     } else if (shiprocketStatus.includes('OUT FOR DELIVERY')) {
       newShippingStatus = 'out_for_delivery';
+      newOrderStatus = 'shipped';
     } else if (shiprocketStatus.includes('DELIVERED')) {
       newShippingStatus = 'delivered';
-      newOrderStatus = 'completed';
+      newOrderStatus = 'delivered';
+      if (!order.deliveredAt) updateData.deliveredAt = now;
     } else if (shiprocketStatus.includes('CANCELLED') || shiprocketStatus.includes('CANCELED')) {
       newShippingStatus = 'cancelled';
       newOrderStatus = 'cancelled';
+      if (!order.cancelledAt) updateData.cancelledAt = now;
     } else if (shiprocketStatus.includes('RTO')) {
       newShippingStatus = 'rto';
     }
 
-    await this.prisma.order.update({
+    updateData.shippingStatus = newShippingStatus;
+    updateData.status = newOrderStatus;
+
+    const updatedOrder = await this.prisma.order.update({
       where: { id: order.id },
-      data: {
-        shippingStatus: newShippingStatus,
-        status: newOrderStatus,
-        updatedAt: new Date()
-      }
+      data: updateData,
     });
 
-    await this.historyService.logHistory(
-      order.id,
-      newOrderStatus,
-      `Shiprocket Webhook Update: ${shiprocketStatus} (AWB: ${payload.awb || payload.courier_name || 'N/A'})`
-    );
+    // Update shipment AWB and tracking if available in webhook
+    if (awb || courier) {
+      const existingShipment = order.shipments?.[0];
+      if (existingShipment) {
+        await this.prisma.orderShipment.update({
+          where: { id: existingShipment.id },
+          data: {
+            trackingNumber: awb || existingShipment.trackingNumber,
+            carrier: courier || existingShipment.carrier,
+            status: newShippingStatus,
+            trackingUrl: awb ? `https://shiprocket.co/tracking/${awb}` : existingShipment.trackingUrl,
+            shippedAt: newShippingStatus === 'shipped' ? now : existingShipment.shippedAt,
+            deliveredAt: newShippingStatus === 'delivered' ? now : existingShipment.deliveredAt,
+          }
+        });
+      }
+    }
+
+    await this.prisma.orderStatusHistory.create({
+      data: {
+        orderId: order.id,
+        status: newOrderStatus,
+        notes: `Shiprocket Webhook: ${shiprocketStatus}${awb ? ` (AWB: ${awb}, Courier: ${courier || 'N/A'})` : ''}`,
+      }
+    });
 
     return { success: true, orderId: order.id, status: newOrderStatus, shippingStatus: newShippingStatus };
   }
@@ -568,14 +749,37 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({ where: { id: oId } });
     if (!order) throw new NotFoundException('Order not found');
 
+    const cleanStatus = status.toLowerCase();
+    const now = new Date();
+    const updateData: any = { 
+      status: cleanStatus,
+      updatedAt: now,
+    };
+
+    if (cleanStatus === 'confirmed' && !order.confirmedAt) {
+      updateData.confirmedAt = now;
+    } else if (cleanStatus === 'processing') {
+      if (!order.processingAt) updateData.processingAt = now;
+      if (!order.confirmedAt) updateData.confirmedAt = now;
+    } else if (cleanStatus === 'shipped') {
+      if (!order.shippedAt) updateData.shippedAt = now;
+      updateData.shippingStatus = 'shipped';
+    } else if (cleanStatus === 'delivered') {
+      if (!order.deliveredAt) updateData.deliveredAt = now;
+      updateData.shippingStatus = 'delivered';
+    } else if (cleanStatus === 'cancelled') {
+      if (!order.cancelledAt) updateData.cancelledAt = now;
+      updateData.shippingStatus = 'cancelled';
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const updatedOrder = await tx.order.update({
         where: { id: oId },
-        data: { status },
+        data: updateData,
       });
 
       await tx.orderStatusHistory.create({
-        data: { orderId: oId, status, notes, adminId: adminId ? Number(adminId) : null },
+        data: { orderId: oId, status: cleanStatus, notes, adminId: adminId ? Number(adminId) : null },
       });
 
       return { success: true, data: updatedOrder };

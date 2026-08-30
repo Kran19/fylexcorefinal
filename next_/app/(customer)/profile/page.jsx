@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -48,6 +48,29 @@ const Profile = () => {
   const [saveMessage, setSaveMessage] = useState('');
   const [selectedTrackingOrderId, setSelectedTrackingOrderId] = useState('');
   const [settingsForm, setSettingsForm] = useState({ name: '', mobile: '', address: '' });
+
+  const pillsRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+
+  const handlePillsMouseDown = (e) => {
+    isDraggingRef.current = true;
+    startXRef.current = e.pageX - (pillsRef.current?.offsetLeft || 0);
+    scrollLeftRef.current = pillsRef.current?.scrollLeft || 0;
+  };
+
+  const handlePillsMouseMove = (e) => {
+    if (!isDraggingRef.current || !pillsRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - (pillsRef.current.offsetLeft || 0);
+    const walk = (x - startXRef.current) * 1.5;
+    pillsRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handlePillsMouseUpOrLeave = () => {
+    isDraggingRef.current = false;
+  };
 
   useEffect(() => {
     if (!loading && !isAuthenticated) navigate.replace('/login');
@@ -129,7 +152,6 @@ const Profile = () => {
           </div>
           <div className="mobile-user-info">
             <h2>{profile?.name || 'Member'}</h2>
-            <div className="mobile-status">Heritage Member</div>
           </div>
         </header>
 
@@ -152,7 +174,6 @@ const Profile = () => {
               {profile?.name ? profile.name[0] : (profile?.email ? profile.email[0] : '?')}
             </div>
             <h2 className="profile-name-title">{profile?.name || 'Member'}</h2>
-            <span className="profile-tag">Heritage Member</span>
           </div>
           <ul className="profile-nav-list">
             {tabs.map(tab => (
@@ -312,14 +333,22 @@ const Profile = () => {
               <p className="section-subtitle">Select an order to view its real-time progress.</p>
 
               {trackingOrders.length > 1 ? (
-                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', WebkitOverflowScrolling: 'touch', touchAction: 'pan-x', paddingBottom: '8px', marginBottom: '24px', maxWidth: '100%' }}>
+                <div
+                  ref={pillsRef}
+                  className="order-pills-scroll lenis-prevent"
+                  data-lenis-prevent="true"
+                  onMouseDown={handlePillsMouseDown}
+                  onMouseMove={handlePillsMouseMove}
+                  onMouseUp={handlePillsMouseUpOrLeave}
+                  onMouseLeave={handlePillsMouseUpOrLeave}
+                >
                   {trackingOrders.map(order => (
                     <button
                       key={order.orderId}
                       onClick={() => setSelectedTrackingOrderId(order.orderId)}
                       style={{
                         flexShrink: 0,
-                        padding: '8px 16px',
+                        padding: '10px 20px',
                         borderRadius: '999px',
                         background: selectedTrackingOrderId === order.orderId ? '#ffffff' : '#111111',
                         color: selectedTrackingOrderId === order.orderId ? '#000000' : '#ffffff',
@@ -327,7 +356,8 @@ const Profile = () => {
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.2s ease',
                       }}
                     >
                       #{order.orderNumber || order.orderId} · {order.preview?.title || 'Watch'}

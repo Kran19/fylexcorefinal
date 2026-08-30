@@ -38,6 +38,12 @@ export const downloadInvoice = async (id: string | number, download = false) => 
   }
 };
 
+export const sendToShiprocket = (id: string | number) =>
+  api.post(`/orders/${id}/send-to-shiprocket`, {});
+
+export const syncShiprocket = (id: string | number) =>
+  api.get(`/orders/${id}/shiprocket-sync`);
+
 const orderService = {
   getOrders,
   getOrderById,
@@ -46,6 +52,9 @@ const orderService = {
   updateOrderTracking,
   processOrderRefund,
   downloadInvoice,
+  sendToShiprocket,
+  syncShiprocket,
 };
 
 export default orderService;
+

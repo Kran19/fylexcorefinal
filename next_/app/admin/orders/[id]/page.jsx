@@ -47,6 +47,8 @@ const OrderDetailPage = () => {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [newPaymentStatus, setNewPaymentStatus] = useState('');
   const [updatingPaymentStatus, setUpdatingPaymentStatus] = useState(false);
+  const [sendingToShiprocket, setSendingToShiprocket] = useState(false);
+  const [syncingShiprocket, setSyncingShiprocket] = useState(false);
   
   const [carrier, setCarrier] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
@@ -75,6 +77,54 @@ const OrderDetailPage = () => {
   }, [orderId]);
 
   useEffect(() => { if (orderId) fetchOrder(); }, [orderId, fetchOrder]);
+
+  const handleConfirmOrder = async () => {
+    setUpdatingStatus(true);
+    const { error: err } = await orderService.updateOrderStatus(orderId, 'confirmed', 'Order confirmed by Admin');
+    setUpdatingStatus(false);
+    if (err) {
+      toast?.error?.(err);
+    } else {
+      toast?.success?.('Order confirmed! Ready to dispatch via Shiprocket.');
+      setOrder(prev => ({ ...prev, status: 'confirmed' }));
+      fetchOrder();
+    }
+  };
+
+  const handleSendToShiprocket = async () => {
+    setSendingToShiprocket(true);
+    try {
+      const res = await orderService.sendToShiprocket(orderId);
+      const resData = res?.data?.data || res?.data;
+      if (res?.error || res?.data?.success === false) {
+        toast?.error?.(res?.error || res?.data?.message || 'Failed to dispatch to Shiprocket');
+      } else {
+        toast?.success?.('Order pushed to Shiprocket! Shipment created.');
+        fetchOrder();
+      }
+    } catch (e) {
+      toast?.error?.(e?.message || 'Shiprocket dispatch error');
+    } finally {
+      setSendingToShiprocket(false);
+    }
+  };
+
+  const handleSyncShiprocket = async () => {
+    setSyncingShiprocket(true);
+    try {
+      const res = await orderService.syncShiprocket(orderId);
+      if (res?.error) {
+        toast?.error?.(res?.error);
+      } else {
+        toast?.success?.('Shiprocket tracking synchronized!');
+        fetchOrder();
+      }
+    } catch (e) {
+      toast?.error?.(e?.message || 'Shiprocket sync error');
+    } finally {
+      setSyncingShiprocket(false);
+    }
+  };
 
   const handleStatusUpdate = async () => {
     if (!newStatus || newStatus === order?.status) return;
@@ -137,6 +187,11 @@ const OrderDetailPage = () => {
   const paymentStyle = paymentStatusColors[order.paymentStatus?.toLowerCase()] || { bg: '#f1f5f9', color: '#475569' };
   const items = order.items || order.orderItems || [];
   const customer = order.customer || {};
+  const isOrderPlaced = (order.status || '').toLowerCase() === 'pending';
+  const isOrderConfirmed = (order.status || '').toLowerCase() === 'confirmed';
+  const isOrderProcessing = (order.status || '').toLowerCase() === 'processing';
+  const hasShipment = order.shipments && order.shipments.length > 0;
+  const currentShipment = order.shipments?.[0];
 
   return (
     <div className="animate-fade-in">
@@ -157,7 +212,7 @@ const OrderDetailPage = () => {
         </div>
       </PageHeader>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
 
         {/* Left — Items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -222,19 +277,24 @@ const OrderDetailPage = () => {
           </div>
 
           {/* Shipping Address */}
-          {(order.shipping_address || order.shippingAddress) && (
+          {(order.shipping_address || order.shippingAddress || (order.addresses && order.addresses.length > 0)) && (
             <div className="admin-card" style={{ borderRadius: 16 }}>
               <div className="admin-card-header"><h3>Shipping Address</h3></div>
               <div className="admin-card-body">
                 {(() => {
-                  const addr = order.shipping_address || order.shippingAddress;
+                  const addr = order.shipping_address || order.shippingAddress || order.addresses?.find((a) => a.type === 'shipping') || order.addresses?.[0];
                   return (
                     <div style={{ fontSize: 13, color: 'var(--admin-text-secondary)', lineHeight: 1.8 }}>
-                      {addr.full_name || addr.name && <div style={{ fontWeight: 700, color: 'var(--admin-text)' }}>{addr.full_name || addr.name}</div>}
-                      <div>{addr.address || addr.line1}</div>
-                      {addr.city && <div>{addr.city}{addr.state ? `, ${addr.state}` : ''} {addr.zip || addr.pincode || ''}</div>}
-                      {addr.country && <div>{addr.country}</div>}
-                      {addr.phone && <div style={{ marginTop: 6 }}><i className="fas fa-phone" style={{ marginRight: 6, fontSize: 11 }}></i>{addr.phone}</div>}
+                      {(addr?.firstName || addr?.name) && <div style={{ fontWeight: 700, color: 'var(--admin-text)' }}>{`${addr.firstName || ''} ${addr.lastName || ''}`.trim() || addr.name}</div>}
+                      <div>{addr?.address1 || addr?.address || addr?.line1}</div>
+                      {addr?.city && <div>{addr.city}{addr.state ? `, ${addr.state}` : ''} {addr.postcode || addr.pincode || addr.zip || ''}</div>}
+                      <div>{addr?.country || 'India'}</div>
+                      {(addr?.phone || order.customerMobile) && (
+                        <div style={{ marginTop: 6 }}>
+                          <i className="fas fa-phone" style={{ marginRight: 6, fontSize: 11 }}></i>
+                          {addr?.phone || order.customerMobile}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -246,109 +306,179 @@ const OrderDetailPage = () => {
         {/* Right — Meta */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Order Status */}
-          <div className="admin-card" style={{ borderRadius: 16 }}>
-            <div className="admin-card-header"><h3>Order Status</h3></div>
-            <div className="admin-card-body">
-              <div style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--admin-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Status</p>
-                <span style={{ display: 'inline-block', padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700, textTransform: 'capitalize', ...statusStyle }}>
-                  {order.status || '—'}
-                </span>
+          {/* 🚀 SHIPROCKET AUTOMATED FULFILLMENT HUB */}
+          <div className="admin-card" style={{ borderRadius: 16, border: '1px solid #6366f1', background: '#0a0a0a' }}>
+            <div className="admin-card-header" style={{ borderBottom: '1px solid rgba(99, 102, 241, 0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 8px #6366f1' }}></span>
+                <h3 style={{ color: '#ffffff', fontSize: 15, margin: 0 }}>Shiprocket Fulfillment</h3>
               </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--admin-text-muted)', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Update Status
-                </label>
-                <select
-                  value={newStatus}
-                  onChange={e => setNewStatus(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, fontWeight: 600, color: 'var(--admin-text)', outline: 'none', marginBottom: 10 }}
-                >
-                  {['pending','processing','confirmed','shipped','delivered','cancelled','refunded'].map(s => (
-                    <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  placeholder="Override Reason (Optional)"
-                  value={overrideReason}
-                  onChange={e => setOverrideReason(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, outline: 'none', marginBottom: 10 }}
-                />
-                <button
-                  onClick={handleStatusUpdate}
-                  className="btn-primary"
-                  disabled={updatingStatus || newStatus === order.status}
-                  style={{ width: '100%', justifyContent: 'center', opacity: (updatingStatus || newStatus === order.status) ? 0.6 : 1 }}
-                >
-                  {updatingStatus ? <><i className="fas fa-spinner fa-spin"></i> Updating...</> : 'Update Status'}
-                </button>
-              </div>
+              <span style={{ fontSize: 11, background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>
+                Pickup: Auto-Verified
+              </span>
             </div>
-          </div>
-
-          {/* Payment Status */}
-          <div className="admin-card" style={{ borderRadius: 16 }}>
-            <div className="admin-card-header"><h3>Payment Status</h3></div>
             <div className="admin-card-body">
-              <div style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--admin-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Payment Status</p>
-                <span style={{ display: 'inline-block', padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700, textTransform: 'capitalize', background: paymentStyle.bg, color: paymentStyle.color }}>
-                  {order.paymentStatus || '—'}
-                </span>
-              </div>
-              <div style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--admin-text-muted)', marginBottom: 4 }}>
-                  <i className="fas fa-credit-card" style={{ marginRight: 6, fontSize: 11 }}></i>
-                  Method: <strong style={{ color: 'var(--admin-text)' }}>{order.paymentMethod || '—'}</strong>
-                </p>
-              </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--admin-text-muted)', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Update Payment Status
-                </label>
-                <select
-                  value={newPaymentStatus}
-                  onChange={e => setNewPaymentStatus(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, fontWeight: 600, color: 'var(--admin-text)', outline: 'none', marginBottom: 10 }}
-                >
-                  {['pending','paid','failed','refunded'].map(s => (
-                    <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={handlePaymentStatusUpdate}
-                  className="btn-primary"
-                  disabled={updatingPaymentStatus || newPaymentStatus === order.paymentStatus}
-                  style={{ width: '100%', justifyContent: 'center', opacity: (updatingPaymentStatus || newPaymentStatus === order.paymentStatus) ? 0.6 : 1 }}
-                >
-                  {updatingPaymentStatus ? <><i className="fas fa-spinner fa-spin"></i> Updating...</> : 'Update Payment'}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Shipping & Tracking */}
-          <div className="admin-card" style={{ borderRadius: 16 }}>
-            <div className="admin-card-header"><h3>Shipping & Tracking</h3></div>
-            <div className="admin-card-body">
-              {order.shipments && order.shipments.length > 0 && (
-                <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px dashed var(--admin-border-light)' }}>
-                  {order.shipments.map(s => (
-                    <div key={s.id} style={{ fontSize: 13, marginBottom: 8 }}>
-                      <strong>{s.carrier || 'Carrier'}</strong>: {s.trackingNumber || 'N/A'}
-                      {s.trackingUrl && <div style={{ marginTop: 4 }}><a href={s.trackingUrl} target="_blank" rel="noreferrer" style={{ color: '#0ea5e9', fontSize: 12, fontWeight: 600 }}><i className="fas fa-external-link-alt" style={{ marginRight: 4 }}></i>Track Package</a></div>}
-                    </div>
-                  ))}
+              
+              {/* STAGE 1: ORDER PLACED (PENDING CONFIRMATION) */}
+              {isOrderPlaced && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.25)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+                    <p style={{ margin: 0, fontSize: 12, color: '#fef08a', lineHeight: 1.5 }}>
+                      <i className="fas fa-info-circle mr-1"></i> Order placed by customer. Verify watch customizations & payment before confirmation.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleConfirmOrder}
+                    disabled={updatingStatus}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                    }}
+                  >
+                    {updatingStatus ? <><i className="fas fa-spinner fa-spin"></i> Confirming...</> : <><i className="fas fa-check-circle"></i> Confirm Order</>}
+                  </button>
                 </div>
               )}
-              <input type="text" placeholder="Carrier (e.g. BlueDart)" value={carrier} onChange={e => setCarrier(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, outline: 'none', marginBottom: 10 }} />
-              <input type="text" placeholder="Tracking Number" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, outline: 'none', marginBottom: 10 }} />
-              <input type="text" placeholder="Tracking URL (Optional)" value={trackingUrl} onChange={e => setTrackingUrl(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, outline: 'none', marginBottom: 10 }} />
-              <button onClick={handleTrackingUpdate} className="btn-secondary" disabled={updatingTracking} style={{ width: '100%', justifyContent: 'center' }}>
-                {updatingTracking ? 'Saving...' : 'Save Tracking'}
-              </button>
+
+              {/* STAGE 2: CONFIRMED (READY TO DISPATCH TO SHIPROCKET) */}
+              {isOrderConfirmed && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+                    <p style={{ margin: 0, fontSize: 12, color: '#bfdbfe', lineHeight: 1.5 }}>
+                      <i className="fas fa-check-double mr-1"></i> Order is confirmed! Ready to register with Shiprocket and generate shipment.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSendToShiprocket}
+                    disabled={sendingToShiprocket}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: 10,
+                      background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+                    }}
+                  >
+                    {sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Dispatching to Shiprocket...</> : <><i className="fas fa-paper-plane"></i> Send to Shiprocket</>}
+                  </button>
+                </div>
+              )}
+
+              {/* STAGE 3 & 4: PROCESSING / SHIPPED / DELIVERED */}
+              {(isOrderProcessing || (order.status !== 'pending' && order.status !== 'confirmed')) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: 10, padding: '12px 14px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', fontWeight: 600 }}>Shipment Status</span>
+                      <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 700, textTransform: 'capitalize' }}>{order.shippingStatus || order.status}</span>
+                    </div>
+                    {currentShipment?.trackingNumber && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', fontWeight: 600 }}>AWB / Tracking</span>
+                        <span style={{ fontSize: 12, color: '#ffffff', fontWeight: 700, fontFamily: 'monospace' }}>{currentShipment.trackingNumber}</span>
+                      </div>
+                    )}
+                    {currentShipment?.carrier && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', fontWeight: 600 }}>Courier</span>
+                        <span style={{ fontSize: 12, color: '#ffffff', fontWeight: 600 }}>{currentShipment.carrier}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={handleSyncShiprocket}
+                      disabled={syncingShiprocket}
+                      style={{
+                        flex: 1,
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        background: 'rgba(255, 255, 255, 0.08)',
+                        color: '#ffffff',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6
+                      }}
+                    >
+                      {syncingShiprocket ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-sync-alt"></i>}
+                      Sync Status
+                    </button>
+                    {!hasShipment && (
+                      <button
+                        onClick={handleSendToShiprocket}
+                        disabled={sendingToShiprocket}
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          borderRadius: 8,
+                          background: '#6366f1',
+                          color: '#ffffff',
+                          border: 'none',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6
+                        }}
+                      >
+                        {sendingToShiprocket ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-upload"></i>}
+                        Push to SR
+                      </button>
+                    )}
+                  </div>
+
+                  {currentShipment?.trackingUrl && (
+                    <a
+                      href={currentShipment.trackingUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'block',
+                        textAlign: 'center',
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        background: 'rgba(14, 165, 233, 0.1)',
+                        color: '#38bdf8',
+                        border: '1px solid rgba(14, 165, 233, 0.3)',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textDecoration: 'none'
+                      }}
+                    >
+                      <i className="fas fa-external-link-alt mr-1"></i> Open Live Tracking
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

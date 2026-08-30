@@ -89,10 +89,24 @@ export class OrderController {
     await this.invoiceService.generateInvoicePdf(id, res);
   }
 
+  // Send order to Shiprocket (Admin Fulfillment Action)
+  @Post(':id/send-to-shiprocket')
+  async sendToShiprocket(@Param('id') id: string, @Request() req: any) {
+    const adminId = req?.user?.userId || req?.user?.id;
+    return this.orderService.sendToShiprocket(id, adminId);
+  }
+
+  // Sync tracking status with Shiprocket (Admin / System Action)
+  @Get(':id/shiprocket-sync')
+  async syncShiprocket(@Param('id') id: string) {
+    return this.orderService.syncShiprocketTracking(id);
+  }
+
   // Update order status (used by admin)
   @Put(':id/status')
-  async updateOrderStatus(@Param('id') id: string, @Body('status') status: string, @Body('notes') notes?: string) {
-    return this.orderService.updateStatus(id, status, notes);
+  async updateOrderStatus(@Param('id') id: string, @Body('status') status: string, @Body('notes') notes?: string, @Request() req?: any) {
+    const adminId = req?.user?.userId || req?.user?.id;
+    return this.orderService.updateStatus(id, status, notes, adminId);
   }
 
   // Update payment status (used by admin)
@@ -103,8 +117,9 @@ export class OrderController {
 
   // Legacy: also allow PUT :id for backwards compatibility
   @Put(':id')
-  async updateOrder(@Param('id') id: string, @Body('status') status: string) {
-    return this.orderService.updateStatus(id, status);
+  async updateOrder(@Param('id') id: string, @Body('status') status: string, @Request() req?: any) {
+    const adminId = req?.user?.userId || req?.user?.id;
+    return this.orderService.updateStatus(id, status, undefined, adminId);
   }
 
   @Post(':id/cancel')
@@ -127,5 +142,6 @@ export class OrderController {
     return this.orderService.deleteOrder(id);
   }
 }
+
 
 

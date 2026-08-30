@@ -1,101 +1,214 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import axios from 'axios';
 
 @Injectable()
 export class ShiprocketService {
+  private readonly logger = new Logger(ShiprocketService.name);
   private token: string | null = null;
+  private tokenExpiry: number = 0;
   private baseUrl = 'https://apiv2.shiprocket.in/v1/external';
 
-  private async login() {
+  private async login(): Promise<string> {
+    const email = process.env.SHIPROCKET_EMAIL || 'heetlimbasiya10@gmail.com';
+    const password = process.env.SHIPROCKET_PASSWORD || '7Pm8K^%ThcQ5YNeHsH7l8ssuK1^q6ctf';
+
     try {
+      this.logger.log(`Authenticating with Shiprocket API for ${email}...`);
       const response = await axios.post(`${this.baseUrl}/auth/login`, {
-        email: process.env.SHIPROCKET_EMAIL,
-        password: process.env.SHIPROCKET_PASSWORD,
+        email,
+        password,
       });
       this.token = response.data.token;
+      // Shiprocket tokens last ~10 days; we set local expiry for 7 days
+      this.tokenExpiry = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      this.logger.log('Shiprocket authentication successful');
       return this.token;
     } catch (error) {
-      console.error('Shiprocket login failed:', error.response?.data || error.message);
-      throw new InternalServerErrorException('Shiprocket authentication failed');
+      this.logger.error('Shiprocket login failed:', error.response?.data || error.message);
+      throw new InternalServerErrorException(
+        error.response?.data?.message || 'Shiprocket authentication failed. Please check credentials.'
+      );
     }
   }
 
-  private async getToken() {
-    if (this.token) return this.token;
+  private async getToken(): Promise<string> {
+    if (this.token && Date.now() < this.tokenExpiry) {
+      return this.token;
+    }
     return this.login();
   }
 
-  async getTracking(trackingId: string) {
-    const token = await this.getToken();
+  /**
+   * Wrapper for making authenticated requests to Shiprocket with auto 401 retry
+   */
+  private async apiRequest(method: 'get' | 'post', url: string, data?: any, params?: any): Promise<any> {
+    let token = await this.getToken();
     try {
-      const response = await axios.get(`${this.baseUrl}/courier/track/awb/${trackingId}`, {
+      const config: any = {
         headers: { Authorization: `Bearer ${token}` },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Shiprocket tracking failed:', error.response?.data || error.message);
+        params,
+      };
+      const res = method === 'post' 
+        ? await axios.post(`${this.baseUrl}${url}`, data, config)
+        : await axios.get(`${this.baseUrl}${url}`, config);
+      return res.data;
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        this.logger.warn('Shiprocket token expired (401). Refreshing token and retrying...');
+        this.token = null;
+        token = await this.login();
+        const retryConfig: any = {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        };
+        const retryRes = method === 'post'
+          ? await axios.post(`${this.baseUrl}${url}`, data, retryConfig)
+          : await axios.get(`${this.baseUrl}${url}`, retryConfig);
+        return retryRes.data;
+      }
+      throw error;
+    }
+  }
+
+  async getTracking(trackingId: string) {
+    try {
+      return await this.apiRequest('get', `/courier/track/awb/${trackingId}`);
+    } catch (error: any) {
+      this.logger.error(`Shiprocket tracking failed for ${trackingId}:`, error.response?.data || error.message);
+      return null;
+    }
+  }
+
+  async getTrackingByOrderId(orderId: string | number) {
+    try {
+      return await this.apiRequest('get', `/courier/track`, null, { order_id: orderId.toString() });
+    } catch (error: any) {
+      this.logger.error(`Shiprocket tracking by order failed for ${orderId}:`, error.response?.data || error.message);
       return null;
     }
   }
 
   async createOrder(orderData: any) {
-    const token = await this.getToken();
     try {
-      const response = await axios.post(`${this.baseUrl}/orders/create/adhoc`, orderData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Shiprocket order creation failed:', error.response?.data || error.message);
-      throw new InternalServerErrorException('Shiprocket order creation failed');
+      this.logger.log(`Dispatching adhoc order to Shiprocket: ${orderData.order_id}`);
+      return await this.apiRequest('post', `/orders/create/adhoc`, orderData);
+    } catch (error: any) {
+      const errDetail = error.response?.data || error.message;
+      this.logger.error('Shiprocket order creation failed:', errDetail);
+      throw new InternalServerErrorException(
+        typeof errDetail === 'object' ? (errDetail.message || JSON.stringify(errDetail)) : errDetail
+      );
     }
   }
 
+  async generateAwb(shipmentId: number | string, courierId?: number) {
+    try {
+      const payload: any = { shipment_id: Number(shipmentId) };
+      if (courierId) payload.courier_id = courierId;
+      return await this.apiRequest('post', `/courier/assign/awb`, payload);
+    } catch (error: any) {
+      this.logger.error(`Shiprocket AWB generation failed for shipment ${shipmentId}:`, error.response?.data || error.message);
+      return null;
+    }
+  }
+
+  async generateLabel(shipmentId: number | string) {
+    try {
+      return await this.apiRequest('post', `/courier/generate/label`, {
+        shipment_id: [Number(shipmentId)],
+      });
+    } catch (error: any) {
+      this.logger.error(`Shiprocket Label generation failed for shipment ${shipmentId}:`, error.response?.data || error.message);
+      return null;
+    }
+  }
+
+  async getPrimaryPickupLocation(): Promise<string> {
+    if (process.env.SHIPROCKET_PICKUP_LOCATION) {
+      return process.env.SHIPROCKET_PICKUP_LOCATION;
+    }
+    try {
+      const res = await this.apiRequest('get', `/settings/company/pickup`);
+      const addrs = res?.data?.shipping_address || [];
+      if (addrs.length > 0 && addrs[0]?.pickup_location) {
+        return addrs[0].pickup_location;
+      }
+    } catch (e: any) {
+      this.logger.warn(`Could not query Shiprocket pickup locations: ${e.message}`);
+    }
+    return 'work';
+  }
+
   async createOrderFromFylexOrder(order: any, shippingAddr?: any) {
-    const pickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || 'work';
+    const pickupLocation = await this.getPrimaryPickupLocation();
     const dateStr = new Date(order.createdAt || Date.now())
       .toISOString()
       .replace('T', ' ')
       .slice(0, 16);
 
-    const addr = shippingAddr || order.addresses?.find((a: any) => a.type === 'shipping') || order.addresses?.[0];
+    const addr = shippingAddr || order.addresses?.find((a: any) => a.type === 'shipping') || order.addresses?.[0] || order.shipping_address || order.shippingAddress;
 
     const items = (order.items || []).map((item: any) => ({
-      name: item.productName || item.productVariant?.product?.name || 'Fylex Timepiece',
-      sku: item.sku || item.productVariant?.sku || 'FYLEX-ITEM',
-      units: item.quantity || 1,
-      selling_price: Number(item.unitPrice || item.subtotal || 0),
-      discount: Number(item.discountAmount || 0),
+      name: (item.productName || item.productVariant?.product?.name || item.name || 'FYLEX Luxury Timepiece').slice(0, 100),
+      sku: item.sku || item.productVariant?.sku || `FYL-${item.id || 'WATCH'}`,
+      units: Number(item.quantity || item.qty || 1),
+      selling_price: Math.round(Number(item.unitPrice || item.subtotal || item.price || 0)),
+      discount: Math.round(Number(item.discountAmount || 0)),
     }));
 
-    const isCod = order.paymentMethod === 'cod';
+    const isCod = (order.paymentMethod || '').toLowerCase() === 'cod';
+
+    // Parse names cleanly
+    let firstName = (addr?.firstName || addr?.first_name || order.customerFirstName || '').trim();
+    let lastName = (addr?.lastName || addr?.last_name || order.customerLastName || '').trim();
+
+    if (!firstName) {
+      const rawFullName = (addr?.name || addr?.full_name || order.customer?.name || 'Customer').trim();
+      const parts = rawFullName.split(' ');
+      firstName = parts[0] || 'Customer';
+      lastName = parts.slice(1).join(' ') || 'Fylex';
+    }
+    if (!lastName) lastName = 'Fylex';
+
+    const rawPhone = addr?.phone || addr?.mobile || order.customerMobile || order.customer?.mobile || '9876543210';
+    const cleanPhone = String(rawPhone).replace(/\D/g, '').slice(-10) || '9876543210';
+
+    const rawPincode = addr?.postcode || addr?.pincode || addr?.zip || process.env.SHIPROCKET_PICKUP_PINCODE || '380001';
+    const cleanPincode = String(rawPincode).replace(/\D/g, '').slice(0, 6) || '380001';
 
     const payload = {
-      order_id: order.orderNumber || `ORD-${order.id}`,
+      order_id: String(order.orderNumber || `ORD-${order.id}`),
       order_date: dateStr,
       pickup_location: pickupLocation,
       channel_id: '',
-      comment: 'Fylex Luxury Watch Order',
-      billing_customer_name: addr?.firstName || order.customerFirstName || 'Customer',
-      billing_last_name: addr?.lastName || order.customerLastName || 'Name',
-      billing_address: addr?.address1 || addr?.address || '6/11, Radhika Times',
-      billing_city: addr?.city || 'Rajkot',
-      billing_pincode: addr?.postcode || addr?.pincode || process.env.SHIPROCKET_PICKUP_PINCODE || '360002',
+      comment: 'FYLEX Bespoke Luxury Watch Order',
+      billing_customer_name: firstName,
+      billing_last_name: lastName,
+      billing_address: addr?.address1 || addr?.address || addr?.line1 || 'FYLEX Atelier, Ground Floor',
+      billing_address_2: addr?.address2 || addr?.line2 || '',
+      billing_city: addr?.city || 'Ahmedabad',
+      billing_pincode: cleanPincode,
       billing_state: addr?.state || 'Gujarat',
       billing_country: addr?.country || 'India',
-      billing_email: addr?.email || order.customer?.email || 'customer@fylex.com',
-      billing_phone: addr?.phone || addr?.mobile || order.customerMobile || '7069211020',
+      billing_email: addr?.email || order.customer?.email || 'concierge@fylex.com',
+      billing_phone: cleanPhone,
       shipping_is_billing: true,
-      order_items: items,
+      order_items: items.length > 0 ? items : [{
+        name: 'FYLEX Luxury Timepiece',
+        sku: 'FYLEX-TIMEPIECE',
+        units: 1,
+        selling_price: Math.round(Number(order.grandTotal || 10000)),
+        discount: 0,
+      }],
       payment_method: isCod ? 'COD' : 'Prepaid',
-      sub_total: Number(order.subtotal || order.grandTotal || 0),
+      sub_total: Math.round(Number(order.subtotal || order.grandTotal || 0)),
       length: 15,
       breadth: 15,
       height: 10,
       weight: 0.5,
     };
 
-    console.log('Sending payload to Shiprocket:', JSON.stringify(payload, null, 2));
+    this.logger.log(`Prepared Shiprocket Payload for order ${order.orderNumber || order.id}:\n` + JSON.stringify(payload, null, 2));
     return this.createOrder(payload);
   }
 
@@ -103,38 +216,39 @@ export class ShiprocketService {
   private readonly CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
   async checkServiceability(pickupPostcode: string, deliveryPostcode: string, weight: number) {
-    const cacheKey = `${pickupPostcode}_${deliveryPostcode}_${weight}`;
+    const cleanPickup = String(pickupPostcode || process.env.SHIPROCKET_PICKUP_PINCODE || '380001').replace(/\D/g, '').slice(0, 6);
+    const cleanDelivery = String(deliveryPostcode || '').replace(/\D/g, '').slice(0, 6);
+    
+    if (cleanDelivery.length !== 6) {
+      return {
+        serviceable: false,
+        codAvailable: false,
+        rate: null,
+        message: 'Invalid 6-digit delivery pincode'
+      };
+    }
+
+    const cacheKey = `${cleanPickup}_${cleanDelivery}_${weight}`;
     const cached = this.cache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp < this.CACHE_TTL)) {
       return cached.data;
     }
 
-    const token = await this.getToken();
     try {
-      // Check both Prepaid and COD in parallel
-      const [prepaidRes, codRes] = await Promise.allSettled([
-        axios.get(`${this.baseUrl}/courier/serviceability/`, {
-          params: {
-            pickup_postcode: pickupPostcode,
-            delivery_postcode: deliveryPostcode,
-            weight: weight,
-            cod: 0,
-          },
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        axios.get(`${this.baseUrl}/courier/serviceability/`, {
-          params: {
-            pickup_postcode: pickupPostcode,
-            delivery_postcode: deliveryPostcode,
-            weight: weight,
-            cod: 1,
-          },
-          headers: { Authorization: `Bearer ${token}` },
-        })
+      const [prepaidData, codData] = await Promise.all([
+        this.apiRequest('get', `/courier/serviceability/`, null, {
+          pickup_postcode: cleanPickup,
+          delivery_postcode: cleanDelivery,
+          weight: weight || 0.5,
+          cod: 0,
+        }).catch(() => null),
+        this.apiRequest('get', `/courier/serviceability/`, null, {
+          pickup_postcode: cleanPickup,
+          delivery_postcode: cleanDelivery,
+          weight: weight || 0.5,
+          cod: 1,
+        }).catch(() => null),
       ]);
-
-      const prepaidData = prepaidRes.status === 'fulfilled' ? prepaidRes.value.data : null;
-      const codData = codRes.status === 'fulfilled' ? codRes.value.data : null;
 
       const prepaidCouriers = prepaidData?.data?.available_courier_companies || [];
       const codCouriers = codData?.data?.available_courier_companies || [];
@@ -147,41 +261,40 @@ export class ShiprocketService {
           serviceable: false,
           codAvailable: false,
           rate: null,
-          message: "Delivery not available for this pincode"
+          message: 'Delivery not available for this pincode',
         };
         this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
         return result;
       }
 
-      // Filter for reliable couriers (Rating >= 4)
-      let reliableCouriers = prepaidCouriers.filter(c => c.rating >= 4);
-      if (reliableCouriers.length === 0) reliableCouriers = prepaidCouriers; // Fallback to all if none are >= 4
+      let reliableCouriers = prepaidCouriers.filter((c: any) => c.rating >= 4);
+      if (reliableCouriers.length === 0) reliableCouriers = prepaidCouriers;
 
-      // Get best courier (cheapest among reliable ones)
-      const bestCourier = reliableCouriers.sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate))[0] || codCouriers[0];
+      const bestCourier = reliableCouriers.sort((a: any, b: any) => parseFloat(a.rate) - parseFloat(b.rate))[0] || codCouriers[0];
 
       const result = {
         serviceable: true,
         codAvailable: isCodAvailable,
-        rate: parseFloat(bestCourier.rate),
-        courier_name: bestCourier.courier_name,
-        etd: bestCourier.etd,
-        message: "Success"
+        rate: parseFloat(bestCourier?.rate || '0'),
+        courier_name: bestCourier?.courier_name || 'Standard Luxury Courier',
+        etd: bestCourier?.etd || '3-5 Business Days',
+        message: 'Success',
       };
       
       this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
       return result;
-    } catch (error) {
-      console.error('Shiprocket serviceability check failed:', error.response?.data || error.message);
-      // Technical failure -> Allow ONLY Prepaid for safety
+    } catch (error: any) {
+      this.logger.error('Shiprocket serviceability check error:', error.response?.data || error.message);
       return {
-        serviceable: null, 
-        codAvailable: true, // Force true to allow COD on API error
-        rate: 500,
-        message: "Technical issue: COD enabled, shipping estimated"
+        serviceable: true, 
+        codAvailable: true,
+        rate: 0,
+        courier_name: 'Standard Luxury Courier',
+        message: 'Shipping calculated (Fallback mode)',
       };
     }
   }
 }
+
 
 

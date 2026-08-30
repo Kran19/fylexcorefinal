@@ -13,10 +13,11 @@ export class WhatsappService {
 
   private readonly apiKey = process.env.ZAPLE_API_KEY || 'zaple_451798231PSElqa6NorYoKqpjcnPHN3Z64MNd';
   private readonly apiSecret = process.env.ZAPLE_API_SECRET || 'zaple3374684YtFxWsh8liPqptWEjevVJ20XuiEeBr';
-  private readonly templateId = process.env.ZAPLE_TEMPLATE_ID || 'authentication';
+  private readonly otpTemplateId = process.env.ZAPLE_TEMPLATE_ID || process.env.ZAPLE_OTP_TEMPLATE_ID || 'authentication';
+  private readonly welcomeTemplateId = process.env.ZAPLE_WELCOME_TEMPLATE_ID || '398859617877513932611736';
 
   /**
-   * Generates a 4-digit OTP, stores it with 10-minute validity, and sends it via Zaple.ai WhatsApp API.
+   * Generates a 6-digit OTP, stores it with 10-minute validity, and sends it via Zaple.ai WhatsApp API.
    */
   async sendOtp(mobile: string): Promise<{ success: boolean; message: string }> {
     const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
@@ -33,13 +34,38 @@ export class WhatsappService {
 
     // Dispatch via Zaple.ai WhatsApp API
     try {
-      const apiResult = await this.dispatchZapleWhatsapp(cleanMobile, generatedOtp);
-      this.logger.log(`Zaple WhatsApp API response for ${cleanMobile}: ${JSON.stringify(apiResult)}`);
+      const apiResult = await this.dispatchZapleTemplate(cleanMobile, this.otpTemplateId, [generatedOtp]);
+      this.logger.log(`Zaple WhatsApp OTP API response for ${cleanMobile}: ${JSON.stringify(apiResult)}`);
       return { success: true, message: 'OTP sent successfully via WhatsApp' };
     } catch (error) {
-      this.logger.error(`Zaple WhatsApp API error for ${cleanMobile}: ${error.message}`);
+      this.logger.error(`Zaple WhatsApp OTP API error for ${cleanMobile}: ${error.message}`);
       // Fallback: log generated OTP locally so dev/test is unblocked if template ID is pending approval
       return { success: true, message: 'OTP generated and dispatched' };
+    }
+  }
+
+  /**
+   * Sends Welcome / Account Created WhatsApp template message to newly registered customers.
+   * Template ID: 398859617877513932611736
+   * Variable 1 (template_argument1): Customer Name
+   */
+  async sendWelcomeMessage(mobile: string, name: string): Promise<{ success: boolean; message: string }> {
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    if (cleanMobile.length !== 10) {
+      this.logger.warn(`Cannot send welcome WhatsApp message: invalid mobile ${mobile}`);
+      return { success: false, message: 'Invalid mobile number' };
+    }
+
+    const customerName = (name || 'Valued Customer').trim();
+    this.logger.log(`Sending Welcome WhatsApp Template [${this.welcomeTemplateId}] to ${cleanMobile} (Name: ${customerName})`);
+
+    try {
+      const apiResult = await this.dispatchZapleTemplate(cleanMobile, this.welcomeTemplateId, [customerName]);
+      this.logger.log(`Zaple Welcome WhatsApp API response for ${cleanMobile}: ${JSON.stringify(apiResult)}`);
+      return { success: true, message: 'Welcome message sent successfully via WhatsApp' };
+    } catch (error) {
+      this.logger.error(`Zaple Welcome WhatsApp API error for ${cleanMobile}: ${error.message}`);
+      return { success: false, message: error.message };
     }
   }
 
@@ -71,16 +97,24 @@ export class WhatsappService {
     return true;
   }
 
-  private dispatchZapleWhatsapp(mobile: string, otp: string): Promise<any> {
+  /**
+   * Generic multipart/form-data dispatcher to Zaple.ai API
+   */
+  private dispatchZapleTemplate(mobile: string, templateId: string, args: string[] = []): Promise<any> {
     return new Promise((resolve, reject) => {
       const fullMobile = mobile.length === 10 ? `91${mobile}` : mobile;
       const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-      const body = 
+      
+      let body = 
         `--${boundary}\r\nContent-Disposition: form-data; name="send_to"\r\n\r\n${fullMobile}\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="country_code"\r\n\r\n91\r\n` +
-        `--${boundary}\r\nContent-Disposition: form-data; name="template_id"\r\n\r\n${this.templateId}\r\n` +
-        `--${boundary}\r\nContent-Disposition: form-data; name="template_argument1"\r\n\r\n${otp}\r\n` +
-        `--${boundary}--\r\n`;
+        `--${boundary}\r\nContent-Disposition: form-data; name="template_id"\r\n\r\n${templateId}\r\n`;
+
+      args.forEach((arg, index) => {
+        body += `--${boundary}\r\nContent-Disposition: form-data; name="template_argument${index + 1}"\r\n\r\n${arg}\r\n`;
+      });
+
+      body += `--${boundary}--\r\n`;
 
       const req = https.request('https://app.zaple.ai/api/v2/send-template-message', {
         method: 'POST',
@@ -108,3 +142,4 @@ export class WhatsappService {
     });
   }
 }
+
