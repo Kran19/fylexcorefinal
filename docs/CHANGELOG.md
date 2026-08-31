@@ -908,3 +908,19 @@
 - **Testing Completed:** Verified TypeScript import statements and token return type assertion.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 69: Subpath Static Asset Match (/preload) & Admin/Customer Login Protection
+- **Task Number:** 69
+- **Task Name:** Subpath Static Asset Match (/preload) & Admin/Customer Login Protection
+- **Files Modified:**
+  - `next_/lib/utils.js`
+  - `next_/services/adminApi.js`
+- **Reason:** Updated `getFileUrl` in `utils.js` to match all static public file extensions (`.png`, `.webp`, `.jpg`, `.jpeg`, `.svg`, `.mp4`), restoring all website images under `/preload`, and updated 401 session expiration in `adminApi.js` to redirect customers to Customer `/login` and admins to Admin `/admin/login`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** All static images render cleanly on `https://fylexwatches.com/preload`, and customer login routes strictly to customer store login.
+- **Backend Impact:** None
+- **Testing Completed:** Verified static file regex matching and route-based 401 redirection logic.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete

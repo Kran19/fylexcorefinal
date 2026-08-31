@@ -21,8 +21,12 @@ export function getFileUrl(path) {
     return cleanPath;
   }
 
-  // 2. Relative frontend static assets (/assets/...)
-  if (cleanPath.startsWith('/assets/') || cleanPath.startsWith('assets/')) {
+  // 2. Relative frontend static assets (/assets/..., .png, .webp, .jpg, .jpeg, .svg, .mp4)
+  const isFrontendStatic = cleanPath.startsWith('/assets/') || cleanPath.startsWith('assets/') ||
+    cleanPath.startsWith('/watch/') || cleanPath.startsWith('watch/') ||
+    cleanPath.match(/\.(png|webp|jpg|jpeg|svg|mp4|gif|ico)$/i);
+
+  if (isFrontendStatic && !cleanPath.includes('uploads/')) {
     const assetPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
     return `/preload${assetPath}`;
   }
