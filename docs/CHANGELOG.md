@@ -892,3 +892,19 @@
 - **Testing Completed:** Verified pickupLocation parameter fallback in ShiprocketService.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 68: Fix NestJS Build TypeScript Compilation Errors
+- **Task Number:** 68
+- **Task Name:** Fix NestJS Build TypeScript Compilation Errors
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+  - `nest_/src/modules/order/shiprocket.service.ts`
+- **Reason:** Resolved missing `InternalServerErrorException` import in `order.service.ts` and fixed non-null assertion on `this.token!` in `shiprocket.service.ts` to pass strict TypeScript build checks.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** None
+- **Backend Impact:** Clean Docker compilation for `fylex-backend`.
+- **Testing Completed:** Verified TypeScript import statements and token return type assertion.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete

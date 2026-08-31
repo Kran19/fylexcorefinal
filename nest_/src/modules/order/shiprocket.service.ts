@@ -22,7 +22,7 @@ export class ShiprocketService {
       // Shiprocket tokens last ~10 days; we set local expiry for 7 days
       this.tokenExpiry = Date.now() + 7 * 24 * 60 * 60 * 1000;
       this.logger.log('Shiprocket authentication successful');
-      return this.token;
+      return this.token!;
     } catch (error) {
       this.logger.error('Shiprocket login failed:', error.response?.data || error.message);
       throw new InternalServerErrorException(
