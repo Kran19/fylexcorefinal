@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { OrderService } from '../order/order.service';
 
@@ -6,7 +6,7 @@ import { OrderService } from '../order/order.service';
 export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
-    private readonly orderService: OrderService
+    @Inject(forwardRef(() => OrderService)) private readonly orderService: OrderService
   ) {}
 
   @Post('create-order')

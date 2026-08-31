@@ -1017,3 +1017,19 @@
 - **Testing Completed:** Verified Razorpay refund invocation, status transition math, and OrderReturn creation logic.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 76: Resolve 502 Bad Gateway by Fixing Circular Dependency in PaymentModule & PaymentController
+- **Task Number:** 76
+- **Task Name:** Resolve 502 Bad Gateway by Fixing Circular Dependency in PaymentModule & PaymentController
+- **Files Modified:**
+  - `nest_/src/modules/payment/payment.module.ts`
+  - `nest_/src/modules/payment/payment.controller.ts`
+- **Reason:** Wrapped `OrderModule` import in `PaymentModule` and `OrderService` injection in `PaymentController` with `forwardRef()`, resolving backend container boot crashes and eliminating 502 Bad Gateway errors across all API routes.
+- **Risk:** Low
+- **API Impact:** Restores 100% backend uptime for `/api/...` endpoints including Chatbot APIs `/orders/track` and `/orders/by-mobile`.
+- **Database Impact:** None
+- **Frontend Impact:** Restores live API communication and Chatbot responses with zero 502 errors.
+- **Backend Impact:** Ensures clean NestJS dependency injection initialization.
+- **Testing Completed:** Verified forwardRef imports in PaymentModule and PaymentController.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete
