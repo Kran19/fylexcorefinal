@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { adminLogin } from '@/services/adminApi';
+import { getFileUrl } from '@/lib/utils';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -60,7 +61,7 @@ export default function AdminLogin() {
         <div className="welcome-content">
           <div className="admin-spinner"></div>
           <h2>Authenticating...</h2>
-          <p>Securely logging you into the <img src="/fylex.png" alt="Fylex" style={{ height: '2.5em', display: 'inline-block', verticalAlign: 'middle', transform: 'translateY(-0.1em)' }} /> Admin Panel</p>
+          <p>Securely logging you into the <img src={getFileUrl('/fylex.png')} alt="Fylex" style={{ height: '2.5em', display: 'inline-block', verticalAlign: 'middle', transform: 'translateY(-0.1em)' }} onError={(e) => { e.currentTarget.src = '/fylex.png'; }} /> Admin Panel</p>
         </div>
         <style jsx>{`
           .welcome-screen {
@@ -124,9 +125,9 @@ export default function AdminLogin() {
       <div className="login-card animate-fade-in">
         <div className="login-header">
           <div className="brand-logo" style={{ background: 'transparent', boxShadow: 'none' }}>
-            <img src="/logo.png" alt="Fylex" style={{ width: '120px', height: 'auto', objectFit: 'contain' }} />
+            <img src={getFileUrl('/logo.png')} alt="Fylex" style={{ width: '120px', height: 'auto', objectFit: 'contain' }} onError={(e) => { e.currentTarget.src = '/logo.png'; }} />
           </div>
-          <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}><img src="/fylex.png" alt="Fylex" style={{ height: '2.5em', display: 'inline-block', verticalAlign: 'baseline' }} /> Admin</h1>
+          <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}><img src={getFileUrl('/fylex.png')} alt="Fylex" style={{ height: '2.5em', display: 'inline-block', verticalAlign: 'baseline' }} onError={(e) => { e.currentTarget.src = '/fylex.png'; }} /> Admin</h1>
           <p>Secure Administrative Access</p>
         </div>
 

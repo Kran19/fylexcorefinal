@@ -924,3 +924,17 @@
 - **Testing Completed:** Verified static file regex matching and route-based 401 redirection logic.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 70: Fix Admin Login Logo Asset Resolution Under /preload
+- **Task Number:** 70
+- **Task Name:** Fix Admin Login Logo Asset Resolution Under /preload
+- **Files Modified:** `next_/app/admin/login/page.jsx`
+- **Reason:** Wrapped logo image tags (`/logo.png`, `/fylex.png`) with `getFileUrl(...)` in `admin/login/page.jsx`, rendering the Fylex Admin brand logo cleanly at `https://fylexwatches.com/preload/admin/login` without broken image placeholders.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Admin login card displays brand logo properly under `/preload` subpath.
+- **Backend Impact:** None
+- **Testing Completed:** Verified getFileUrl wrapping and fallback logic in admin login view.
+- **Rollback Strategy:** Revert `next_/app/admin/login/page.jsx`.
+- **Status:** Complete
