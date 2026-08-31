@@ -12,12 +12,13 @@ import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 import { deleteOrderApi } from '@/lib/api';
+import { deleteOrder } from '@/services/adminApi';
 import Swal from 'sweetalert2';
 
 const OrdersPage = () => {
   const router = useRouter();
   const toast = useToast();
-  const { data, loading, errors, refetch } = useAdminData();
+  const { data, loading, errors, refetch, deleteRecord } = useAdminData();
   const orders = data.orders || [];
 
   const tableRef = useRef(null);
@@ -116,7 +117,19 @@ const OrdersPage = () => {
         if (e.target.closest('.style-btn-edit')) {
           router.push(`/admin/orders/${d.id}`);
         } else if (e.target.closest('.style-btn-delete')) {
-          deleteRecord('orders', d.id, api.deleteOrder);
+          Swal.fire({
+            title: 'Delete Order?',
+            text: `Are you sure you want to delete order #${d.orderNumber || d.id}? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, delete it!'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              deleteRecord('orders', d.id, deleteOrder);
+            }
+          });
         }
       },
     },

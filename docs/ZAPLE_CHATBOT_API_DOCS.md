@@ -1,4 +1,4 @@
-# 🤖 Zaple WhatsApp Chatbot API Documentation
+#  Zaple WhatsApp Chatbot API Documentation
 
 ### Base URL:
 `https://fylexwatches.com/api`

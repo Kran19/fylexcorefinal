@@ -984,3 +984,19 @@
 - **Testing Completed:** Verified adminApi integration and payload handling in belts/boxes views.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 74: Fix Admin Orders Delete Record ReferenceError & Add Swal Confirmation
+- **Task Number:** 74
+- **Task Name:** Fix Admin Orders Delete Record ReferenceError & Add Swal Confirmation
+- **Files Modified:**
+  - `next_/services/adminApi.js`
+  - `next_/app/admin/orders/page.jsx`
+- **Reason:** Exported `deleteOrder` API function in `adminApi.js`, destructured `deleteRecord` from `useAdminData()` in `orders/page.jsx`, and bound SweetAlert (`Swal.fire`) confirmation popup to the delete trash button.
+- **Risk:** Low
+- **API Impact:** Calls `DELETE /api/orders/:id` upon deletion confirmation.
+- **Database Impact:** Deletes specified order record upon user confirmation.
+- **Frontend Impact:** Admins can safely delete orders with interactive confirmation modal and 0 console exceptions.
+- **Backend Impact:** None
+- **Testing Completed:** Verified deleteRecord destructuring, Swal confirmation modal trigger, and API dispatch.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete
