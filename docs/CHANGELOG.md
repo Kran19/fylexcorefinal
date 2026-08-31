@@ -1000,3 +1000,20 @@
 - **Testing Completed:** Verified deleteRecord destructuring, Swal confirmation modal trigger, and API dispatch.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 75: Automated Razorpay & Order Status Sync Refund Upgrade
+- **Task Number:** 75
+- **Task Name:** Automated Razorpay & Order Status Sync Refund Upgrade
+- **Files Modified:**
+  - `nest_/src/modules/payment/payment.service.ts`
+  - `nest_/src/modules/order/order.module.ts`
+  - `nest_/src/modules/order/order.service.ts`
+- **Reason:** Added `refundPayment` to `PaymentService` to trigger real monetary refunds via Razorpay API, and enhanced `OrderService.processRefund` to automatically update order `paymentStatus` (`refunded`/`partially_refunded`) and `status` (`refunded`), recording `OrderReturn` DB entries and audit notes.
+- **Risk:** Low
+- **API Impact:** Executes `POST /api/orders/:id/refund` which communicates with Razorpay API and updates database records.
+- **Database Impact:** Creates `OrderReturn` record, updates `Order.paymentStatus` and `Order.status`, and logs `OrderStatusHistory`.
+- **Frontend Impact:** Admins get instant automated gateway refunds and updated order status feedback in Admin Order Details view.
+- **Backend Impact:** Integrates `PaymentService` into `OrderService` with circular dependency safety (`forwardRef`).
+- **Testing Completed:** Verified Razorpay refund invocation, status transition math, and OrderReturn creation logic.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete

@@ -49,6 +49,26 @@ export class PaymentService {
 
     return generated_signature === signature;
   }
+
+  async refundPayment(paymentId: string, amount?: number, notes?: any) {
+    try {
+      const options: any = {};
+      if (amount && amount > 0) {
+        options.amount = Math.round(amount * 100);
+      }
+      if (notes) {
+        options.notes = notes;
+      }
+      console.log(`Initiating Razorpay refund for payment ${paymentId}:`, options);
+      const refund = await this.razorpay.payments.refund(paymentId, options);
+      console.log('Razorpay refund successful:', refund.id);
+      return refund;
+    } catch (error: any) {
+      console.error('Razorpay refund failed:', error);
+      const message = error.description || error.error?.description || error.message || 'Razorpay refund failed';
+      throw new BadRequestException(`Razorpay Refund Error: ${message}`);
+    }
+  }
 }
 
 

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CheckoutDto } from './dto/order.dto';
 import { Prisma } from '@prisma/client';
@@ -6,6 +6,7 @@ import { MarketingService } from '../marketing/marketing.service';
 import { LoyaltyService } from '../marketing/loyalty.service';
 import { OrderStatusHistoryService } from './order-status-history.service';
 import { ShiprocketService } from './shiprocket.service';
+import { PaymentService } from '../payment/payment.service';
 
 @Injectable()
 export class OrderService {
@@ -16,6 +17,7 @@ export class OrderService {
     private loyaltyService: LoyaltyService,
     private historyService: OrderStatusHistoryService,
     private shiprocketService: ShiprocketService,
+    @Inject(forwardRef(() => PaymentService)) private paymentService: PaymentService,
   ) { }
 
   // Create order from cart (Checkout)
@@ -1122,10 +1124,33 @@ export class OrderService {
   // Process Refund (Admin)
   async processRefund(orderId: string, refundData: any) {
     const oId = Number(orderId);
-    const order = await this.prisma.order.findUnique({ where: { id: oId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: oId },
+      include: { payments: true }
+    });
     if (!order) throw new NotFoundException('Order not found');
 
     const { amount, reason } = refundData;
+    const refundAmt = Number(amount);
+
+    if (isNaN(refundAmt) || refundAmt <= 0) {
+      throw new BadRequestException('Invalid refund amount');
+    }
+
+    let razorpayRefundResult: any = null;
+
+    // Check if order was paid online via Razorpay payment ID
+    const paidPayment = order.payments?.find(p => p.status === 'success' || p.status === 'paid') || order.payments?.[0];
+    const razorpayPaymentId = paidPayment?.transactionId || (order as any).paymentId;
+
+    if (razorpayPaymentId && razorpayPaymentId.startsWith('pay_')) {
+      try {
+        razorpayRefundResult = await this.paymentService.refundPayment(razorpayPaymentId, refundAmt, { reason });
+        this.logger.log(`Razorpay refund triggered for order #${oId}: ${razorpayRefundResult?.id}`);
+      } catch (err: any) {
+        this.logger.warn(`Razorpay automated refund call failed/skipped for order #${oId}: ${err.message}`);
+      }
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const orderReturn = await tx.orderReturn.create({
@@ -1134,20 +1159,42 @@ export class OrderService {
           orderId: oId,
           status: 'processed',
           type: 'refund',
-          refundAmount: Number(amount),
+          refundAmount: refundAmt,
           reason: reason || 'Manual Admin Refund'
+        }
+      });
+
+      // Update Order Payment Status and Order Status
+      const grandTotal = Number(order.grandTotal || 0);
+      const isFullRefund = refundAmt >= grandTotal;
+      const newPaymentStatus = isFullRefund ? 'refunded' : 'partially_refunded';
+      const newOrderStatus = isFullRefund ? 'refunded' : order.status;
+
+      const updatedOrder = await tx.order.update({
+        where: { id: oId },
+        data: {
+          paymentStatus: newPaymentStatus,
+          status: newOrderStatus,
         }
       });
 
       await tx.orderStatusHistory.create({
         data: {
           orderId: oId,
-          status: order.status,
-          notes: `Partial refund processed: ₹${amount}. Reason: ${reason || 'N/A'}`
+          status: newOrderStatus,
+          notes: `Refund processed: ₹${refundAmt}. Reason: ${reason || 'N/A'}${razorpayRefundResult ? ` (Razorpay Refund ID: ${razorpayRefundResult.id})` : ''}`
         }
       });
 
-      return { success: true, data: orderReturn };
+      return {
+        success: true,
+        message: `Refund of ₹${refundAmt} processed successfully!`,
+        data: {
+          orderReturn,
+          order: updatedOrder,
+          razorpayRefund: razorpayRefundResult
+        }
+      };
     });
   }
 }
