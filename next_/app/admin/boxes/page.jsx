@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-const axiosInstance = axios;
+import { getBoxes, createBox, updateBox, deleteBox } from '@/services/adminApi';
 import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaImage, FaExclamationTriangle } from 'react-icons/fa';
 import MediaPickerModal from '@/components/admin/MediaPickerModal';
 import AdminModal from '@/components/admin/AdminModal';
@@ -12,20 +11,6 @@ import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
 import '@/app/admin/css/datatable.css';
 import '@/app/admin/css/custom.css';
-
-const getApiUrl = () => {
-  let urlStr = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-  if (typeof window !== 'undefined') {
-    try {
-      const url = new URL(urlStr);
-      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-        url.hostname = window.location.hostname;
-        urlStr = url.toString().replace(/\/$/, '');
-      }
-    } catch (e) {}
-  }
-  return urlStr;
-};
 
 export default function BoxesPage() {
   const toast = useToast();
@@ -46,13 +31,13 @@ export default function BoxesPage() {
   const fetchBoxes = async () => {
     setLoading(true);
     try {
-      const { data } = await axiosInstance.get(`${getApiUrl()}/boxes`);
-      if (Array.isArray(data)) {
-        setBoxes(data);
-      } else if (data && Array.isArray(data.data)) {
-        setBoxes(data.data);
+      const res = await getBoxes();
+      const list = res?.data || res;
+      if (Array.isArray(list)) {
+        setBoxes(list);
+      } else if (list && Array.isArray(list.data)) {
+        setBoxes(list.data);
       } else {
-        console.warn('API returned non-array data:', data);
         setBoxes([]);
       }
     } catch (err) {
@@ -97,10 +82,12 @@ export default function BoxesPage() {
     e.preventDefault();
     try {
       if (editingBox) {
-        await axiosInstance.put(`${getApiUrl()}/boxes/${editingBox.id}`, formData);
+        const res = await updateBox(editingBox.id, formData);
+        if (res?.error) return toast?.error?.(res.error);
         toast?.success?.('Box updated successfully');
       } else {
-        await axiosInstance.post(`${getApiUrl()}/boxes`, formData);
+        const res = await createBox(formData);
+        if (res?.error) return toast?.error?.(res.error);
         toast?.success?.('Box created successfully');
       }
       closeModal();
@@ -114,7 +101,8 @@ export default function BoxesPage() {
   const executeDelete = async () => {
     if (!deleteConfirmId) return;
     try {
-      await axiosInstance.delete(`${getApiUrl()}/boxes/${deleteConfirmId}`);
+      const res = await deleteBox(deleteConfirmId);
+      if (res?.error) return toast?.error?.(res.error);
       toast?.success?.('Box has been deleted successfully');
       setDeleteConfirmId(null);
       fetchBoxes();

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getBelts, createBelt, updateBelt, deleteBelt } from '@/services/adminApi';
 import { FaEdit, FaTrash, FaPlus, FaCheck, FaTimes, FaImage, FaExclamationTriangle } from 'react-icons/fa';
 import MediaPickerModal from '@/components/admin/MediaPickerModal';
 import AdminModal from '@/components/admin/AdminModal';
@@ -11,20 +11,6 @@ import { useToast } from '@/context/ToastContext';
 import { getFileUrl } from '@/lib/utils';
 import '@/app/admin/css/datatable.css';
 import '@/app/admin/css/custom.css';
-
-const getApiUrl = () => {
-  let urlStr = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-  if (typeof window !== 'undefined') {
-    try {
-      const url = new URL(urlStr);
-      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-        url.hostname = window.location.hostname;
-        urlStr = url.toString().replace(/\/$/, '');
-      }
-    } catch (e) {}
-  }
-  return urlStr;
-};
 
 export default function BeltsPage() {
   const toast = useToast();
@@ -47,13 +33,13 @@ export default function BeltsPage() {
   const fetchBelts = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get(`${getApiUrl()}/belts`);
-      if (Array.isArray(data)) {
-        setBelts(data);
-      } else if (data && Array.isArray(data.data)) {
-        setBelts(data.data);
+      const res = await getBelts();
+      const list = res?.data || res;
+      if (Array.isArray(list)) {
+        setBelts(list);
+      } else if (list && Array.isArray(list.data)) {
+        setBelts(list.data);
       } else {
-        console.warn('API returned non-array data:', data);
         setBelts([]);
       }
     } catch (err) {
@@ -102,10 +88,12 @@ export default function BeltsPage() {
     e.preventDefault();
     try {
       if (editingBelt) {
-        await axios.put(`${getApiUrl()}/belts/${editingBelt.id}`, formData);
+        const res = await updateBelt(editingBelt.id, formData);
+        if (res?.error) return toast?.error?.(res.error);
         toast?.success?.('Belt updated successfully');
       } else {
-        await axios.post(`${getApiUrl()}/belts`, formData);
+        const res = await createBelt(formData);
+        if (res?.error) return toast?.error?.(res.error);
         toast?.success?.('Belt created successfully');
       }
       closeModal();
@@ -119,7 +107,8 @@ export default function BeltsPage() {
   const executeDelete = async () => {
     if (!deleteConfirmId) return;
     try {
-      await axios.delete(`${getApiUrl()}/belts/${deleteConfirmId}`);
+      const res = await deleteBelt(deleteConfirmId);
+      if (res?.error) return toast?.error?.(res.error);
       toast?.success?.('Belt has been deleted successfully');
       setDeleteConfirmId(null);
       fetchBelts();

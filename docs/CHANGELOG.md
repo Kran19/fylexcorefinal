@@ -968,3 +968,19 @@
 - **Testing Completed:** Verified grid container bounds, `handleConfirmAndFulfillOrder` handler, and button action states.
 - **Rollback Strategy:** Revert `next_/app/admin/orders/[id]/page.jsx`.
 - **Status:** Complete
+
+## Task 73: Admin Belts & Boxes Mixed Content HTTPS API Call Fix
+- **Task Number:** 73
+- **Task Name:** Admin Belts & Boxes Mixed Content HTTPS API Call Fix
+- **Files Modified:**
+  - `next_/app/admin/belts/page.jsx`
+  - `next_/app/admin/boxes/page.jsx`
+- **Reason:** Replaced raw `axios` + `getApiUrl()` calls with `@/services/adminApi`, eliminating HTTP port 5000 Mixed Content errors on `https://fylexwatches.com/preload/admin/belts` and `https://fylexwatches.com/preload/admin/boxes`.
+- **Risk:** Low
+- **API Impact:** Calls `https://fylexwatches.com/api/belts` and `https://fylexwatches.com/api/boxes` over HTTPS.
+- **Database Impact:** None
+- **Frontend Impact:** 100% clean HTTPS data fetching and CRUD management on Admin Belts and Admin Boxes pages.
+- **Backend Impact:** None
+- **Testing Completed:** Verified adminApi integration and payload handling in belts/boxes views.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete
