@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { adminLogout } from '@/services/adminApi';
+import { getFileUrl } from '@/lib/utils';
 import '@/app/admin/css/custom.css';
 
 /**
@@ -167,8 +168,9 @@ const Sidebar = ({ mobileOpen, setMobileOpen, isExpanded, setIsExpanded }) => {
         <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', padding: '16px 12px 14px 12px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '8px' }}>
           <Link href="/admin/dashboard" style={{ display: 'block', width: '100%', textAlign: 'center' }}>
             <img 
-              src="/fylex.png" 
+              src={getFileUrl('/fylex.png')} 
               alt="FYLEX" 
+              onError={(e) => { e.currentTarget.src = '/fylex.png'; }}
               style={{ 
                 maxHeight: '28px', 
                 width: 'auto', 

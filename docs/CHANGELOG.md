@@ -938,3 +938,19 @@
 - **Testing Completed:** Verified getFileUrl wrapping and fallback logic in admin login view.
 - **Rollback Strategy:** Revert `next_/app/admin/login/page.jsx`.
 - **Status:** Complete
+
+## Task 71: Admin Media Library Upload URL Resolution & Sidebar Logo Fix
+- **Task Number:** 71
+- **Task Name:** Admin Media Library Upload URL Resolution & Sidebar Logo Fix
+- **Files Modified:**
+  - `next_/lib/utils.js`
+  - `next_/components/admin/Sidebar.jsx`
+- **Reason:** Restricted `isFrontendStatic` in `getFileUrl` to explicit static assets and public filenames, routing all dynamic uploaded backend media (e.g. `cba5b3dbcd1733e56f954cd8adcc325d.png`) to `https://fylexwatches.com/api/uploads/...`, restoring real image thumbnails in Admin Media Library and fixing top-left Admin Sidebar logo rendering.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Real image thumbnails render cleanly in Admin Media Library (`/admin/media`), and Admin Sidebar displays FYLEX logo properly under `/preload`.
+- **Backend Impact:** None
+- **Testing Completed:** Verified asset matching disambiguation and getFileUrl helper logic.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete

@@ -21,10 +21,11 @@ export function getFileUrl(path) {
     return cleanPath;
   }
 
-  // 2. Relative frontend static assets (/assets/..., .png, .webp, .jpg, .jpeg, .svg, .mp4)
+  // 2. Relative frontend static assets (/assets/, /watch/, known public filenames)
   const isFrontendStatic = cleanPath.startsWith('/assets/') || cleanPath.startsWith('assets/') ||
     cleanPath.startsWith('/watch/') || cleanPath.startsWith('watch/') ||
-    cleanPath.match(/\.(png|webp|jpg|jpeg|svg|mp4|gif|ico)$/i);
+    cleanPath.match(/^\/?(fylex_logo|fylex_logo_name|logo|fylex|Rim|Watch_1|dial1|rim1|footer_logo)\.(png|webp|jpg|jpeg|svg)$/i) ||
+    cleanPath.match(/^(36mm|40mm|Chocolate-dial|Diamond-paved|Diamondpavedial|Flutted|Olive-green-dial|brilliant-diamond-set|chocolate|everose-gold|goldwatch|left-side|metorite|metoritedial|olive-green|only-dial|premium|right-side|white-gold)\.png$/i);
 
   if (isFrontendStatic && !cleanPath.includes('uploads/')) {
     const assetPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
