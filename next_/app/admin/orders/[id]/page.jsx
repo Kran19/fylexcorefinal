@@ -77,7 +77,6 @@ const OrderDetailPage = () => {
   }, [orderId]);
 
   useEffect(() => { if (orderId) fetchOrder(); }, [orderId, fetchOrder]);
-
   const handleConfirmOrder = async () => {
     setUpdatingStatus(true);
     const { error: err } = await orderService.updateOrderStatus(orderId, 'confirmed', 'Order confirmed by Admin');
@@ -88,6 +87,30 @@ const OrderDetailPage = () => {
       toast?.success?.('Order confirmed! Ready to dispatch via Shiprocket.');
       setOrder(prev => ({ ...prev, status: 'confirmed' }));
       fetchOrder();
+    }
+  };
+
+  const handleConfirmAndFulfillOrder = async () => {
+    setUpdatingStatus(true);
+    setSendingToShiprocket(true);
+    try {
+      const statusRes = await orderService.updateOrderStatus(orderId, 'confirmed', 'Order confirmed & auto-fulfilled by Admin');
+      if (statusRes?.error) {
+        toast?.error?.(statusRes.error);
+        return;
+      }
+      const srRes = await orderService.sendToShiprocket(orderId);
+      if (srRes?.error || srRes?.data?.success === false) {
+        toast?.warning?.('Order confirmed, but Shiprocket push alert: ' + (srRes?.error || srRes?.data?.message || 'Check credentials'));
+      } else {
+        toast?.success?.('Order confirmed & successfully dispatched to Shiprocket!');
+      }
+      fetchOrder();
+    } catch (e) {
+      toast?.error?.(e?.message || 'Auto-fulfillment failed');
+    } finally {
+      setUpdatingStatus(false);
+      setSendingToShiprocket(false);
     }
   };
 
@@ -143,7 +166,7 @@ const OrderDetailPage = () => {
   const handlePaymentStatusUpdate = async () => {
     if (!newPaymentStatus || newPaymentStatus === order?.paymentStatus) return;
     setUpdatingPaymentStatus(true);
-    const { error: err } = await orderService.updateOrderPaymentStatus(orderId, newPaymentStatus);
+    const { error: err } = await orderService.updatePaymentStatus(orderId, newPaymentStatus);
     setUpdatingPaymentStatus(false);
     if (err) { toast?.error?.(err); }
     else {
@@ -212,10 +235,10 @@ const OrderDetailPage = () => {
         </div>
       </PageHeader>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: 24, alignItems: 'start' }}>
 
-        {/* Left — Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Left — Items & Address */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
 
           {/* Order Items */}
           <div className="admin-card" style={{ borderRadius: 16 }}>
@@ -303,92 +326,92 @@ const OrderDetailPage = () => {
           )}
         </div>
 
-        {/* Right — Meta */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Right — Meta & Shiprocket Hub */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
 
           {/* 🚀 SHIPROCKET AUTOMATED FULFILLMENT HUB */}
-          <div className="admin-card" style={{ borderRadius: 16, border: '1px solid #6366f1', background: '#0a0a0a' }}>
-            <div className="admin-card-header" style={{ borderBottom: '1px solid rgba(99, 102, 241, 0.2)' }}>
+          <div className="admin-card" style={{ borderRadius: 16, border: '1px solid #6366f1', background: '#090d16', boxShadow: '0 8px 32px rgba(99, 102, 241, 0.12)' }}>
+            <div className="admin-card-header" style={{ borderBottom: '1px solid rgba(99, 102, 241, 0.2)', padding: '16px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 8px #6366f1' }}></span>
-                <h3 style={{ color: '#ffffff', fontSize: 15, margin: 0 }}>Shiprocket Fulfillment</h3>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6366f1', boxShadow: '0 0 10px #6366f1' }}></span>
+                <h3 style={{ color: '#ffffff', fontSize: 15, margin: 0, fontWeight: 700 }}>Shiprocket Fulfillment</h3>
               </div>
-              <span style={{ fontSize: 11, background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>
-                Pickup: Auto-Verified
+              <span style={{ fontSize: 11, background: 'rgba(99, 102, 241, 0.2)', color: '#a5b4fc', padding: '3px 9px', borderRadius: 6, fontWeight: 700 }}>
+                Pickup: work
               </span>
             </div>
-            <div className="admin-card-body">
+            <div className="admin-card-body" style={{ padding: 20 }}>
               
-              {/* STAGE 1: ORDER PLACED (PENDING CONFIRMATION) */}
-              {isOrderPlaced && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.25)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-                    <p style={{ margin: 0, fontSize: 12, color: '#fef08a', lineHeight: 1.5 }}>
-                      <i className="fas fa-info-circle mr-1"></i> Order placed by customer. Verify watch customizations & payment before confirmation.
-                    </p>
+              {/* Dual Action Options */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+                
+                {/* Option 1: Confirm Order & Auto-Fulfill to Shiprocket */}
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 12, padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="fas fa-bolt"></i> Option 1: Confirm & Auto-Fulfill
                   </div>
+                  <p style={{ fontSize: 11, color: '#a7f3d0', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                    Confirms order status & automatically registers shipment with Shiprocket in one click.
+                  </p>
                   <button
-                    onClick={handleConfirmOrder}
-                    disabled={updatingStatus}
+                    onClick={handleConfirmAndFulfillOrder}
+                    disabled={updatingStatus || sendingToShiprocket}
                     style={{
                       width: '100%',
-                      padding: '12px 16px',
-                      borderRadius: 10,
+                      padding: '11px 14px',
+                      borderRadius: 9,
                       background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                       color: '#ffffff',
                       fontWeight: 700,
-                      fontSize: 13,
+                      fontSize: 12,
                       border: 'none',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 8,
+                      gap: 6,
                       boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
                     }}
                   >
-                    {updatingStatus ? <><i className="fas fa-spinner fa-spin"></i> Confirming...</> : <><i className="fas fa-check-circle"></i> Confirm Order</>}
+                    {updatingStatus && sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Processing...</> : <><i className="fas fa-check-double"></i> Confirm & Fulfill to Shiprocket</>}
                   </button>
                 </div>
-              )}
 
-              {/* STAGE 2: CONFIRMED (READY TO DISPATCH TO SHIPROCKET) */}
-              {isOrderConfirmed && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-                    <p style={{ margin: 0, fontSize: 12, color: '#bfdbfe', lineHeight: 1.5 }}>
-                      <i className="fas fa-check-double mr-1"></i> Order is confirmed! Ready to register with Shiprocket and generate shipment.
-                    </p>
+                {/* Option 2: Share / Push to Shiprocket Dashboard */}
+                <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: 12, padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="fas fa-share-square"></i> Option 2: Share to Shiprocket Dashboard
                   </div>
+                  <p style={{ fontSize: 11, color: '#c7d2fe', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                    Directly pushes order payload to Shiprocket merchant portal without altering current status.
+                  </p>
                   <button
                     onClick={handleSendToShiprocket}
                     disabled={sendingToShiprocket}
                     style={{
                       width: '100%',
-                      padding: '12px 16px',
-                      borderRadius: 10,
+                      padding: '11px 14px',
+                      borderRadius: 9,
                       background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                       color: '#ffffff',
                       fontWeight: 700,
-                      fontSize: 13,
+                      fontSize: 12,
                       border: 'none',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 8,
-                      boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
+                      gap: 6,
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
                     }}
                   >
-                    {sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Dispatching to Shiprocket...</> : <><i className="fas fa-paper-plane"></i> Send to Shiprocket</>}
+                    {sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Dispatching...</> : <><i className="fas fa-paper-plane"></i> Share to Shiprocket Dashboard</>}
                   </button>
                 </div>
-              )}
 
-              {/* STAGE 3 & 4: PROCESSING / SHIPPED / DELIVERED */}
-              {(isOrderProcessing || (order.status !== 'pending' && order.status !== 'confirmed')) && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: 10, padding: '12px 14px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                {/* Live Tracking Info if Shipment exists */}
+                {hasShipment && (
+                  <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: 10, padding: '12px 14px', border: '1px solid rgba(255, 255, 255, 0.1)', marginTop: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', fontWeight: 600 }}>Shipment Status</span>
                       <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 700, textTransform: 'capitalize' }}>{order.shippingStatus || order.status}</span>
@@ -405,80 +428,32 @@ const OrderDetailPage = () => {
                         <span style={{ fontSize: 12, color: '#ffffff', fontWeight: 600 }}>{currentShipment.carrier}</span>
                       </div>
                     )}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       onClick={handleSyncShiprocket}
                       disabled={syncingShiprocket}
                       style={{
-                        flex: 1,
-                        padding: '10px 12px',
-                        borderRadius: 8,
-                        background: 'rgba(255, 255, 255, 0.08)',
+                        width: '100%',
+                        marginTop: 10,
+                        padding: '8px 12px',
+                        borderRadius: 7,
+                        background: 'rgba(255, 255, 255, 0.1)',
                         color: '#ffffff',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        fontSize: 12,
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
                         fontWeight: 600,
+                        fontSize: 11,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 6
+                        gap: 6,
                       }}
                     >
-                      {syncingShiprocket ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-sync-alt"></i>}
-                      Sync Status
+                      {syncingShiprocket ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-sync-alt"></i>} Sync Real-Time Tracking
                     </button>
-                    {!hasShipment && (
-                      <button
-                        onClick={handleSendToShiprocket}
-                        disabled={sendingToShiprocket}
-                        style={{
-                          flex: 1,
-                          padding: '10px 12px',
-                          borderRadius: 8,
-                          background: '#6366f1',
-                          color: '#ffffff',
-                          border: 'none',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6
-                        }}
-                      >
-                        {sendingToShiprocket ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-upload"></i>}
-                        Push to SR
-                      </button>
-                    )}
                   </div>
+                )}
 
-                  {currentShipment?.trackingUrl && (
-                    <a
-                      href={currentShipment.trackingUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        display: 'block',
-                        textAlign: 'center',
-                        padding: '8px 12px',
-                        borderRadius: 8,
-                        background: 'rgba(14, 165, 233, 0.1)',
-                        color: '#38bdf8',
-                        border: '1px solid rgba(14, 165, 233, 0.3)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        textDecoration: 'none'
-                      }}
-                    >
-                      <i className="fas fa-external-link-alt mr-1"></i> Open Live Tracking
-                    </a>
-                  )}
-                </div>
-              )}
+              </div>
             </div>
           </div>
 

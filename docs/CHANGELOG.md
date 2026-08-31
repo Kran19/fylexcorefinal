@@ -954,3 +954,17 @@
 - **Testing Completed:** Verified asset matching disambiguation and getFileUrl helper logic.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 72: Order Page Layout Redesign & Dual Shiprocket Fulfillment Options
+- **Task Number:** 72
+- **Task Name:** Order Page Layout Redesign & Dual Shiprocket Fulfillment Options
+- **Files Modified:** `next_/app/admin/orders/[id]/page.jsx`
+- **Reason:** Updated grid layout to `minmax(0, 1fr) 360px` to fix wide-screen column distortion, and added 2 prominent Shiprocket action options: Option 1 ("Confirm & Auto-Fulfill to Shiprocket") and Option 2 ("Share to Shiprocket Dashboard").
+- **Risk:** Low
+- **API Impact:** Calls `POST /orders/:id/status` and `POST /orders/:id/shiprocket-push`.
+- **Database Impact:** Updates order status and creates shipment audit records on confirmation.
+- **Frontend Impact:** Responsive 2-column Admin Order Details layout with 1-click dual Shiprocket fulfillment controls.
+- **Backend Impact:** None
+- **Testing Completed:** Verified grid container bounds, `handleConfirmAndFulfillOrder` handler, and button action states.
+- **Rollback Strategy:** Revert `next_/app/admin/orders/[id]/page.jsx`.
+- **Status:** Complete
