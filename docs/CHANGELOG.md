@@ -1083,3 +1083,18 @@
 - **Testing Completed:** Verified API interceptor error mapping and toast notification trigger.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 80: Fix Login Page getFileUrl ReferenceError
+- **Task Number:** 80
+- **Task Name:** Fix Login Page getFileUrl ReferenceError
+- **Files Modified:**
+  - `next_/app/(customer)/login/page.jsx`
+- **Reason:** Imported `getFileUrl` from `@/lib/utils` in `login/page.jsx`, resolving `ReferenceError: getFileUrl is not defined` on `/preload/login`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Restores 100% clean rendering on `/preload/login` without runtime error overlays.
+- **Backend Impact:** None
+- **Testing Completed:** Verified import statement and page rendering.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete

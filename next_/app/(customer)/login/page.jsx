@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { checkMobileApi, sendOtpApi, fetchSettings } from '@/lib/api';
+import { getFileUrl } from '@/lib/utils';
 
 /* ─── OTP Input Boxes ─── */
 function OtpBoxes({ value, onChange, length = 6 }) {
