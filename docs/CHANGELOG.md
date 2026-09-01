@@ -1051,3 +1051,19 @@
 - **Testing Completed:** Verified asset resolution, getFileUrl static rules, and profile view rendering.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 78: Enable Mobile Touch Swiping for Order Pills and Fix Status Badge Overflow
+- **Task Number:** 78
+- **Task Name:** Enable Mobile Touch Swiping for Order Pills and Fix Status Badge Overflow
+- **Files Modified:**
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/app/(customer)/profile/profile.css`
+- **Reason:** Bound touch handlers (`onTouchStart`, `onTouchMove`, `onTouchEnd`) on `.order-pills-scroll`, reduced `.tracking-viz` mobile padding to `20px 16px` on screens ≤ 768px, and updated flex constraints (`flexWrap`, `flexShrink: 0`, `whiteSpace: 'nowrap'`) so status badges like `PENDING` never clip on mobile viewports.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Smooth touch swipe navigation across order pills on mobile devices and 100% visible status badges.
+- **Backend Impact:** None
+- **Testing Completed:** Verified touch handlers, responsive padding, and status pill flex wrapping.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete

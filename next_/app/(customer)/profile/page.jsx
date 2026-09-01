@@ -73,6 +73,19 @@ const Profile = () => {
     isDraggingRef.current = false;
   };
 
+  const handlePillsTouchStart = (e) => {
+    isDraggingRef.current = true;
+    startXRef.current = e.touches[0].pageX - (pillsRef.current?.offsetLeft || 0);
+    scrollLeftRef.current = pillsRef.current?.scrollLeft || 0;
+  };
+
+  const handlePillsTouchMove = (e) => {
+    if (!isDraggingRef.current || !pillsRef.current) return;
+    const x = e.touches[0].pageX - (pillsRef.current.offsetLeft || 0);
+    const walk = (x - startXRef.current) * 1.5;
+    pillsRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
   useEffect(() => {
     if (!loading && !isAuthenticated) navigate.replace('/login');
   }, [isAuthenticated, loading, navigate]);
@@ -342,6 +355,9 @@ const Profile = () => {
                   onMouseMove={handlePillsMouseMove}
                   onMouseUp={handlePillsMouseUpOrLeave}
                   onMouseLeave={handlePillsMouseUpOrLeave}
+                  onTouchStart={handlePillsTouchStart}
+                  onTouchMove={handlePillsTouchMove}
+                  onTouchEnd={handlePillsMouseUpOrLeave}
                 >
                   {trackingOrders.map(order => (
                     <button
@@ -374,12 +390,12 @@ const Profile = () => {
 
               {tracking ? (
                 <div className="tracking-viz">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', position: 'relative', zIndex: 1 }}>
-                    <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
                       <span style={{ fontSize: '9px', color: '#a0a0a0', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Current Journey</span>
-                      <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 500, marginTop: '4px' }}>Order #{tracking.orderNumber}</h4>
+                      <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 500, marginTop: '4px', wordBreak: 'break-word' }}>Order #{tracking.orderNumber}</h4>
                     </div>
-                    <span style={{ fontSize: '9px', fontWeight: 700, background: 'rgba(255,255,255,0.07)', padding: '5px 12px', borderRadius: '999px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ffffff' }}>{tracking.currentStatus}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 700, background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '999px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ffffff', flexShrink: 0, whiteSpace: 'nowrap' }}>{tracking.currentStatus}</span>
                   </div>
 
                   {/* Desktop timeline */}

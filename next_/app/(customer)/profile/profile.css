@@ -960,4 +960,11 @@
 }
 .order-pills-scroll:active {
   cursor: grabbing;
+}
+
+@media (max-width: 768px) {
+  .tracking-viz {
+    padding: 20px 16px !important;
+    border-radius: var(--r-lg) !important;
+  }
 }
