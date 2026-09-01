@@ -191,11 +191,12 @@ const OrderDetailPage = () => {
   const handleRefund = async () => {
     if (!refundAmount || isNaN(refundAmount) || Number(refundAmount) <= 0) return toast?.error?.('Invalid refund amount');
     setProcessingRefund(true);
-    const { error: err } = await orderService.processOrderRefund(orderId, { amount: Number(refundAmount), reason: refundReason });
+    const res = await orderService.processOrderRefund(orderId, { amount: Number(refundAmount), reason: refundReason });
     setProcessingRefund(false);
-    if (err) { toast?.error?.(err); }
-    else {
-      toast?.success?.('Refund processed!');
+    if (res?.error || res?.success === false) {
+      toast?.error?.(res?.error || 'Failed to process refund');
+    } else {
+      toast?.success?.(res?.message || 'Refund processed successfully!');
       setRefundAmount('');
       setRefundReason('');
       fetchOrder();

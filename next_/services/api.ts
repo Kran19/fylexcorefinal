@@ -56,7 +56,8 @@ api.interceptors.response.use(
         data: rawData.data?.data || rawData.data || null,
         meta: rawData.data?.meta || rawData.meta || null,
         success: rawData.success,
-        error: rawData.message || rawData.error || null,
+        message: rawData.message || null,
+        error: rawData.success ? null : (rawData.message || rawData.error || null),
       };
     } else {
       const finalData = (rawData && typeof rawData === 'object' && 'data' in rawData) 
