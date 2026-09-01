@@ -95,8 +95,11 @@ export class AuthService {
       }).catch(err => console.error('Failed to update last login:', err));
     }
 
+    const isCustomer = user.role === 'customer';
+    const expiresIn = isCustomer ? '30d' : '2h';
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: this.jwtService.sign(payload, { expiresIn }),
       user,
     };
   }

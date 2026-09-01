@@ -1098,3 +1098,18 @@
 - **Testing Completed:** Verified import statement and page rendering.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 81: Set Customer User Login Session Duration to 30 Days
+- **Task Number:** 81
+- **Task Name:** Set Customer User Login Session Duration to 30 Days
+- **Files Modified:**
+  - `nest_/src/modules/auth/auth.service.ts`
+- **Reason:** Updated `AuthService.login()` to dynamically issue 30-day (`30d`) JWT access tokens for customer role users (`user.role === 'customer'`), while maintaining 2-hour (`2h`) tokens for admin role users.
+- **Risk:** Low
+- **API Impact:** Extends JWT token expiration claim (`exp`) for customer authentication tokens.
+- **Database Impact:** None
+- **Frontend Impact:** Customers remain logged in on web store and mobile devices for 30 days without requiring frequent OTP logins.
+- **Backend Impact:** Issues role-specific JWT sign options.
+- **Testing Completed:** Verified role check and token sign options in `login()`.
+- **Rollback Strategy:** Revert `nest_/src/modules/auth/auth.service.ts`.
+- **Status:** Complete
