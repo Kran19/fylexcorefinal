@@ -168,7 +168,7 @@ export default function Login() {
         {/* Image Panel */}
         <div className={`auth-image-panel ${loaded ? 'auth-loaded' : ''}`}>
           <img
-            src={loginPageImage}
+            src={getFileUrl(loginPageImage)}
             alt="Luxury timepiece"
             className="auth-hero-img"
           />

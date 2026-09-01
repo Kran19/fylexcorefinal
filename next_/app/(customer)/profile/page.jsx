@@ -28,13 +28,14 @@ const statusStyles = {
 };
 
 const resolveOrderImg = (order) => {
-  if (!order) return '/Rim.webp';
+  if (!order) return getFileUrl('/Rim.png');
   const rawPath = order.preview?.image ||
                   order.items?.[0]?.image ||
                   order.items?.[0]?.productVariant?.variantImages?.[0]?.media?.filePath ||
+                  order.items?.[0]?.product?.heroImageObj?.filePath ||
                   order.items?.[0]?.product?.heroImage ||
                   order.heroImage;
-  return getFileUrl(rawPath) || '/Rim.webp';
+  return getFileUrl(rawPath) || getFileUrl('/Rim.png');
 };
 
 const Profile = () => {
@@ -201,7 +202,7 @@ const Profile = () => {
           {activeTab === 'overview' && (
             <div className="tab-pane">
               <h1 className="section-title">The Collection Overview</h1>
-              <p className="section-subtitle">Monitor your heritage pieces and manage your Fylexx journey.</p>
+              <p className="section-subtitle">Monitor your heritage pieces and manage your Fylex journey.</p>
 
               <div className="stats-cluster">
                 <div className="stat-box">
@@ -226,7 +227,7 @@ const Profile = () => {
                       src={resolveOrderImg(order)}
                       alt="Product"
                       className="item-thumb"
-                      onError={(e) => { e.currentTarget.src = '/Rim.webp'; }}
+                      onError={(e) => { e.currentTarget.src = getFileUrl('/Rim.png'); }}
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)' }}>#{order.orderNumber || order.id}</span>

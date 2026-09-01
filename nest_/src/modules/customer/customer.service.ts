@@ -49,6 +49,17 @@ export class CustomerService {
     }
 
     let normalized = path.replace(/\\/g, '/');
+
+    // If it's already a frontend static asset (e.g. /watch/origin.png, /assets/auth-hero.png, Rim.png)
+    if (
+      normalized.includes('/watch/') ||
+      normalized.includes('/assets/') ||
+      (normalized.match(/\.(png|webp|jpg|jpeg|svg)$/i) && !normalized.includes('uploads') && !normalized.includes('tmp'))
+    ) {
+      const assetPath = normalized.startsWith('/') ? normalized : `/${normalized}`;
+      return `/preload${assetPath}`;
+    }
+
     if (normalized.startsWith('uploads/')) {
       normalized = '/' + normalized;
     } else if (!normalized.startsWith('/uploads/')) {
@@ -61,24 +72,31 @@ export class CustomerService {
   private buildOrderPreview(order: any) {
     const firstItem = order.items?.[0];
     const variant = firstItem?.productVariant;
-    const product = variant?.product;
+    const product = variant?.product || firstItem?.product;
 
     // 1. Try Variant Image
-    let rawImg = variant?.variantImages?.find(vi => vi.type === 'MAIN')?.media?.filePath 
+    let rawImg = variant?.variantImages?.find((vi: any) => vi.type === 'MAIN')?.media?.filePath 
                || variant?.variantImages?.[0]?.media?.filePath;
 
-    // 2. Try Product Gallery
+    // 2. Try Product Hero Image Object or string
+    if (!rawImg) {
+      rawImg = product?.heroImageObj?.filePath || product?.heroImage;
+    }
+
+    // 3. Try Product Gallery
     if (!rawImg && product?.images) {
       const prodImages = Array.isArray(product.images) ? product.images : (typeof product.images === 'string' ? JSON.parse(product.images) : []);
       if (prodImages.length > 0) rawImg = prodImages[0];
     }
 
-    // 3. Try Hero Image
-    if (!rawImg) rawImg = product?.heroImage;
+    // 4. Try Item Image directly
+    if (!rawImg) {
+      rawImg = firstItem?.image || firstItem?.imageUrl;
+    }
 
     return {
-      title: firstItem?.productName || 'Product',
-      image: this.toMediaUrl(rawImg),
+      title: firstItem?.productName || product?.name || 'Bespoke Timepiece',
+      image: rawImg ? this.toMediaUrl(rawImg) : null,
     };
   }
 
@@ -172,9 +190,18 @@ export class CustomerService {
         include: {
           items: {
             include: {
+              product: {
+                include: {
+                  heroImageObj: true,
+                },
+              },
               productVariant: {
                 include: {
-                  product: true,
+                  product: {
+                    include: {
+                      heroImageObj: true,
+                    },
+                  },
                   variantImages: {
                     include: {
                       media: true,

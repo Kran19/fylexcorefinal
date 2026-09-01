@@ -1033,3 +1033,21 @@
 - **Testing Completed:** Verified forwardRef imports in PaymentModule and PaymentController.
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
+
+## Task 77: Fix Broken Images on Customer Login & Profile Pages and Correct Fylexx Typo
+- **Task Number:** 77
+- **Task Name:** Fix Broken Images on Customer Login & Profile Pages and Correct Fylexx Typo
+- **Files Modified:**
+  - `next_/lib/utils.js`
+  - `next_/app/(customer)/login/page.jsx`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `nest_/src/modules/customer/customer.service.ts`
+- **Reason:** Updated `getFileUrl` regex rules in `utils.js` to match `auth-hero`, `login-models`, and `Origin`, wrapped `loginPageImage` with `getFileUrl` in `login/page.jsx`, updated `resolveOrderImg` and `onError` fallback in `profile/page.jsx` to use `getFileUrl('/Rim.png')`, fixed "Fylexx" typo to "Fylex", and included base product relations in `customer.service.ts`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** 100% clean image rendering on customer login (`/preload/login`) and recent acquisitions (`/preload/profile`).
+- **Backend Impact:** Ensures `buildOrderPreview` returns valid image paths for both base items and variant items.
+- **Testing Completed:** Verified asset resolution, getFileUrl static rules, and profile view rendering.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete
