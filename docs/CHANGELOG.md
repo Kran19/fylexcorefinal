@@ -1205,3 +1205,23 @@
 - **Rollback Strategy:** Revert modified files via git checkout.
 - **Status:** Complete
 
+## Task 86: Remove Heritage Subtitle from Profile Overview & Fix TypeScript Null Guard in Order Service
+- **Task Number:** 86
+- **Task Name:** Remove Heritage Subtitle from Profile Overview & Fix TypeScript Null Guard in Order Service
+- **Files Modified:**
+  - `next_/app/(customer)/profile/page.jsx`
+  - `nest_/src/modules/order/order.service.ts`
+- **Reason:**
+  1. Per user request on `https://fylexwatches.com/preload/profile`, removed the heritage subtitle text under the Overview section ("Monitor your heritage pieces and manage your Fylex journey.").
+  2. Fixed TypeScript strict compilation error `TS18047: 'createdOrder' is possibly 'null'` in `OrderService.checkout()` by adding explicit null-checking before invoking `whatsappService.sendOrderReceived()`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Removed `<p className="section-subtitle">Monitor your heritage pieces and manage your Fylex journey.</p>` from the Overview tab, maintaining a clean 36px margin beneath the section title.
+- **Backend Impact:** Guarantees successful Docker production build during `npx nest build`.
+- **Testing Completed:** Verified JSX syntax and layout balance in `next_/app/(customer)/profile/page.jsx`, and resolved TS18047 null-guard in `nest_/src/modules/order/order.service.ts`.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+
+

@@ -215,8 +215,7 @@ const Profile = () => {
           {/* ── OVERVIEW ── */}
           {activeTab === 'overview' && (
             <div className="tab-pane">
-              <h1 className="section-title">The Collection Overview</h1>
-              <p className="section-subtitle">Monitor your heritage pieces and manage your Fylex journey.</p>
+              <h1 className="section-title" style={{ marginBottom: '36px' }}>The Collection Overview</h1>
 
               <div className="stats-cluster">
                 <div className="stat-box">

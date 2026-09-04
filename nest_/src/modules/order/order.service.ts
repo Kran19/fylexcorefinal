@@ -338,12 +338,14 @@ export class OrderService {
 
     // 7. Dispatch WhatsApp Order Received confirmation
     try {
-      const recipientMobile = createdOrder?.customerMobile || (createdOrder as any)?.addresses?.[0]?.phone;
-      if (recipientMobile) {
-        this.whatsappService.sendOrderReceived(recipientMobile, createdOrder.orderNumber || `ORD-${createdOrder.id}`)
-          .catch(err => this.logger.error(`Failed to dispatch Order Received WhatsApp: ${err.message}`));
+      if (createdOrder) {
+        const recipientMobile = createdOrder.customerMobile || (createdOrder as any)?.addresses?.[0]?.phone;
+        if (recipientMobile) {
+          this.whatsappService.sendOrderReceived(recipientMobile, createdOrder.orderNumber || `ORD-${createdOrder.id}`)
+            .catch(err => this.logger.error(`Failed to dispatch Order Received WhatsApp: ${err.message}`));
+        }
       }
-    } catch (e) {
+    } catch (e: any) {
       this.logger.error(`Error initiating Order Received WhatsApp: ${e.message}`);
     }
 
