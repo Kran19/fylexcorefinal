@@ -1330,5 +1330,20 @@
 - **Rollback Strategy:** Revert modified files via git checkout.
 - **Status:** Complete
 
-
-
+## Task 91: Track Order Button Redirect to Profile Page
+- **Task Number:** 91
+- **Task Name:** Track Order Button Redirect to Profile Page
+- **Files Modified:**
+  - `next_/app/(customer)/my-purchases/page.jsx`
+  - `next_/app/(customer)/track/page.jsx`
+- **Reason:** Customer requested that clicking "Track Order" on the My Purchases page (`/my-purchases`) redirects directly to the main profile page (`/profile`).
+- **Risk:** Low
+- **API Impact:** None.
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - In `next_/app/(customer)/my-purchases/page.jsx`: Updated the `onClick` handler of the "Track Order" button from `router.push('/profile?tab=track&order_id=...')` to `router.push('/profile')`.
+  - In `next_/app/(customer)/track/page.jsx`: Simplified redirect to point directly to `/profile`.
+- **Backend Impact:** None.
+- **Testing Completed:** Verified navigation targets and click propagation isolation (`e.stopPropagation()`).
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete

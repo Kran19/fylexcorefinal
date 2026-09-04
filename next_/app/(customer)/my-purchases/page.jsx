@@ -319,7 +319,7 @@ export default function MyPurchases() {
                       className="btn-support" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/profile?tab=track&order_id=${unit.orderNumber || unit.orderId}`);
+                        router.push('/profile');
                       }}
                     >
                       Track Order

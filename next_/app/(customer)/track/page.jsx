@@ -7,12 +7,7 @@ export default function TrackRedirectPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const search = window.location.search;
-      const cleanSearch = search ? search.replace(/^\?/, '') : '';
-      const dest = cleanSearch.includes('tab=') 
-        ? `/profile?${cleanSearch}` 
-        : `/profile?tab=track${cleanSearch ? `&${cleanSearch}` : ''}`;
-      router.replace(dest);
+      router.replace('/profile');
     }
   }, [router]);
 
