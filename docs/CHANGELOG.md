@@ -1310,4 +1310,25 @@
 - **Rollback Strategy:** Revert modified files via git checkout.
 - **Status:** Complete
 
+## Task 90: Fix React Hooks Order Violation on Profile Page
+- **Task Number:** 90
+- **Task Name:** Fix React Hooks Order Violation on Profile Page
+- **Files Modified:**
+  - `next_/app/(customer)/profile/page.jsx`
+- **Reason:** Visiting `https://fylexwatches.com/preload/profile?tab=track&order_id=...` triggered the error *"This page couldn’t load. Reload to try again, or go back."*. Root cause:
+  1. A `useEffect` hook reading URL `searchParams` was placed below an early return statement (`if (loading || !isAuthenticated || dashboardLoading) return (...)`). In React, invoking hooks conditionally or after an early return violates the Rules of Hooks and causes Next.js client-side rendering to crash with *"Rendered more hooks than during the previous render"*.
+  2. The timeline progress calculation `((tracking.timeline.filter(...).length - 1) / (tracking.timeline.length - 1))` lacked nullish and boundary guards for single-node or empty timelines.
+- **Risk:** Low
+- **API Impact:** None.
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - Moved the `useEffect` hook to the top level of the component alongside other hooks, before any conditional returns.
+  - Added safe optional chaining and division-by-zero protection to the tracking timeline calculation.
+  - Added safe fallbacks `(tracking?.timeline || [])` and `(trackingOrders || [])`.
+- **Backend Impact:** None.
+- **Testing Completed:** Verified hook order compliance, query parameter detection on mount, and safe timeline array mapping.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+
 

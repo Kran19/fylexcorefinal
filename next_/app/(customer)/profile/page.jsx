@@ -98,6 +98,22 @@ const Profile = () => {
     if (!loading && !isAuthenticated) navigate.replace('/login');
   }, [isAuthenticated, loading, navigate]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      const orderIdParam = params.get('order_id') || params.get('orderId');
+      if (tabParam && ['overview', 'orders', 'track', 'settings'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      } else if (orderIdParam) {
+        setActiveTab('track');
+      }
+      if (orderIdParam) {
+        setSelectedTrackingOrderId(orderIdParam);
+      }
+    }
+  }, []);
+
   const loadDashboard = async () => {
     setDashboardLoading(true);
     setDashboardError('');
@@ -162,24 +178,8 @@ const Profile = () => {
     );
   }
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab');
-      const orderIdParam = params.get('order_id') || params.get('orderId');
-      if (tabParam && ['overview', 'orders', 'track', 'settings'].includes(tabParam)) {
-        setActiveTab(tabParam);
-      } else if (orderIdParam) {
-        setActiveTab('track');
-      }
-      if (orderIdParam) {
-        setSelectedTrackingOrderId(orderIdParam);
-      }
-    }
-  }, []);
-
   const { profile, stats, recentOrders, orderHistory, trackingOrders } = dashboard;
-  const tracking = trackingOrders.find(o => 
+  const tracking = (trackingOrders || []).find(o => 
     String(o.orderId) === String(selectedTrackingOrderId) || 
     String(o.orderNumber) === String(selectedTrackingOrderId)
   ) || dashboard.latestOrderTracking;
@@ -531,14 +531,14 @@ const Profile = () => {
                       <div style={{ 
                         position: 'absolute', top: '14px', left: '0', height: '2px', 
                         background: '#ffffff', borderRadius: '2px', transition: 'width 1s ease',
-                        width: `${(tracking.timeline.filter(s => s.completed).length - 1) / (tracking.timeline.length - 1) * 100}%`,
+                        width: `${tracking?.timeline && tracking.timeline.length > 1 ? Math.max(0, Math.min(100, ((tracking.timeline.filter(s => s.completed).length - 1) / (tracking.timeline.length - 1)) * 100)) : 0}%`,
                         boxShadow: '0 0 10px rgba(255,255,255,0.4)'
                       }}></div>
 
                       {/* Nodes */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-                        {tracking.timeline.map((step, index) => (
-                          <div key={step.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '120px', marginLeft: index === 0 ? '-60px' : '0', marginRight: index === tracking.timeline.length - 1 ? '-60px' : '0' }}>
+                        {(tracking?.timeline || []).map((step, index) => (
+                          <div key={step.label || index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '120px', marginLeft: index === 0 ? '-60px' : '0', marginRight: index === (tracking?.timeline?.length || 1) - 1 ? '-60px' : '0' }}>
                             <div style={{
                               width: '30px', height: '30px', borderRadius: '50%', background: '#000000',
                               border: `2px solid ${step.completed ? '#ffffff' : 'rgba(255, 255, 255, 0.2)'}`,
@@ -565,8 +565,8 @@ const Profile = () => {
                     {/* Vertical Background Line */}
                     <div style={{ position: 'absolute', left: '14px', top: '14px', bottom: '14px', width: '2px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px' }}></div>
                     
-                    {tracking.timeline.map((step, index) => (
-                      <div key={step.label} style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', position: 'relative', zIndex: 2 }}>
+                    {(tracking?.timeline || []).map((step, index) => (
+                      <div key={step.label || index} style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', position: 'relative', zIndex: 2 }}>
                         {/* Node */}
                         <div style={{
                           width: '30px', height: '30px', borderRadius: '50%', background: '#000000', flexShrink: 0,
