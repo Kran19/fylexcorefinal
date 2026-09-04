@@ -1347,3 +1347,30 @@
 - **Testing Completed:** Verified navigation targets and click propagation isolation (`e.stopPropagation()`).
 - **Rollback Strategy:** Revert modified files via git checkout.
 - **Status:** Complete
+
+## Task 92: Fix Thank You Page Low Contrast & Misdirected Order Navigation
+- **Task Number:** 92
+- **Task Name:** Fix Thank You Page Low Contrast & Misdirected Order Navigation
+- **Files Modified:**
+  - `next_/app/(customer)/thank-you/page.jsx`
+  - `next_/app/(customer)/thank-you/thank-you.css`
+- **Reason:** Customer reported two critical issues on the post-checkout Thank You page (`/thank-you`):
+  1. Clicking "View My Orders" redirected to the Discover page (`/discover`) instead of `/profile` or `/my-purchases`.
+  2. The text/button contrast was broken and barely visible.
+  - **Root Cause 1:** The page relied on Next.js legacy `<style jsx>`, which is not bundled or applied in Next.js 16 App Router with React 19 without extra plugins. All styles were dropped in production.
+  - **Root Cause 2:** Without styles, `.actions` lost `display: flex; flex-direction: column; gap: 16px;` and `.btn` lost padding and background. The two links rendered as unstyled inline text right next to each other (`View My OrdersContinue Exploring`). Tapping or clicking "View My Orders" activated the adjacent hit area of "Continue Exploring" (`/discover`).
+  - **Root Cause 3:** Without `.btn-primary`'s `#ffffff` background and `#000000` text, the anchor inherited body colors, rendering faint text on a black background.
+- **Risk:** Low
+- **API Impact:** None.
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - Created dedicated `thank-you.css` loaded directly via Next.js CSS import.
+  - Added robust inline defensive fallbacks for the container, card, typography, and pill buttons.
+  - Provided 3 high-contrast, fully separated actions:
+    1. `View My Orders & Profile` (`/profile`) - High-contrast white pill button with dark text.
+    2. `Your Collection` (`/my-purchases`) - Dark luxury glass pill button with white text and clear border.
+    3. `Continue Exploring` (`/discover`) - Subtle luxury outline button.
+- **Backend Impact:** None.
+- **Testing Completed:** Verified CSS loading, contrast ratios, and distinct clickable touch targets for `/profile`, `/my-purchases`, and `/discover`.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete

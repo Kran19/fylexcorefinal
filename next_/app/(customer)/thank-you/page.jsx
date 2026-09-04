@@ -1,10 +1,9 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import './thank-you.css';
 
 const ThankYouPage = () => {
-  const router = useRouter();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -12,188 +11,187 @@ const ThankYouPage = () => {
   }, []);
 
   return (
-    <div className="thank-you-container">
-      <div className={`thank-you-card ${visible ? 'fade-in' : ''}`}>
-        <div className="icon-wrapper">
-          <img src="/preload/fylex_logo.png" alt="Fylex" className="logo-icon" onError={(e) => { e.currentTarget.src = '/fylex_logo.png'; }} />
+    <div 
+      className="thank-you-container"
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#08080a',
+        padding: '40px 20px',
+        boxSizing: 'border-box'
+      }}
+    >
+      <div 
+        className={`thank-you-card ${visible ? 'fade-in' : ''}`}
+        style={{
+          width: '100%',
+          maxWidth: '520px',
+          background: '#111114',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          borderRadius: '28px',
+          padding: '48px 36px',
+          textAlign: 'center',
+          boxShadow: '0 30px 70px rgba(0, 0, 0, 0.75)',
+          boxSizing: 'border-box'
+        }}
+      >
+        <div className="icon-wrapper" style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+          <img 
+            src="/preload/fylex_logo.png" 
+            alt="Fylex" 
+            className="logo-icon" 
+            style={{ height: '52px', width: 'auto', objectFit: 'contain' }}
+            onError={(e) => { e.currentTarget.src = '/fylex_logo.png'; }} 
+          />
         </div>
 
-        <h1 className="title">Thank You</h1>
-        <p className="subtitle">Your order has been placed successfully</p>
-
-        <div className="divider"></div>
-
-        <p className="message">
-          We've received your request and are currently processing your luxury timepiece.
-          A confirmation message has been sent to your whatsapp.
+        <h1 
+          className="title"
+          style={{
+            fontSize: '36px',
+            fontWeight: 800,
+            color: '#ffffff',
+            margin: '0 0 8px',
+            letterSpacing: '-0.02em',
+            lineHeight: 1.2
+          }}
+        >
+          Thank You
+        </h1>
+        
+        <p 
+          className="subtitle"
+          style={{
+            fontSize: '16px',
+            color: '#34d399',
+            fontWeight: 600,
+            margin: '0 0 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          Your order has been placed successfully
         </p>
 
-        <div className="actions">
-          <Link href="/profile" className="btn btn-primary">
-            View My Orders
+        <div 
+          className="divider" 
+          style={{
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent)',
+            margin: '0 0 24px'
+          }}
+        />
+
+        <p 
+          className="message"
+          style={{
+            fontSize: '15px',
+            lineHeight: 1.65,
+            color: '#d4d4d8',
+            margin: '0 0 36px',
+            padding: '0 8px'
+          }}
+        >
+          We've received your request and are currently processing your luxury timepiece.
+          A confirmation message has been sent to your WhatsApp.
+        </p>
+
+        <div 
+          className="actions"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            width: '100%'
+          }}
+        >
+          {/* Primary CTA: Customer Profile & Order History */}
+          <Link 
+            href="/profile" 
+            className="thank-you-btn thank-you-btn-primary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '52px',
+              padding: '0 24px',
+              borderRadius: '999px',
+              fontSize: '12px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              background: '#ffffff',
+              color: '#000000',
+              border: '1px solid #ffffff',
+              boxShadow: '0 4px 18px rgba(255, 255, 255, 0.22)',
+              textDecoration: 'none',
+              boxSizing: 'border-box'
+            }}
+          >
+            View My Orders & Profile
           </Link>
-          <Link href="/discover" className="btn btn-secondary">
+
+          {/* Secondary CTA: Purchased Collection Cards */}
+          <Link 
+            href="/my-purchases" 
+            className="thank-you-btn thank-you-btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '52px',
+              padding: '0 24px',
+              borderRadius: '999px',
+              fontSize: '12px',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              background: 'rgba(255, 255, 255, 0.08)',
+              color: '#ffffff',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              textDecoration: 'none',
+              boxSizing: 'border-box'
+            }}
+          >
+            Your Collection
+          </Link>
+
+          {/* Tertiary CTA: Browse More Timepieces */}
+          <Link 
+            href="/discover" 
+            className="thank-you-btn thank-you-btn-tertiary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '46px',
+              padding: '0 24px',
+              borderRadius: '999px',
+              fontSize: '11px',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.12em',
+              background: 'transparent',
+              color: '#a1a1aa',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              textDecoration: 'none',
+              boxSizing: 'border-box'
+            }}
+          >
             Continue Exploring
           </Link>
         </div>
       </div>
-
-      <style jsx>{`
-        .thank-you-container {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #000000;
-          position: relative;
-          overflow: hidden;
-          padding: 20px;
-        }
-
-        .bg-elements {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          z-index: 0;
-        }
-
-        .blob {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(80px);
-          opacity: 0.4;
-        }
-
-        .blob-1 {
-          width: 400px;
-          height: 400px;
-          background: #1C2E4A;
-          top: -100px;
-          right: -100px;
-        }
-
-        .blob-2 {
-          width: 300px;
-          height: 300px;
-          background: #F2C94C;
-          bottom: -50px;
-          left: -50px;
-        }
-
-        .thank-you-card {
-          position: relative;
-          z-index: 1;
-          width: 100%;
-          max-width: 500px;
-          background: #111111;
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: none;
-          border-radius: 32px;
-          padding: 60px 40px;
-          text-align: center;
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-          opacity: 0;
-          transform: translateY(20px);
-        }
-
-        .fade-in {
-          opacity: 1;
-          transform: translateY(0);
-          transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-
-        .icon-wrapper {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 30px;
-        }
-
-        .logo-icon {
-          height: 60px;
-          width: auto;
-          object-fit: contain;
-          margin-bottom: 10px;
-        }
-
-        .title {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: 42px;
-          color: #ffffff;
-          margin-bottom: 8px;
-        }
-
-        .subtitle {
-          font-size: 16px;
-          color: #a0a0a0;
-          font-weight: 500;
-          margin-bottom: 30px;
-        }
-
-        .divider {
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-          margin-bottom: 30px;
-        }
-
-        .message {
-          font-size: 14px;
-          line-height: 1.6;
-          color: #cccccc;
-          margin-bottom: 40px;
-          padding: 0 10px;
-        }
-
-        .actions {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .btn {
-          padding: 14px 28px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          transition: all 0.3s ease;
-          cursor: pointer;
-          text-decoration: none;
-        }
-
-        .btn-primary {
-          background: #ffffff;
-          color: #000000;
-          border: none;
-          box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
-        }
-
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-secondary {
-          background: transparent;
-          color: #ffffff;
-          border: 1px solid #ffffff;
-        }
-
-        .btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.05);
-          transform: translateY(-2px);
-        }
-
-        @media (max-width: 600px) {
-          .thank-you-card {
-            padding: 40px 24px;
-          }
-          .title {
-            font-size: 32px;
-          }
-        }
-      `}</style>
     </div>
   );
 };
