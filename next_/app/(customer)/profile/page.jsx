@@ -245,12 +245,42 @@ const Profile = () => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)' }}>#{order.orderNumber || order.id}</span>
                       <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#ffffff', marginTop: '2px' }}>{order.preview?.title || 'Bespoke Timepiece'}</h4>
-                      <div className="md:hidden" style={{ marginTop: '8px' }}>
+                      <div className="md:hidden" style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <span className={`item-status-pill ${statusStyles[order.status?.toUpperCase()] || 'status-processing'}`}>{order.status}</span>
+                        {order.trackingUrl && (
+                          <a
+                            href={order.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="order-action-track"
+                            title={`Track shipment on ${order.carrier || 'Shiprocket'}`}
+                          >
+                            <span>Track</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 11, height: 11 }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
                       </div>
                     </div>
                     <div className="hidden md:block">
-                      <span className={`item-status-pill ${statusStyles[order.status?.toUpperCase()] || 'status-processing'}`}>{order.status}</span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {order.trackingUrl && (
+                          <a
+                            href={order.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="order-action-track"
+                            title={`Track shipment on ${order.carrier || 'Shiprocket'}`}
+                          >
+                            <span>Track</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 11, height: 11 }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
+                        <span className={`item-status-pill ${statusStyles[order.status?.toUpperCase()] || 'status-processing'}`}>{order.status}</span>
+                      </div>
                     </div>
                   </div>
                 )) : <div className="empty-state">No recent acquisitions.</div>}
@@ -298,13 +328,29 @@ const Profile = () => {
                         <td className="col-amt">₹{Number(order.grandTotal || 0).toLocaleString('en-IN')}</td>
                         <td><span className={`item-status-pill ${statusStyles[order.status?.toUpperCase()] || 'status-processing'}`}>{order.status}</span></td>
                         <td>
-                          <button 
-                            onClick={() => orderService.downloadInvoice(order.id, true)}
-                            title="Download Invoice"
-                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '4px' }}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 18, height: 18 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {order.trackingUrl && (
+                              <a
+                                href={order.trackingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="order-action-track"
+                                title={`Track shipment on ${order.carrier || 'Shiprocket'}`}
+                              >
+                                <span>Track</span>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 11, height: 11 }}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            )}
+                            <button 
+                              onClick={() => orderService.downloadInvoice(order.id, true)}
+                              title="Download Invoice"
+                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '4px', display: 'flex', alignItems: 'center' }}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 18, height: 18 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -323,11 +369,25 @@ const Profile = () => {
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div className="m-order-price" style={{ marginBottom: '6px' }}>₹{Number(order.grandTotal || 0).toLocaleString('en-IN')}</div>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        {order.trackingUrl && (
+                          <a
+                            href={order.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="order-action-track"
+                            title={`Track shipment on ${order.carrier || 'Shiprocket'}`}
+                          >
+                            <span>Track</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 11, height: 11 }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
                         <button 
                           onClick={() => orderService.downloadInvoice(order.id, true)}
                           title="Download Invoice"
-                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ffffff' }}
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ffffff', display: 'flex', alignItems: 'center' }}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 16, height: 16 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         </button>
@@ -394,8 +454,31 @@ const Profile = () => {
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <span style={{ fontSize: '9px', color: '#a0a0a0', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Current Journey</span>
                       <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 500, marginTop: '4px', wordBreak: 'break-word' }}>Order #{tracking.orderNumber}</h4>
+                      {tracking.trackingNumber && (
+                        <div className="tracking-awb-badge">
+                          <span>AWB:</span>
+                          <strong>{tracking.trackingNumber}</strong>
+                          {tracking.carrier && <span style={{ opacity: 0.7 }}>· {tracking.carrier}</span>}
+                        </div>
+                      )}
                     </div>
-                    <span style={{ fontSize: '9px', fontWeight: 700, background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '999px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ffffff', flexShrink: 0, whiteSpace: 'nowrap' }}>{tracking.currentStatus}</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {tracking.trackingUrl && (
+                        <a
+                          href={tracking.trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="tracking-direct-btn"
+                          title={`Track directly on ${tracking.carrier || 'Shiprocket'}`}
+                        >
+                          <span>Live Shiprocket Tracking</span>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 12, height: 12 }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      )}
+                      <span style={{ fontSize: '9px', fontWeight: 700, background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '999px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ffffff', flexShrink: 0, whiteSpace: 'nowrap' }}>{tracking.currentStatus}</span>
+                    </div>
                   </div>
 
                   {/* Desktop timeline */}

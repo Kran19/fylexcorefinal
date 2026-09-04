@@ -1223,5 +1223,33 @@
 - **Rollback Strategy:** Revert modified files via git checkout.
 - **Status:** Complete
 
-
-
+## Task 87: Direct Shiprocket Tracking Links in Customer Profile
+- **Task Number:** 87
+- **Task Name:** Direct Shiprocket Tracking Links in Customer Profile
+- **Files Modified:**
+  - `nest_/src/modules/customer/customer.service.ts`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/app/(customer)/profile/profile.css`
+- **Reason:** Enable customers to track their shipments directly on the Shiprocket tracking portal (`https://shiprocket.co/tracking/...`) straight from their profile orders, overview, and tracking timeline.
+- **Risk:** Low
+- **API Impact:**
+  - In `CustomerService.getDashboard()`: Included `shipments: { orderBy: { id: 'desc' } }` in Prisma `order.findMany` query.
+  - In `CustomerService.getProfile()`: Included `shipments: { orderBy: { id: 'desc' } }` in Prisma `customer.findUnique` query.
+  - Added `resolveShipmentDetails(order)` helper in `CustomerService` to resolve `trackingUrl`, `trackingNumber` (AWB), and `carrier`.
+  - Added `trackingUrl`, `trackingNumber`, and `carrier` to `mapOrderSummary(order)` (powering `recentOrders` and `orderHistory`).
+  - Added `trackingUrl`, `trackingNumber`, and `carrier` to `buildTracking(order)` (powering `trackingOrders` and `latestOrderTracking`).
+- **Database Impact:** None (reads existing `shipments` relation and `OrderShipment` records).
+- **Frontend Impact:**
+  - In `next_/app/(customer)/profile/page.jsx`:
+    - Overview Tab (Recent Acquisitions): Rendered `Track ↗` button beside the status badge on both mobile and desktop views when `order.trackingUrl` is present.
+    - History Tab (Desktop Table): Added `Track ↗` button in the `Action` column beside the invoice download icon.
+    - History Tab (Mobile Cards): Added `Track ↗` button beside the invoice download icon.
+    - Timeline & Tracking Tab: Added a prominent `"Live Shiprocket Tracking ↗"` button in the tracking card header, along with an AWB & carrier badge below the order title.
+  - In `next_/app/(customer)/profile/profile.css`:
+    - Added `.order-action-track`: Cyan-accented, pill-shaped action link styled for luxury aesthetic with micro-hover physics.
+    - Added `.tracking-direct-btn`: High-contrast luxury white button for direct Shiprocket portal navigation.
+    - Added `.tracking-awb-badge`: Monospace AWB & courier identifier badge.
+- **Backend Impact:** Exposes accurate shipment details and Shiprocket URLs for dispatched orders.
+- **Testing Completed:** Verified data flow, URL resolution fallbacks, JSX markup, responsive mobile and desktop layouts, and verified git diff.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete

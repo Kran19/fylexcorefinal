@@ -110,7 +110,33 @@ export class CustomerService {
     };
   }
 
+  private resolveShipmentDetails(order: any) {
+    if (!order) return { trackingUrl: null, trackingNumber: null, carrier: null };
+    const shipment = order.shipments?.[0];
+    let trackingUrl = shipment?.trackingUrl?.trim() || null;
+    const awb = shipment?.trackingNumber?.trim() || null;
+    const carrier = shipment?.carrier?.trim() || null;
+
+    if (!trackingUrl && awb) {
+      trackingUrl = `https://shiprocket.co/tracking/${awb}`;
+    }
+
+    const normalizedStatus = (order.status || '').toLowerCase();
+    const isDispatched = ['processing', 'shipped', 'out_for_delivery', 'delivered'].includes(normalizedStatus);
+
+    if (!trackingUrl && isDispatched && order.orderNumber) {
+      trackingUrl = `https://shiprocket.co/tracking/${order.orderNumber}`;
+    }
+
+    return {
+      trackingUrl: trackingUrl || null,
+      trackingNumber: awb || null,
+      carrier: carrier || (trackingUrl ? 'Shiprocket' : null),
+    };
+  }
+
   private mapOrderSummary(order: any) {
+    const shipmentInfo = this.resolveShipmentDetails(order);
     return {
       id: order.id.toString(),
       orderNumber: order.orderNumber,
@@ -119,6 +145,9 @@ export class CustomerService {
       status: this.normalizeOrderStatus(order.status),
       paymentStatus: this.normalizePaymentStatus(order.paymentStatus),
       preview: this.buildOrderPreview(order),
+      trackingUrl: shipmentInfo.trackingUrl,
+      trackingNumber: shipmentInfo.trackingNumber,
+      carrier: shipmentInfo.carrier,
     };
   }
 
@@ -161,12 +190,17 @@ export class CustomerService {
       }
     }
 
+    const shipmentInfo = this.resolveShipmentDetails(order);
+
     return {
       orderId: order.id?.toString(),
       orderNumber: order.orderNumber,
       currentStatus,
       isTerminal: isCancelled || isRefunded || currentStatus === 'DELIVERED',
       timeline,
+      trackingUrl: shipmentInfo.trackingUrl,
+      trackingNumber: shipmentInfo.trackingNumber,
+      carrier: shipmentInfo.carrier,
     };
   }
 
@@ -229,6 +263,9 @@ export class CustomerService {
         where: { customerId: cId },
         orderBy: { createdAt: 'desc' },
         include: {
+          shipments: {
+            orderBy: { id: 'desc' },
+          },
           items: {
             include: {
               product: {
@@ -423,6 +460,9 @@ export class CustomerService {
         orders: {
           include: {
             addresses: true,
+            shipments: {
+              orderBy: { id: 'desc' },
+            },
           },
           orderBy: { createdAt: 'desc' }
         },
