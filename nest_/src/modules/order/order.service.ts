@@ -1154,9 +1154,19 @@ export class OrderService {
   }
 
   async getOrderById(customerId: string, orderId: string) {
-    const oId = Number(orderId);
-    const order = await this.prisma.order.findUnique({
-      where: { id: oId },
+    const orderIdStr = orderId?.toString() || '';
+    const isNumeric = !isNaN(Number(orderIdStr)) && !orderIdStr.startsWith('ORD-') && orderIdStr !== '';
+    const oId = isNumeric ? Number(orderIdStr) : null;
+
+    const order = await this.prisma.order.findFirst({
+      where: oId 
+        ? { id: oId } 
+        : { 
+            OR: [
+              { orderNumber: orderIdStr },
+              { orderNumber: `ORD-${orderIdStr}` }
+            ] 
+          },
       include: {
         items: {
           include: {

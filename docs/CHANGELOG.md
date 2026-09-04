@@ -1285,3 +1285,29 @@
 - **Rollback Strategy:** Revert modified files via git checkout.
 - **Status:** Complete
 
+## Task 89: Fix PDF Invoice Download Resolution Across Order Numbers and Database IDs
+- **Task Number:** 89
+- **Task Name:** Fix PDF Invoice Download Resolution Across Order Numbers and Database IDs
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+  - `next_/services/order.service.ts`
+  - `next_/app/(customer)/my-purchases/page.jsx`
+- **Reason:** PDF invoice download worked on the customer Profile page (`/preload/profile`) but failed on the My Purchases page (`/preload/my-purchases`). Root cause:
+  1. On `/profile`, orders originate from `CustomerService.getDashboard()` where `order.id` is the numeric database primary key (`"14"`).
+  2. On `/my-purchases`, orders originate from `OrderContext` where `order.id` was set to the public order number string (e.g. `'ORD-2026-0001'`).
+  3. When downloading an invoice via `GET /api/orders/:id/invoice`, `OrderController.downloadInvoice` calls `OrderService.getOrderById('', id)`.
+  4. `OrderService.getOrderById()` strictly performed `const oId = Number(orderId); prisma.order.findUnique({ where: { id: oId } })`. For `'ORD-2026-0001'`, `Number('ORD-...')` evaluated to `NaN`, throwing `NotFoundException: Order not found` (404).
+  5. The frontend `downloadInvoice` service caught the error, but still attempted to construct a `new Blob([null])`, producing a corrupted 4-byte unreadable file or failing silently.
+- **Risk:** Low
+- **API Impact:**
+  - In `OrderService.getOrderById()`: Enhanced query to handle both numeric integer primary keys (`id: oId`) and alphanumeric order numbers (`orderNumber: orderIdStr` or `orderNumber: ORD-${orderIdStr}`).
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - In `next_/services/order.service.ts`: Added response integrity verification in `downloadInvoice()` to ensure `response.success !== false` and `rawBlob.size > 0` before downloading, and formatted download filenames cleanly as `Invoice-${cleanId}.pdf`.
+  - In `next_/app/(customer)/my-purchases/page.jsx`: Updated invoice download click handler to robustly pass `unit.orderId || unit.orderNumber || unit.id`.
+- **Backend Impact:** Guarantees that any order query or invoice download request succeeds regardless of whether the caller provides the internal database numeric ID or the public order number.
+- **Testing Completed:** Verified ID resolution across numeric and `ORD-` formats, blob validation guards, and PDF download filename formatting.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+

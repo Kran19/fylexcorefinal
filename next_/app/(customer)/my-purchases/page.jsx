@@ -351,8 +351,9 @@ export default function MyPurchases() {
                       style={{ background: 'transparent', color: '#fff', border: '1px solid #fff' }}
                       onClick={async (e) => {
                         e.stopPropagation();
-                        if (unit.orderId) {
-                          await downloadInvoice(unit.orderId, true);
+                        const idToDownload = unit.orderId || unit.orderNumber || unit.id;
+                        if (idToDownload) {
+                          await downloadInvoice(idToDownload, true);
                         }
                       }}
                     >
