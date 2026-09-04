@@ -44,29 +44,32 @@ export class CustomerService {
 
   private toMediaUrl(path: string) {
     if (!path) return null;
-    if (path.startsWith('http') || path.startsWith('data:')) {
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+      // If it points to an internal upload on IP or localhost, normalize to clean /uploads/...
+      if (path.includes('/uploads/')) {
+        const idx = path.indexOf('/uploads/');
+        return path.slice(idx);
+      }
       return path;
     }
 
-    let normalized = path.replace(/\\/g, '/');
+    let normalized = path.replace(/\\/g, '/').trim();
 
-    // If it's already a frontend static asset (e.g. /watch/origin.png, /assets/auth-hero.png, Rim.png)
+    // If it's already a frontend static asset (e.g. /watch/..., /assets/...)
     if (
       normalized.includes('/watch/') ||
-      normalized.includes('/assets/') ||
-      (normalized.match(/\.(png|webp|jpg|jpeg|svg)$/i) && !normalized.includes('uploads') && !normalized.includes('tmp'))
+      normalized.includes('/assets/')
     ) {
       const assetPath = normalized.startsWith('/') ? normalized : `/${normalized}`;
       return `/preload${assetPath}`;
     }
 
     if (normalized.startsWith('uploads/')) {
-      normalized = '/' + normalized;
-    } else if (!normalized.startsWith('/uploads/')) {
-      normalized = normalized.startsWith('/') ? `/uploads${normalized}` : `/uploads/${normalized}`;
+      return `/${normalized}`;
+    } else if (normalized.startsWith('/uploads/')) {
+      return normalized;
     }
-    const prefix = normalized.startsWith('/') ? '' : '/';
-    return `${this.getApiBaseUrl()}${prefix}${normalized}`;
+    return `/uploads/${normalized.replace(/^\/+/, '')}`;
   }
 
   private buildOrderPreview(order: any) {
@@ -74,22 +77,29 @@ export class CustomerService {
     const variant = firstItem?.productVariant;
     const product = variant?.product || firstItem?.product;
 
-    // 1. Try Variant Image
+    // 1. Try Variant Image (MAIN, isPrimary, or first image)
     let rawImg = variant?.variantImages?.find((vi: any) => vi.type === 'MAIN')?.media?.filePath 
+               || variant?.variantImages?.find((vi: any) => vi.isPrimary)?.media?.filePath
                || variant?.variantImages?.[0]?.media?.filePath;
 
-    // 2. Try Product Hero Image Object or string
-    if (!rawImg) {
-      rawImg = product?.heroImageObj?.filePath || product?.heroImage;
+    // 2. Try Product-level media (product.productMedia)
+    if (!rawImg && product?.productMedia?.length > 0) {
+      const mainMedia = product.productMedia.find((m: any) => m.type === 'MAIN' || m.isPrimary) || product.productMedia[0];
+      rawImg = mainMedia?.media?.filePath || mainMedia?.media?.fileName;
     }
 
-    // 3. Try Product Gallery
+    // 3. Try Product Hero Image string
+    if (!rawImg) {
+      rawImg = product?.heroImage;
+    }
+
+    // 4. Try Product Gallery
     if (!rawImg && product?.images) {
       const prodImages = Array.isArray(product.images) ? product.images : (typeof product.images === 'string' ? JSON.parse(product.images) : []);
       if (prodImages.length > 0) rawImg = prodImages[0];
     }
 
-    // 4. Try Item Image directly
+    // 5. Try Item Image directly
     if (!rawImg) {
       rawImg = firstItem?.image || firstItem?.imageUrl;
     }
@@ -192,14 +202,22 @@ export class CustomerService {
             include: {
               product: {
                 include: {
-                  heroImageObj: true,
+                  productMedia: {
+                    include: {
+                      media: true,
+                    },
+                  },
                 },
               },
               productVariant: {
                 include: {
                   product: {
                     include: {
-                      heroImageObj: true,
+                      productMedia: {
+                        include: {
+                          media: true,
+                        },
+                      },
                     },
                   },
                   variantImages: {

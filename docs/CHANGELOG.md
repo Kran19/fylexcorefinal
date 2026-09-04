@@ -1113,3 +1113,36 @@
 - **Testing Completed:** Verified role check and token sign options in `login()`.
 - **Rollback Strategy:** Revert `nest_/src/modules/auth/auth.service.ts`.
 - **Status:** Complete
+
+## Task 82: Fix Customer Profile Watch Image Resolution and Prevent Mixed Content Fallback
+- **Task Number:** 82
+- **Task Name:** Fix Customer Profile Watch Image Resolution and Prevent Mixed Content Fallback
+- **Files Modified:**
+  - `nest_/src/modules/customer/customer.service.ts`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/lib/utils.js`
+- **Reason:** Customer profile recent acquisitions on `/preload/profile` were displaying fallback watch bezel (`Rim.png`) instead of the actual purchased timepiece image. Root cause: (1) backend `CustomerService.toMediaUrl()` baked in server IP `http://187.127.131.26/uploads/...` which triggered browser Mixed Content blocking and returned 404 from Nginx root, (2) frontend `getFileUrl()` did not strip legacy host prefixes from upload paths, (3) backend `getDashboard()` contained an invalid Prisma query include `heroImageObj` instead of `productMedia` and `variantImages`, and (4) `profile/page.jsx` contained a shadowed duplicate `resolveOrderImg` helper defaulting to `/Rim.webp`.
+- **Risk:** Low
+- **API Impact:** `CustomerService.toMediaUrl()` now returns clean relative `/uploads/...` paths. `getDashboard()` includes `productMedia` with nested `media` objects and `buildOrderPreview()` checks `variantImages` (MAIN or isPrimary) and `productMedia` for accurate watch image resolution.
+- **Database Impact:** None.
+- **Frontend Impact:** `getFileUrl()` strips server host/IP prefixes and routes uploads through `${window.location.protocol}//${window.location.host}/api/uploads/...`, eliminating Mixed Content blocking over HTTPS. Removed non-existent `Origin` from static asset regex. Shadowed duplicate `resolveOrderImg` removed from `profile/page.jsx`. Original timepiece image now renders under Recent Acquisitions.
+- **Backend Impact:** Clean relative media URLs returned from `CustomerService`.
+- **Testing Completed:** Verified production upload URL accessibility via `/api/uploads/`, regex matching in `utils.js`, and order preview media fallback hierarchy.
+- **Rollback Strategy:** Revert `nest_/src/modules/customer/customer.service.ts`, `next_/app/(customer)/profile/page.jsx`, and `next_/lib/utils.js`.
+- **Status:** Complete
+
+## Task 83: Automated Production Deployment Script
+- **Task Number:** 83
+- **Task Name:** Automated Production Deployment Script
+- **Files Modified:**
+  - `deploy.sh`
+  - `.gitattributes`
+- **Reason:** Provide an automated, single-command deployment pipeline on the production VPS that handles git pulls, stashing uncommitted changes if any, detecting docker compose (v1 or v2), rebuilding and starting containers in detached mode, verifying container health/status, and pruning dangling images to prevent disk exhaustion.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** None
+- **Backend Impact:** None
+- **Testing Completed:** Verified script syntax, error handling (`set -e`, `set -o pipefail`), git branch parameter fallback, executable permissions in git index (`chmod +x`), and LF line ending preservation via `.gitattributes`.
+- **Rollback Strategy:** Remove `deploy.sh` and `.gitattributes`.
+- **Status:** Complete

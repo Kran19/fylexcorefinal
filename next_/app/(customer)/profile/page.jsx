@@ -29,13 +29,17 @@ const statusStyles = {
 
 const resolveOrderImg = (order) => {
   if (!order) return getFileUrl('/Rim.png');
-  const rawPath = order.preview?.image ||
-                  order.items?.[0]?.image ||
-                  order.items?.[0]?.productVariant?.variantImages?.[0]?.media?.filePath ||
-                  order.items?.[0]?.product?.heroImageObj?.filePath ||
-                  order.items?.[0]?.product?.heroImage ||
-                  order.heroImage;
-  return getFileUrl(rawPath) || getFileUrl('/Rim.png');
+  const raw = order.preview?.image ||
+              order.items?.[0]?.image ||
+              order.items?.[0]?.productVariant?.variantImages?.[0]?.media?.filePath ||
+              order.items?.[0]?.productVariant?.variantImages?.[0]?.media ||
+              order.items?.[0]?.productVariant?.image ||
+              order.items?.[0]?.product?.heroImage ||
+              order.items?.[0]?.product?.image ||
+              order.heroImage;
+  const path = typeof raw === 'object' ? (raw?.url || raw?.path || raw?.filePath || raw?.fileName) : raw;
+  if (!path || typeof path !== 'string' || path.trim() === '') return getFileUrl('/Rim.png');
+  return getFileUrl(path) || getFileUrl('/Rim.png');
 };
 
 const Profile = () => {
@@ -145,13 +149,6 @@ const Profile = () => {
     { id: 'track',    label: 'Tracking', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
     { id: 'settings', label: 'Settings', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg> },
   ];
-
-  const resolveOrderImg = (order) => {
-    const raw = order?.preview?.image || order?.items?.[0]?.productVariant?.image || order?.items?.[0]?.product?.image || order?.items?.[0]?.image;
-    const path = typeof raw === 'object' ? (raw?.url || raw?.path || raw?.filePath) : raw;
-    if (!path || typeof path !== 'string' || path.trim() === '') return '/Rim.webp';
-    return getFileUrl(path);
-  };
 
   return (
     <div className="profile-page-wrapper">

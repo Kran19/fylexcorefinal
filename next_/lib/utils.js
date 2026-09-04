@@ -16,6 +16,15 @@ export function getFileUrl(path) {
   let cleanPath = path.trim();
   if (!cleanPath) return null;
 
+  // Normalize internal host uploads (e.g. http://187.127.131.26/uploads/..., http://127.0.0.1:3001/uploads/..., http://localhost:5000/api/uploads/...)
+  if (cleanPath.includes('/uploads/') && !cleanPath.startsWith('/preload/')) {
+    const uploadIndex = cleanPath.indexOf('/uploads/');
+    cleanPath = cleanPath.slice(uploadIndex + 1); // "uploads/..."
+  } else if (cleanPath.includes('/api/uploads/')) {
+    const apiUploadIndex = cleanPath.indexOf('/api/uploads/');
+    cleanPath = cleanPath.slice(apiUploadIndex + 5); // "uploads/..."
+  }
+
   // 1. Full absolute URLs (http, https, data)
   if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://') || cleanPath.startsWith('data:')) {
     return cleanPath;
@@ -24,7 +33,7 @@ export function getFileUrl(path) {
   // 2. Relative frontend static assets (/assets/, /watch/, known public filenames)
   const isFrontendStatic = cleanPath.startsWith('/assets/') || cleanPath.startsWith('assets/') ||
     cleanPath.startsWith('/watch/') || cleanPath.startsWith('watch/') ||
-    cleanPath.match(/^\/?(fylex_logo|fylex_logo_name|logo|fylex|Rim|Watch_1|dial1|rim1|footer_logo|auth-hero|login-models|Origin)\.(png|webp|jpg|jpeg|svg)$/i) ||
+    cleanPath.match(/^\/?(fylex_logo|fylex_logo_name|logo|fylex|Rim|Watch_1|dial1|rim1|footer_logo|auth-hero|login-models)\.(png|webp|jpg|jpeg|svg)$/i) ||
     cleanPath.match(/^(36mm|40mm|Chocolate-dial|Diamond-paved|Diamondpavedial|Flutted|Olive-green-dial|brilliant-diamond-set|chocolate|everose-gold|goldwatch|left-side|metorite|metoritedial|olive-green|only-dial|premium|right-side|white-gold)\.png$/i);
 
   if (isFrontendStatic && !cleanPath.includes('uploads/')) {
