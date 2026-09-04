@@ -1253,3 +1253,35 @@
 - **Testing Completed:** Verified data flow, URL resolution fallbacks, JSX markup, responsive mobile and desktop layouts, and verified git diff.
 - **Rollback Strategy:** Revert modified files via git checkout.
 - **Status:** Complete
+
+## Task 88: Fix My-Purchases Track Order Redirect Loophole
+- **Task Number:** 88
+- **Task Name:** Fix My-Purchases Track Order Redirect Loophole
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+  - `next_/context/OrderContext.jsx`
+  - `next_/app/(customer)/my-purchases/page.jsx`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/app/(customer)/track/page.jsx`
+- **Reason:** On `https://fylexwatches.com/preload/my-purchases`, clicking the "Track Order Details" button incorrectly redirected customers to `/thank-you?order_id=...` (the post-checkout confirmation page with no tracking functionality) instead of the actual order tracking interface.
+- **Risk:** Low
+- **API Impact:**
+  - In `OrderService.getOrders(customerId)`: Added `shipments: { orderBy: { id: 'desc' } }` to the Prisma query include block so order shipments, AWB, and tracking URLs are returned to `OrderContext`.
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - In `next_/app/(customer)/my-purchases/page.jsx`:
+    - Updated "Track Order" button click handler to navigate to `/profile?tab=track&order_id=${unit.orderNumber || unit.orderId}`.
+    - Added direct `"Live Shiprocket ↗"` tracking link button when `unit.trackingUrl` is present.
+  - In `next_/context/OrderContext.jsx`:
+    - In `normalizeOrder()`, extracted and preserved `trackingUrl`, `trackingNumber`, `carrier`, `orderId`, and `orderNumber`.
+  - In `next_/app/(customer)/profile/page.jsx`:
+    - Added URL query parameter parsing (`tab` and `order_id` / `orderId`) in initial `useEffect` to activate the Tracking tab and select the specific order.
+    - Updated `loadDashboard()` and order matching logic to support matching by either numeric `orderId` or string `orderNumber`.
+    - Updated pill active indicator styling to highlight based on matching ID or orderNumber.
+  - In `next_/app/(customer)/track/page.jsx` (New):
+    - Added a dedicated `/track` route that forwards any direct URL visits or bookmarks to `/profile?tab=track` with preserved query parameters.
+- **Backend Impact:** Ensures customer order lists from `/orders?customerId=...` include shipment tracking data.
+- **Testing Completed:** Verified redirect destination, query parameter parsing, and fallback when no tracking URL is yet generated.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+

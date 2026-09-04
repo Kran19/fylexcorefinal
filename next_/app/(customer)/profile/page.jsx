@@ -108,7 +108,25 @@ const Profile = () => {
       return;
     }
     setDashboard(result.data);
-    setSelectedTrackingOrderId(result.data.latestOrderTracking?.orderId || result.data.trackingOrders?.[0]?.orderId || '');
+
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const requestedOrderId = params?.get('order_id') || params?.get('orderId');
+    const matchingOrder = requestedOrderId
+      ? result.data.trackingOrders?.find(o => 
+          String(o.orderId) === String(requestedOrderId) || 
+          String(o.orderNumber) === String(requestedOrderId)
+        )
+      : null;
+
+    setSelectedTrackingOrderId(
+      matchingOrder?.orderId || 
+      matchingOrder?.orderNumber ||
+      requestedOrderId || 
+      result.data.latestOrderTracking?.orderId || 
+      result.data.trackingOrders?.[0]?.orderId || 
+      ''
+    );
+
     setSettingsForm({
       name: result.data.profile.name || '',
       mobile: result.data.profile.mobile || '',
@@ -144,8 +162,27 @@ const Profile = () => {
     );
   }
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      const orderIdParam = params.get('order_id') || params.get('orderId');
+      if (tabParam && ['overview', 'orders', 'track', 'settings'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      } else if (orderIdParam) {
+        setActiveTab('track');
+      }
+      if (orderIdParam) {
+        setSelectedTrackingOrderId(orderIdParam);
+      }
+    }
+  }, []);
+
   const { profile, stats, recentOrders, orderHistory, trackingOrders } = dashboard;
-  const tracking = trackingOrders.find(o => o.orderId === selectedTrackingOrderId) || dashboard.latestOrderTracking;
+  const tracking = trackingOrders.find(o => 
+    String(o.orderId) === String(selectedTrackingOrderId) || 
+    String(o.orderNumber) === String(selectedTrackingOrderId)
+  ) || dashboard.latestOrderTracking;
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
@@ -419,27 +456,30 @@ const Profile = () => {
                   onTouchMove={handlePillsTouchMove}
                   onTouchEnd={handlePillsMouseUpOrLeave}
                 >
-                  {trackingOrders.map(order => (
-                    <button
-                      key={order.orderId}
-                      onClick={() => setSelectedTrackingOrderId(order.orderId)}
-                      style={{
-                        flexShrink: 0,
-                        padding: '10px 20px',
-                        borderRadius: '999px',
-                        background: selectedTrackingOrderId === order.orderId ? '#ffffff' : '#111111',
-                        color: selectedTrackingOrderId === order.orderId ? '#000000' : '#ffffff',
-                        border: '1px solid ' + (selectedTrackingOrderId === order.orderId ? '#ffffff' : 'rgba(255,255,255,0.15)'),
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      #{order.orderNumber || order.orderId} · {order.preview?.title || 'Watch'}
-                    </button>
-                  ))}
+                  {trackingOrders.map(order => {
+                    const isSelected = String(selectedTrackingOrderId) === String(order.orderId) || String(selectedTrackingOrderId) === String(order.orderNumber);
+                    return (
+                      <button
+                        key={order.orderId}
+                        onClick={() => setSelectedTrackingOrderId(order.orderId)}
+                        style={{
+                          flexShrink: 0,
+                          padding: '10px 20px',
+                          borderRadius: '999px',
+                          background: isSelected ? '#ffffff' : '#111111',
+                          color: isSelected ? '#000000' : '#ffffff',
+                          border: '1px solid ' + (isSelected ? '#ffffff' : 'rgba(255,255,255,0.15)'),
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        #{order.orderNumber || order.orderId} · {order.preview?.title || 'Watch'}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : trackingOrders.length === 1 ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#111111', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', marginBottom: '24px' }}>

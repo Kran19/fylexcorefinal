@@ -1122,6 +1122,9 @@ export class OrderService {
       where: { customerId: Number(customerId) },
       orderBy: { createdAt: 'desc' },
       include: {
+        shipments: {
+          orderBy: { id: 'desc' },
+        },
         items: {
           include: {
             product: true,

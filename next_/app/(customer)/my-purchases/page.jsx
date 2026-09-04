@@ -39,8 +39,11 @@ export default function MyPurchases() {
       Array.from({ length: item.qty || 1 }, (_, i) => ({
         ...item,
         orderDate: order.date,
-        orderId: order.id,
+        orderId: order.orderId || order.id,
         orderNumber: order.orderNumber || order.id,
+        trackingUrl: order.trackingUrl || order.shipments?.[0]?.trackingUrl || (order.shipments?.[0]?.trackingNumber ? `https://shiprocket.co/tracking/${order.shipments[0].trackingNumber}` : null),
+        carrier: order.carrier || order.shipments?.[0]?.carrier || 'Shiprocket',
+        trackingNumber: order.trackingNumber || order.shipments?.[0]?.trackingNumber || null,
         redirectUrl: buildRedirectUrl(item),
         variantDisplay: getVariantName(item)
       }))
@@ -316,11 +319,33 @@ export default function MyPurchases() {
                       className="btn-support" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/thank-you?order_id=${unit.orderNumber || unit.orderId}`);
+                        router.push(`/profile?tab=track&order_id=${unit.orderNumber || unit.orderId}`);
                       }}
                     >
-                      Track Order Details
+                      Track Order
                     </button>
+                    {unit.trackingUrl && (
+                      <a 
+                        href={unit.trackingUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-support" 
+                        style={{ 
+                          background: 'rgba(56, 189, 248, 0.12)', 
+                          color: '#38bdf8', 
+                          border: '1px solid rgba(56, 189, 248, 0.35)', 
+                          textDecoration: 'none', 
+                          textAlign: 'center',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span>Live Shiprocket ↗</span>
+                      </a>
+                    )}
                     <button 
                       className="btn-support" 
                       style={{ background: 'transparent', color: '#fff', border: '1px solid #fff' }}
