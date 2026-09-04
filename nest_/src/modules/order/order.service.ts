@@ -7,6 +7,7 @@ import { LoyaltyService } from '../marketing/loyalty.service';
 import { OrderStatusHistoryService } from './order-status-history.service';
 import { ShiprocketService } from './shiprocket.service';
 import { PaymentService } from '../payment/payment.service';
+import { WhatsappService } from '../auth/whatsapp.service';
 
 @Injectable()
 export class OrderService {
@@ -18,6 +19,7 @@ export class OrderService {
     private historyService: OrderStatusHistoryService,
     private shiprocketService: ShiprocketService,
     @Inject(forwardRef(() => PaymentService)) private paymentService: PaymentService,
+    private whatsappService: WhatsappService,
   ) { }
 
   // Create order from cart (Checkout)
@@ -334,6 +336,17 @@ export class OrderService {
       });
     });
 
+    // 7. Dispatch WhatsApp Order Received confirmation
+    try {
+      const recipientMobile = createdOrder?.customerMobile || (createdOrder as any)?.addresses?.[0]?.phone;
+      if (recipientMobile) {
+        this.whatsappService.sendOrderReceived(recipientMobile, createdOrder.orderNumber || `ORD-${createdOrder.id}`)
+          .catch(err => this.logger.error(`Failed to dispatch Order Received WhatsApp: ${err.message}`));
+      }
+    } catch (e) {
+      this.logger.error(`Error initiating Order Received WhatsApp: ${e.message}`);
+    }
+
     return createdOrder;
   }
 
@@ -460,7 +473,7 @@ export class OrderService {
     const oId = Number(orderId);
     const order = await this.prisma.order.findUnique({
       where: { id: oId },
-      include: { shipments: true }
+      include: { shipments: true, addresses: true }
     });
 
     if (!order) throw new NotFoundException('Order not found');
@@ -473,6 +486,14 @@ export class OrderService {
       trackingData = await this.shiprocketService.getTrackingByOrderId(order.orderNumber || order.id);
     }
 
+    if (order.status === 'cancelled' || order.status === 'refunded') {
+      return {
+        success: true,
+        message: `Order is already ${order.status}; sync skipped status mutation.`,
+        data: trackingData
+      };
+    }
+
     if (trackingData?.tracking_data?.track_status) {
       const statusStr = (trackingData.tracking_data.track_status || '').toUpperCase();
       let newOrderStatus = order.status;
@@ -481,7 +502,24 @@ export class OrderService {
       if (statusStr.includes('DELIVERED')) {
         newOrderStatus = 'delivered';
         newShippingStatus = 'delivered';
-      } else if (statusStr.includes('IN TRANSIT') || statusStr.includes('SHIPPED') || statusStr.includes('OUT FOR DELIVERY')) {
+        if (order.shippingStatus !== 'delivered') {
+          const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+          if (recipientMobile) {
+            this.whatsappService.sendDelivered(recipientMobile)
+              .catch(err => this.logger.error(`Failed to dispatch Delivered WhatsApp: ${err.message}`));
+          }
+        }
+      } else if (statusStr.includes('OUT FOR DELIVERY')) {
+        newOrderStatus = 'shipped';
+        newShippingStatus = 'out_for_delivery';
+        if (order.shippingStatus !== 'out_for_delivery') {
+          const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+          if (recipientMobile) {
+            this.whatsappService.sendOutForDelivery(recipientMobile)
+              .catch(err => this.logger.error(`Failed to dispatch Out For Delivery WhatsApp: ${err.message}`));
+          }
+        }
+      } else if (statusStr.includes('IN TRANSIT') || statusStr.includes('SHIPPED')) {
         newOrderStatus = 'shipped';
         newShippingStatus = 'shipped';
       }
@@ -519,12 +557,18 @@ export class OrderService {
           { id: !isNaN(Number(orderNumber)) ? Number(orderNumber) : -1 }
         ]
       },
-      include: { shipments: true }
+      include: { shipments: true, addresses: true }
     });
 
     if (!order) {
       this.logger.warn(`Shiprocket Webhook: Order not found for order_id ${orderNumber}`);
       return { success: false, message: 'Order not found' };
+    }
+
+    // Never allow a webhook to resurrect a cancelled or refunded order
+    if (order.status === 'cancelled' || order.status === 'refunded') {
+      this.logger.log(`Order #${order.id} is already ${order.status}. Ignoring tracking webhook.`);
+      return { success: true, message: `Order #${order.id} is already ${order.status}` };
     }
 
     const shiprocketStatus = (payload.current_status || payload.status || '').toUpperCase();
@@ -547,10 +591,24 @@ export class OrderService {
     } else if (shiprocketStatus.includes('OUT FOR DELIVERY')) {
       newShippingStatus = 'out_for_delivery';
       newOrderStatus = 'shipped';
+      if (order.shippingStatus !== 'out_for_delivery') {
+        const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+        if (recipientMobile) {
+          this.whatsappService.sendOutForDelivery(recipientMobile)
+            .catch(err => this.logger.error(`Failed to dispatch Out For Delivery WhatsApp: ${err.message}`));
+        }
+      }
     } else if (shiprocketStatus.includes('DELIVERED')) {
       newShippingStatus = 'delivered';
       newOrderStatus = 'delivered';
-      if (!order.deliveredAt) updateData.deliveredAt = now;
+      if (!order.deliveredAt) {
+        updateData.deliveredAt = now;
+        const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+        if (recipientMobile) {
+          this.whatsappService.sendDelivered(recipientMobile)
+            .catch(err => this.logger.error(`Failed to dispatch Delivered WhatsApp: ${err.message}`));
+        }
+      }
     } else if (shiprocketStatus.includes('CANCELLED') || shiprocketStatus.includes('CANCELED')) {
       newShippingStatus = 'cancelled';
       newOrderStatus = 'cancelled';
@@ -748,7 +806,15 @@ export class OrderService {
   // Update Status (Admin)
   async updateStatus(orderId: string, status: string, notes?: string, adminId?: string) {
     const oId = Number(orderId);
-    const order = await this.prisma.order.findUnique({ where: { id: oId } });
+    const order = await this.prisma.order.findUnique({ 
+      where: { id: oId },
+      include: {
+        addresses: true,
+        items: { include: { productVariant: true } },
+        shipments: true,
+        customer: true,
+      }
+    });
     if (!order) throw new NotFoundException('Order not found');
 
     const cleanStatus = status.toLowerCase();
@@ -758,6 +824,8 @@ export class OrderService {
       updatedAt: now,
     };
 
+    const isBecomingCancelled = cleanStatus === 'cancelled' && order.status !== 'cancelled';
+
     if (cleanStatus === 'confirmed' && !order.confirmedAt) {
       updateData.confirmedAt = now;
     } else if (cleanStatus === 'processing') {
@@ -766,15 +834,32 @@ export class OrderService {
     } else if (cleanStatus === 'shipped') {
       if (!order.shippedAt) updateData.shippedAt = now;
       updateData.shippingStatus = 'shipped';
+    } else if (cleanStatus === 'out_for_delivery') {
+      if (order.shippingStatus !== 'out_for_delivery') {
+        const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+        if (recipientMobile) {
+          this.whatsappService.sendOutForDelivery(recipientMobile)
+            .catch(err => this.logger.error(`Failed to dispatch Out For Delivery WhatsApp: ${err.message}`));
+        }
+      }
+      updateData.shippingStatus = 'out_for_delivery';
     } else if (cleanStatus === 'delivered') {
-      if (!order.deliveredAt) updateData.deliveredAt = now;
+      if (!order.deliveredAt) {
+        updateData.deliveredAt = now;
+        const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+        if (recipientMobile) {
+          this.whatsappService.sendDelivered(recipientMobile)
+            .catch(err => this.logger.error(`Failed to dispatch Delivered WhatsApp: ${err.message}`));
+        }
+      }
       updateData.shippingStatus = 'delivered';
     } else if (cleanStatus === 'cancelled') {
       if (!order.cancelledAt) updateData.cancelledAt = now;
       updateData.shippingStatus = 'cancelled';
+      if (!order.cancellationReason && notes) updateData.cancellationReason = notes;
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       const updatedOrder = await tx.order.update({
         where: { id: oId },
         data: updateData,
@@ -784,8 +869,73 @@ export class OrderService {
         data: { orderId: oId, status: cleanStatus, notes, adminId: adminId ? Number(adminId) : null },
       });
 
-      return { success: true, data: updatedOrder };
+      // If cancelling an active order, restock inventory & restore loyalty points
+      if (isBecomingCancelled) {
+        for (const item of (order.items || [])) {
+          const variant = item.productVariant;
+          if (variant) {
+            const restockData: any = {};
+            if (variant.manageStock) {
+              const restoredQty = (variant.qty || 0) + item.quantity;
+              restockData.qty = restoredQty;
+              restockData.inStock = true;
+              restockData.stockStatus = 'instock';
+            }
+            if (typeof variant.fakeSoldCount === 'number' && variant.fakeSoldCount >= item.quantity) {
+              restockData.fakeSoldCount = { decrement: item.quantity };
+            }
+            await tx.productVariant.update({
+              where: { id: variant.id },
+              data: restockData
+            });
+          }
+        }
+
+        if (order.loyaltyPointsUsed && order.loyaltyPointsUsed > 0 && order.customerId) {
+          const points = order.loyaltyPointsUsed;
+          const loyalty = await tx.customerLoyalty.findFirst({ where: { customerId: order.customerId } });
+          if (loyalty) {
+            await tx.loyaltyTransaction.create({
+              data: {
+                customerLoyaltyId: loyalty.id,
+                customerId: order.customerId,
+                type: 'refund',
+                points: points,
+                balance: Number(loyalty.availablePoints) + points,
+                referenceType: 'order',
+                referenceId: oId,
+                notes: 'Points refunded due to admin cancellation',
+              }
+            });
+            await tx.customerLoyalty.update({
+              where: { id: loyalty.id },
+              data: {
+                availablePoints: { increment: points },
+                usedPoints: { decrement: points },
+              }
+            });
+          }
+        }
+
+        const shipment = order.shipments?.[0];
+        if (shipment) {
+          await tx.orderShipment.update({
+            where: { id: shipment.id },
+            data: { status: 'cancelled' }
+          });
+        }
+      }
+
+      return updatedOrder;
     });
+
+    if (isBecomingCancelled) {
+      this.shiprocketService.cancelOrder(order.orderNumber || order.id).catch(e => {
+        this.logger.warn(`Shiprocket cancellation notice skipped: ${e.message}`);
+      });
+    }
+
+    return { success: true, data: updated };
   }
 
   // Update Payment Status (Admin)
@@ -809,7 +959,12 @@ export class OrderService {
 
     const order = await this.prisma.order.findUnique({
       where: { id: oId },
-      include: { customer: true }
+      include: {
+        customer: true,
+        items: { include: { productVariant: true } },
+        payments: true,
+        shipments: true,
+      }
     });
 
     if (!order || order.customerId !== cId) throw new NotFoundException('Order not found');
@@ -817,19 +972,63 @@ export class OrderService {
       throw new BadRequestException('Order cannot be cancelled in its current state');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    let razorpayRefundResult: any = null;
+    const paidPayment = order.payments?.find(p => p.status === 'success' || p.status === 'paid') || order.payments?.[0];
+    const razorpayPaymentId = paidPayment?.transactionId || (order as any).paymentId;
+    const isOnlinePaid = order.paymentStatus === 'paid' && razorpayPaymentId?.startsWith('pay_');
+
+    if (isOnlinePaid) {
+      try {
+        const refundAmt = Number(order.grandTotal || 0);
+        razorpayRefundResult = await this.paymentService.refundPayment(razorpayPaymentId, refundAmt, { reason });
+        this.logger.log(`Razorpay refund triggered for cancelled order #${oId}: ${razorpayRefundResult?.id}`);
+      } catch (err: any) {
+        this.logger.warn(`Razorpay refund failed on cancellation for order #${oId}: ${err.message}`);
+      }
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const now = new Date();
       const updatedOrder = await tx.order.update({
         where: { id: oId },
         data: {
           status: 'cancelled',
+          shippingStatus: 'cancelled',
+          paymentStatus: isOnlinePaid ? 'refunded' : order.paymentStatus,
           cancellationReason: reason,
-          cancelledAt: new Date(),
+          cancelledAt: now,
+          updatedAt: now,
         }
       });
 
       await tx.orderStatusHistory.create({
-        data: { orderId: oId, status: 'cancelled', notes: `Cancelled by customer: ${reason}` },
+        data: {
+          orderId: oId,
+          status: 'cancelled',
+          notes: `Cancelled by customer: ${reason}${razorpayRefundResult ? ` (Refund ID: ${razorpayRefundResult.id})` : ''}`
+        },
       });
+
+      // Restock inventory
+      for (const item of (order.items || [])) {
+        const variant = item.productVariant;
+        if (variant) {
+          const restockData: any = {};
+          if (variant.manageStock) {
+            const restoredQty = (variant.qty || 0) + item.quantity;
+            restockData.qty = restoredQty;
+            restockData.inStock = true;
+            restockData.stockStatus = 'instock';
+          }
+          if (typeof variant.fakeSoldCount === 'number' && variant.fakeSoldCount >= item.quantity) {
+            restockData.fakeSoldCount = { decrement: item.quantity };
+          }
+          await tx.productVariant.update({
+            where: { id: variant.id },
+            data: restockData
+          });
+        }
+      }
 
       // Refund Loyalty Points if used
       if (order.loyaltyPointsUsed && order.loyaltyPointsUsed > 0) {
@@ -858,8 +1057,22 @@ export class OrderService {
         }
       }
 
+      const shipment = order.shipments?.[0];
+      if (shipment) {
+        await tx.orderShipment.update({
+          where: { id: shipment.id },
+          data: { status: 'cancelled' }
+        });
+      }
+
       return updatedOrder;
     });
+
+    this.shiprocketService.cancelOrder(order.orderNumber || order.id).catch(e => {
+      this.logger.warn(`Shiprocket cancellation notice skipped: ${e.message}`);
+    });
+
+    return updated;
   }
 
   // Delete Order (Admin)
@@ -1126,7 +1339,13 @@ export class OrderService {
     const oId = Number(orderId);
     const order = await this.prisma.order.findUnique({
       where: { id: oId },
-      include: { payments: true }
+      include: {
+        payments: true,
+        items: { include: { productVariant: true } },
+        shipments: true,
+        customer: true,
+        returns: true,
+      }
     });
     if (!order) throw new NotFoundException('Order not found');
 
@@ -1152,7 +1371,17 @@ export class OrderService {
       }
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const previousRefundTotal = (order.returns || [])
+      .filter(r => r.type === 'refund' && r.status === 'processed')
+      .reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
+
+    const totalRefunded = previousRefundTotal + refundAmt;
+    const grandTotal = Number(order.grandTotal || 0);
+    const isFullRefund = totalRefunded >= grandTotal;
+
+    const isDelivered = (order.status || '').toLowerCase() === 'delivered' || (order.shippingStatus || '').toLowerCase() === 'delivered';
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const orderReturn = await tx.orderReturn.create({
         data: {
           returnNumber: `RET-${Date.now()}`,
@@ -1164,31 +1393,136 @@ export class OrderService {
         }
       });
 
-      // Update Order Payment Status and Order Status
-      const grandTotal = Number(order.grandTotal || 0);
-      const isFullRefund = refundAmt >= grandTotal;
-      const newPaymentStatus = isFullRefund ? 'refunded' : 'partially_refunded';
-      const newOrderStatus = isFullRefund ? 'refunded' : order.status;
+      const now = new Date();
+      let newPaymentStatus = isFullRefund ? 'refunded' : 'partially_refunded';
+      let newOrderStatus = order.status;
+      let newShippingStatus = order.shippingStatus;
+      const orderUpdateData: any = {
+        paymentStatus: newPaymentStatus,
+        updatedAt: now,
+      };
+
+      if (isFullRefund) {
+        if (!isDelivered) {
+          // Pre-delivery full refund: order is CANCELLED and voided
+          newOrderStatus = 'cancelled';
+          newShippingStatus = 'cancelled';
+          orderUpdateData.status = 'cancelled';
+          orderUpdateData.shippingStatus = 'cancelled';
+          if (!order.cancelledAt) orderUpdateData.cancelledAt = now;
+          if (!order.cancellationReason) orderUpdateData.cancellationReason = reason || 'Full Refund Processed';
+
+          // 1. Restock Inventory
+          for (const item of (order.items || [])) {
+            const variant = item.productVariant;
+            if (variant) {
+              const restockData: any = {};
+              if (variant.manageStock) {
+                const restoredQty = (variant.qty || 0) + item.quantity;
+                restockData.qty = restoredQty;
+                restockData.inStock = true;
+                restockData.stockStatus = 'instock';
+              }
+              if (typeof variant.fakeSoldCount === 'number' && variant.fakeSoldCount >= item.quantity) {
+                restockData.fakeSoldCount = { decrement: item.quantity };
+              }
+              await tx.productVariant.update({
+                where: { id: variant.id },
+                data: restockData
+              });
+            }
+          }
+
+          // 2. Restore Redeemed Loyalty Points
+          if (order.loyaltyPointsUsed && order.loyaltyPointsUsed > 0 && order.customerId) {
+            const points = order.loyaltyPointsUsed;
+            const loyalty = await tx.customerLoyalty.findFirst({ where: { customerId: order.customerId } });
+            if (loyalty) {
+              await tx.loyaltyTransaction.create({
+                data: {
+                  customerLoyaltyId: loyalty.id,
+                  customerId: order.customerId,
+                  type: 'refund',
+                  points: points,
+                  balance: Number(loyalty.availablePoints) + points,
+                  referenceType: 'order',
+                  referenceId: oId,
+                  notes: 'Points refunded due to order cancellation & full refund',
+                }
+              });
+              await tx.customerLoyalty.update({
+                where: { id: loyalty.id },
+                data: {
+                  availablePoints: { increment: points },
+                  usedPoints: { decrement: points },
+                }
+              });
+            }
+          }
+
+          // 3. Mark shipment cancelled
+          const shipment = order.shipments?.[0];
+          if (shipment) {
+            await tx.orderShipment.update({
+              where: { id: shipment.id },
+              data: { status: 'cancelled' }
+            });
+          }
+        } else {
+          // Post-delivery full refund: order was received, now refunded/returned
+          newOrderStatus = 'refunded';
+          newShippingStatus = 'returned';
+          orderUpdateData.status = 'refunded';
+          orderUpdateData.shippingStatus = 'returned';
+
+          // Clawback Loyalty Points Earned
+          if (order.loyaltyPointsEarned && order.loyaltyPointsEarned > 0 && order.customerId) {
+            const points = order.loyaltyPointsEarned;
+            const loyalty = await tx.customerLoyalty.findFirst({ where: { customerId: order.customerId } });
+            if (loyalty) {
+              await tx.loyaltyTransaction.create({
+                data: {
+                  customerLoyaltyId: loyalty.id,
+                  customerId: order.customerId,
+                  type: 'adjustment',
+                  points: -points,
+                  balance: Math.max(0, Number(loyalty.availablePoints) - points),
+                  referenceType: 'order',
+                  referenceId: oId,
+                  notes: 'Earned loyalty points clawback due to order refund',
+                }
+              });
+              await tx.customerLoyalty.update({
+                where: { id: loyalty.id },
+                data: {
+                  availablePoints: { decrement: points },
+                  totalPoints: { decrement: points },
+                }
+              });
+            }
+          }
+        }
+      } else {
+        // Partial refund: payment status updated, physical shipping remains active
+        orderUpdateData.paymentStatus = 'partially_refunded';
+      }
 
       const updatedOrder = await tx.order.update({
         where: { id: oId },
-        data: {
-          paymentStatus: newPaymentStatus,
-          status: newOrderStatus,
-        }
+        data: orderUpdateData
       });
 
       await tx.orderStatusHistory.create({
         data: {
           orderId: oId,
           status: newOrderStatus,
-          notes: `Refund processed: ₹${refundAmt}. Reason: ${reason || 'N/A'}${razorpayRefundResult ? ` (Razorpay Refund ID: ${razorpayRefundResult.id})` : ''}`
+          notes: `${isFullRefund ? 'Full' : 'Partial'} refund processed: ₹${refundAmt}. Reason: ${reason || 'N/A'}${razorpayRefundResult ? ` (Razorpay Refund ID: ${razorpayRefundResult.id})` : ''}`
         }
       });
 
       return {
         success: true,
-        message: `Refund of ₹${refundAmt} processed successfully!`,
+        message: `${isFullRefund ? 'Full' : 'Partial'} refund of ₹${refundAmt} processed successfully!`,
         data: {
           orderReturn,
           order: updatedOrder,
@@ -1196,6 +1530,14 @@ export class OrderService {
         }
       };
     });
+
+    if (isFullRefund && !isDelivered) {
+      this.shiprocketService.cancelOrder(order.orderNumber || order.id).catch(e => {
+        this.logger.warn(`Shiprocket cancellation notice skipped: ${e.message}`);
+      });
+    }
+
+    return result;
   }
 }
 

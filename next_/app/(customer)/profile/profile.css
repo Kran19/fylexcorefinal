@@ -424,6 +424,8 @@
 .status-processing { background: #fef9ec; color: #b08014; }
 .status-shipped    { background: #e0f2fe; color: #0284c7; }
 .status-cancelled  { background: #fdf0ef; color: #b83c30; }
+.status-refunded   { background: #faf5ff; color: #6b21a8; }
+.status-returned   { background: #f1f5f9; color: #475569; }
 
 /* ─── ORDER HISTORY TABLE ─────────────────────────────────── */
 .order-table {

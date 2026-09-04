@@ -101,6 +101,16 @@ export class ShiprocketService {
     }
   }
 
+  async cancelOrder(orderId: string | number) {
+    try {
+      this.logger.log(`Cancelling Shiprocket order: ${orderId}`);
+      return await this.apiRequest('post', `/orders/cancel`, { ids: [orderId] });
+    } catch (error: any) {
+      this.logger.warn(`Shiprocket order cancellation failed for ${orderId}: ${error.response?.data?.message || error.message}`);
+      return null;
+    }
+  }
+
   async generateAwb(shipmentId: number | string, courierId?: number) {
     try {
       const payload: any = { shipment_id: Number(shipmentId) };

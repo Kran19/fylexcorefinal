@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateAddressDto, UpdateAddressDto } from './dto/address.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
-const ACTIVE_ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'shipped'];
+const ACTIVE_ORDER_STATUSES = ['pending', 'confirmed', 'processing', 'shipped', 'out_for_delivery'];
 
 @Injectable()
 export class CustomerService {
@@ -28,7 +28,7 @@ export class CustomerService {
 
   private normalizeOrderStatus(status?: string | null) {
     const value = (status || '').toUpperCase();
-    if (['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'FAILED'].includes(value)) {
+    if (['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'REFUNDED', 'RETURNED', 'FAILED'].includes(value)) {
       return value;
     }
     return 'PENDING';
@@ -36,7 +36,7 @@ export class CustomerService {
 
   private normalizePaymentStatus(status?: string | null) {
     const value = (status || '').toUpperCase();
-    if (['PAID', 'PENDING', 'FAILED'].includes(value)) {
+    if (['PAID', 'PENDING', 'FAILED', 'REFUNDED', 'PARTIALLY_REFUNDED'].includes(value)) {
       return value;
     }
     return 'PENDING';
@@ -125,17 +125,48 @@ export class CustomerService {
   private buildTracking(order: any) {
     if (!order) return null;
 
+    const currentStatus = this.normalizeOrderStatus(order.status);
+    const isCancelled = currentStatus === 'CANCELLED';
+    const isRefunded = currentStatus === 'REFUNDED' || currentStatus === 'RETURNED';
+
+    let timeline = [
+      { label: 'Order Placed', date: this.toIsoString(order.createdAt), completed: true },
+      { label: 'Confirmed', date: this.toIsoString(order.confirmedAt), completed: !isCancelled && !!order.confirmedAt },
+      { label: 'Processing', date: this.toIsoString(order.processingAt), completed: !isCancelled && !!order.processingAt },
+      { label: 'Shipped', date: this.toIsoString(order.shippedAt), completed: !isCancelled && !!order.shippedAt },
+      { label: 'Delivered', date: this.toIsoString(order.deliveredAt), completed: !isCancelled && !isRefunded && !!order.deliveredAt },
+    ];
+
+    if (isCancelled) {
+      timeline = timeline.filter(step => step.completed || step.label === 'Order Placed');
+      timeline.push({
+        label: 'Cancelled',
+        date: this.toIsoString(order.cancelledAt || order.updatedAt),
+        completed: true,
+      });
+    } else if (isRefunded) {
+      if (order.deliveredAt) {
+        timeline.push({
+          label: currentStatus === 'RETURNED' ? 'Returned' : 'Refunded',
+          date: this.toIsoString(order.updatedAt),
+          completed: true,
+        });
+      } else {
+        timeline = timeline.filter(step => step.completed || step.label === 'Order Placed');
+        timeline.push({
+          label: 'Refunded',
+          date: this.toIsoString(order.updatedAt),
+          completed: true,
+        });
+      }
+    }
+
     return {
       orderId: order.id?.toString(),
       orderNumber: order.orderNumber,
-      currentStatus: this.normalizeOrderStatus(order.status),
-      timeline: [
-        { label: 'Order Placed', date: this.toIsoString(order.createdAt), completed: true },
-        { label: 'Confirmed', date: this.toIsoString(order.confirmedAt), completed: !!order.confirmedAt },
-        { label: 'Processing', date: this.toIsoString(order.processingAt), completed: !!order.processingAt },
-        { label: 'Shipped', date: this.toIsoString(order.shippedAt), completed: !!order.shippedAt },
-        { label: 'Delivered', date: this.toIsoString(order.deliveredAt), completed: !!order.deliveredAt },
-      ],
+      currentStatus,
+      isTerminal: isCancelled || isRefunded || currentStatus === 'DELIVERED',
+      timeline,
     };
   }
 

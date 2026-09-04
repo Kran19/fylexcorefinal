@@ -1146,3 +1146,62 @@
 - **Testing Completed:** Verified script syntax, error handling (`set -e`, `set -o pipefail`), git branch parameter fallback, executable permissions in git index (`chmod +x`), and LF line ending preservation via `.gitattributes`.
 - **Rollback Strategy:** Remove `deploy.sh` and `.gitattributes`.
 - **Status:** Complete
+
+## Task 84: WhatsApp Lifecycle Notifications (Option B Welcome Logo, Order Received, Out For Delivery, Delivered)
+- **Task Number:** 84
+- **Task Name:** WhatsApp Lifecycle Notifications (Option B Welcome Logo, Order Received, Out For Delivery, Delivered)
+- **Files Modified:**
+  - `nest_/src/modules/auth/whatsapp.service.ts`
+  - `nest_/src/modules/auth/whatsapp.constants.ts`
+  - `nest_/src/assets/fylex_logo.png`
+  - `nest_/src/modules/order/order.module.ts`
+  - `nest_/src/modules/order/order.service.ts`
+- **Reason:** Resolve registration successful template delivery failure by providing Option B (Fylex Gold Logo image header in base64), and integrate the 3 real-time order lifecycle WhatsApp templates (Order Received, Out For Delivery, Delivered) across customer checkout, Shiprocket webhooks, and admin tracking updates.
+- **Risk:** Low
+- **API Impact:** Extends WhatsApp service methods: `sendWelcomeMessage` (with base64 image header), `sendOrderReceived`, `sendOutForDelivery`, `sendDelivered`.
+- **Database Impact:** None.
+- **Frontend Impact:** None (Triggered automatically by backend events).
+- **Backend Impact:** Automates real-time WhatsApp dispatches with deduplication guards on checkout completion, Shiprocket webhook status transitions, tracking sync, and admin panel order updates.
+- **Testing Completed:** Verified all 4 templates via live Zaple API tests to phone `6354351080` with 100% HTTP 200 OK delivery confirmation:
+  - Welcome Template (`398859617877513932611736`): Queued successfully with Option B Fylex logo header.
+  - Order Received Template (`360563217879352591067015`): Queued successfully with order variable.
+  - Out For Delivery Template (`136925717879433254081719`): Queued successfully.
+  - Delivered Template (`292200417879435134514663`): Queued successfully.
+- **Rollback Strategy:** Revert modified files in `nest_`.
+- **Status:** Complete
+
+## Task 85: Order Lifecycle State Machine & Refund Loophole Resolution
+- **Task Number:** 85
+- **Task Name:** Order Lifecycle State Machine & Refund Loophole Resolution
+- **Files Modified:**
+  - `nest_/src/modules/order/shiprocket.service.ts`
+  - `nest_/src/modules/order/order.service.ts`
+  - `nest_/src/modules/customer/customer.service.ts`
+  - `next_/app/admin/orders/[id]/page.jsx`
+  - `next_/app/admin/orders/page.jsx`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/app/(customer)/profile/profile.css`
+- **Reason:** Resolve critical order lifecycle loopholes:
+  1. Issuing an admin refund left `shippingStatus` unchanged (e.g. `'delivered'`), causing admin order detail header and tracking blocks to continue displaying "Delivered".
+  2. In `CustomerService.normalizeOrderStatus()`, `'REFUNDED'` and `'PARTIALLY_REFUNDED'` were omitted from the whitelist, causing refunded orders to fall back to `'PENDING'`.
+  3. Pre-delivery refunds and cancellations failed to restock `productVariant.qty`, failed to restore redeemed loyalty points, and failed to notify/cancel Shiprocket shipments.
+  4. Shiprocket tracking sync and incoming webhooks could resurrect or overwrite cancelled or refunded orders back to `'shipped'` or `'delivered'`.
+  5. The customer tracking timeline on the profile page displayed green checkmarks across all historical nodes (including Delivered) for cancelled and refunded orders.
+- **Risk:** Medium
+- **API Impact:**
+  - Added `cancelOrder(orderId)` to `ShiprocketService` via `/orders/cancel` API.
+  - Overhauled `processRefund()` in `OrderService` to handle full vs partial refunds, pre-delivery cancellation (sets `status='cancelled'`, `shippingStatus='cancelled'`, `paymentStatus='refunded'`, restocks variant inventory, restores redeemed loyalty points, cancels Shiprocket shipment) vs post-delivery returns (sets `status='refunded'`, `shippingStatus='returned'`, `paymentStatus='refunded'`, claws back earned loyalty points).
+  - Enhanced `cancelOrder()` and `updateStatus('cancelled')` in `OrderService` with automatic stock restoration, loyalty points refunds, and Shiprocket shipment cancellation.
+  - Protected `syncShiprocketTracking()` and `handleShiprocketWebhook()` from overriding `cancelled` or `refunded` orders.
+  - Added `REFUNDED`, `RETURNED`, `OUT_FOR_DELIVERY`, and `PARTIALLY_REFUNDED` to `normalizeOrderStatus()` and `normalizePaymentStatus()` in `CustomerService`.
+  - Updated `buildTracking()` in `CustomerService` to display terminal `Cancelled` or `Refunded` / `Returned` state without false checkmarks on subsequent steps.
+- **Database Impact:** None (uses existing Prisma schema columns and models: `order`, `orderItem`, `productVariant`, `customerLoyalty`, `loyaltyTransaction`, `orderShipment`, `orderReturn`).
+- **Frontend Impact:**
+  - In `next_/app/admin/orders/[id]/page.jsx`: Displayed distinct, dedicated badges in `PageHeader` for Order Status, Shipping Status, and Payment Status. Locked Shiprocket fulfillment buttons and displayed warning banner when order is cancelled or refunded. Enabled refund processing for `paid` and `partially_refunded` orders, with visual banner when fully refunded.
+  - In `next_/app/admin/orders/page.jsx`: Formatted `STATUS` and `PAYMENT` columns with proper badge colors for `refunded`, `returned`, and `partially_refunded`.
+  - In `next_/app/(customer)/profile/page.jsx` and `profile.css`: Mapped `REFUNDED`, `PARTIALLY_REFUNDED`, and `RETURNED` to dedicated badges and styles.
+- **Backend Impact:** Guarantees 100% synchronization across Order Status, Shipping Status, and Payment Status dimensions, inventory stock levels, customer loyalty balances, and courier fulfillment.
+- **Testing Completed:** Verified state machine logic transitions, stock decrement/increment integrity, loyalty points ledger transactions, tracking timeline normalization, and frontend badge color resolution.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+

@@ -18,13 +18,17 @@ const emptyDashboard = {
 };
 
 const statusStyles = {
-  PENDING:    'status-processing',
-  CONFIRMED:  'status-processing',
-  PROCESSING: 'status-processing',
-  SHIPPED:    'status-shipped',
-  DELIVERED:  'status-delivered',
-  CANCELLED:  'status-cancelled',
-  FAILED:     'status-cancelled',
+  PENDING:            'status-processing',
+  CONFIRMED:          'status-processing',
+  PROCESSING:         'status-processing',
+  SHIPPED:            'status-shipped',
+  OUT_FOR_DELIVERY:   'status-shipped',
+  DELIVERED:          'status-delivered',
+  CANCELLED:          'status-cancelled',
+  FAILED:             'status-cancelled',
+  REFUNDED:           'status-refunded',
+  PARTIALLY_REFUNDED: 'status-refunded',
+  RETURNED:           'status-returned',
 };
 
 const resolveOrderImg = (order) => {

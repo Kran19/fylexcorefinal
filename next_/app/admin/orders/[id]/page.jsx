@@ -16,14 +16,27 @@ const statusColors = {
   shipped:    { bg: '#f0f9ff', color: '#0369a1' },
   delivered:  { bg: '#f0fdf4', color: '#166534' },
   cancelled:  { bg: '#fef2f2', color: '#991b1b' },
-  refunded:   { bg: '#f5f3ff', color: '#5b21b6' },
+  refunded:   { bg: '#faf5ff', color: '#6b21a8' },
+  returned:   { bg: '#f1f5f9', color: '#475569' },
+};
+
+const shippingStatusColors = {
+  pending:          { bg: '#fef3c7', color: '#92400e' },
+  processing:       { bg: '#e0e7ff', color: '#3730a3' },
+  shipped:          { bg: '#f0f9ff', color: '#0369a1' },
+  out_for_delivery: { bg: '#e0f2fe', color: '#0369a1' },
+  delivered:        { bg: '#f0fdf4', color: '#166534' },
+  cancelled:        { bg: '#fef2f2', color: '#991b1b' },
+  returned:         { bg: '#faf5ff', color: '#6b21a8' },
+  rto:              { bg: '#fff1f2', color: '#be123c' },
 };
 
 const paymentStatusColors = {
-  pending: { bg: '#fef3c7', color: '#92400e' },
-  paid:    { bg: '#f0fdf4', color: '#166534' },
-  failed:  { bg: '#fef2f2', color: '#991b1b' },
-  refunded:{ bg: '#f5f3ff', color: '#5b21b6' },
+  pending:            { bg: '#fef3c7', color: '#92400e' },
+  paid:               { bg: '#f0fdf4', color: '#166534' },
+  failed:             { bg: '#fef2f2', color: '#991b1b' },
+  partially_refunded: { bg: '#eff6ff', color: '#1d4ed8' },
+  refunded:           { bg: '#faf5ff', color: '#6b21a8' },
 };
 
 const infoRow = (label, value) => (
@@ -208,19 +221,78 @@ const OrderDetailPage = () => {
   if (!order)  return <ErrorBanner message="Order not found" />;
 
   const statusStyle = statusColors[order.status?.toLowerCase()] || { bg: '#f1f5f9', color: '#475569' };
+  const shippingStyle = shippingStatusColors[order.shippingStatus?.toLowerCase()] || statusStyle;
   const paymentStyle = paymentStatusColors[order.paymentStatus?.toLowerCase()] || { bg: '#f1f5f9', color: '#475569' };
   const items = order.items || order.orderItems || [];
   const customer = order.customer || {};
   const isOrderPlaced = (order.status || '').toLowerCase() === 'pending';
   const isOrderConfirmed = (order.status || '').toLowerCase() === 'confirmed';
   const isOrderProcessing = (order.status || '').toLowerCase() === 'processing';
+  const isCancelledOrRefunded = ['cancelled', 'refunded'].includes((order.status || '').toLowerCase());
   const hasShipment = order.shipments && order.shipments.length > 0;
   const currentShipment = order.shipments?.[0];
 
   return (
     <div className="animate-fade-in">
       <PageHeader title={`Order ${order.orderNumber || order.id}`} subtitle={`Placed on ${order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}`}>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Order Status Badge */}
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: 11,
+            fontWeight: 700,
+            background: statusStyle.bg,
+            color: statusStyle.color,
+            border: `1px solid ${statusStyle.color}33`,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em'
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusStyle.color }}></span>
+            Order: {order.status}
+          </span>
+
+          {/* Shipping Status Badge */}
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: 11,
+            fontWeight: 700,
+            background: shippingStyle.bg,
+            color: shippingStyle.color,
+            border: `1px solid ${shippingStyle.color}33`,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em'
+          }}>
+            <i className="fas fa-truck" style={{ fontSize: 10 }}></i>
+            Shipping: {order.shippingStatus || 'pending'}
+          </span>
+
+          {/* Payment Status Badge */}
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontSize: 11,
+            fontWeight: 700,
+            background: paymentStyle.bg,
+            color: paymentStyle.color,
+            border: `1px solid ${paymentStyle.color}33`,
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em'
+          }}>
+            <i className="fas fa-credit-card" style={{ fontSize: 10 }}></i>
+            Payment: {(order.paymentStatus || 'pending').replace('_', ' ')}
+          </span>
+
           <button 
             className="btn-secondary" 
             onClick={() => orderService.downloadInvoice(orderId, false)}
@@ -343,11 +415,35 @@ const OrderDetailPage = () => {
             </div>
             <div className="admin-card-body" style={{ padding: 20 }}>
               
+              {/* Order State Banner if Cancelled or Refunded */}
+              {isCancelledOrRefunded && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                  marginBottom: 16,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  color: '#fca5a5',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  lineHeight: 1.4,
+                }}>
+                  <i className="fas fa-ban" style={{ color: '#ef4444', fontSize: 16 }}></i>
+                  <div>
+                    <strong style={{ color: '#ffffff', textTransform: 'uppercase' }}>Order is {order.status}</strong>
+                    <div>Fulfillment actions are disabled to prevent erroneous dispatch.</div>
+                  </div>
+                </div>
+              )}
+
               {/* Dual Action Options */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
                 
                 {/* Option 1: Confirm Order & Auto-Fulfill to Shiprocket */}
-                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 12, padding: 14 }}>
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <i className="fas fa-bolt"></i> Option 1: Confirm & Auto-Fulfill
                   </div>
@@ -356,7 +452,7 @@ const OrderDetailPage = () => {
                   </p>
                   <button
                     onClick={handleConfirmAndFulfillOrder}
-                    disabled={updatingStatus || sendingToShiprocket}
+                    disabled={isCancelledOrRefunded || updatingStatus || sendingToShiprocket}
                     style={{
                       width: '100%',
                       padding: '11px 14px',
@@ -366,7 +462,7 @@ const OrderDetailPage = () => {
                       fontWeight: 700,
                       fontSize: 12,
                       border: 'none',
-                      cursor: 'pointer',
+                      cursor: isCancelledOrRefunded ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -379,7 +475,7 @@ const OrderDetailPage = () => {
                 </div>
 
                 {/* Option 2: Share / Push to Shiprocket Dashboard */}
-                <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: 12, padding: 14 }}>
+                <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <i className="fas fa-share-square"></i> Option 2: Share to Shiprocket Dashboard
                   </div>
@@ -388,7 +484,7 @@ const OrderDetailPage = () => {
                   </p>
                   <button
                     onClick={handleSendToShiprocket}
-                    disabled={sendingToShiprocket}
+                    disabled={isCancelledOrRefunded || sendingToShiprocket}
                     style={{
                       width: '100%',
                       padding: '11px 14px',
@@ -398,7 +494,7 @@ const OrderDetailPage = () => {
                       fontWeight: 700,
                       fontSize: 12,
                       border: 'none',
-                      cursor: 'pointer',
+                      cursor: isCancelledOrRefunded ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -415,7 +511,7 @@ const OrderDetailPage = () => {
                   <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: 10, padding: '12px 14px', border: '1px solid rgba(255, 255, 255, 0.1)', marginTop: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)', textTransform: 'uppercase', fontWeight: 600 }}>Shipment Status</span>
-                      <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 700, textTransform: 'capitalize' }}>{order.shippingStatus || order.status}</span>
+                      <span style={{ fontSize: 12, color: shippingStyle.color, fontWeight: 700, textTransform: 'capitalize' }}>{order.shippingStatus || 'Pending'}</span>
                     </div>
                     {currentShipment?.trackingNumber && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -465,17 +561,26 @@ const OrderDetailPage = () => {
               {order.returns && order.returns.length > 0 && (
                 <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px dashed var(--admin-border-light)' }}>
                   {order.returns.map(r => (
-                    <div key={r.id} style={{ fontSize: 13, marginBottom: 8 }}>
-                      <span style={{ color: '#ef4444', fontWeight: 700 }}>-₹{r.refundAmount}</span> ({r.reason || 'No reason'})
+                    <div key={r.id} style={{ fontSize: 13, marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#ef4444', fontWeight: 700 }}>-₹{r.refundAmount}</span>
+                      <span style={{ color: 'var(--admin-text-muted)', fontSize: 12 }}>{r.reason || 'Manual Refund'}</span>
                     </div>
                   ))}
                 </div>
               )}
-              <input type="number" placeholder="Refund Amount (₹)" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, outline: 'none', marginBottom: 10 }} />
-              <input type="text" placeholder="Reason (e.g. Damaged item)" value={refundReason} onChange={e => setRefundReason(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, outline: 'none', marginBottom: 10 }} />
-              <button onClick={handleRefund} className="btn-primary" disabled={processingRefund || order.paymentStatus !== 'paid'} style={{ width: '100%', justifyContent: 'center', background: '#ef4444', borderColor: '#ef4444' }}>
-                {processingRefund ? 'Processing...' : 'Issue Refund'}
-              </button>
+              {order.paymentStatus === 'refunded' ? (
+                <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 10, color: '#10b981', fontSize: 13, fontWeight: 700, textAlign: 'center' }}>
+                  <i className="fas fa-check-circle" style={{ marginRight: 6 }}></i> Order is fully refunded
+                </div>
+              ) : (
+                <>
+                  <input type="number" placeholder="Refund Amount (₹)" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, outline: 'none', marginBottom: 10 }} />
+                  <input type="text" placeholder="Reason (e.g. Defective item, customer cancellation)" value={refundReason} onChange={e => setRefundReason(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '1px solid var(--admin-border)', borderRadius: 10, fontSize: 13, outline: 'none', marginBottom: 10 }} />
+                  <button onClick={handleRefund} className="btn-primary" disabled={processingRefund || (order.paymentStatus !== 'paid' && order.paymentStatus !== 'partially_refunded')} style={{ width: '100%', justifyContent: 'center', background: '#ef4444', borderColor: '#ef4444' }}>
+                    {processingRefund ? 'Processing...' : 'Issue Refund'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
