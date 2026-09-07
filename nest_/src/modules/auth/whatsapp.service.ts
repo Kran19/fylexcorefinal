@@ -56,20 +56,26 @@ export class WhatsappService {
    */
   private getWelcomeLogoBase64(): string {
     try {
-      // 1. Check local nest_ assets directory
-      const localAsset = path.join(__dirname, '..', '..', 'assets', 'fylex_logo.png');
-      if (fs.existsSync(localAsset)) {
-        const buf = fs.readFileSync(localAsset);
-        return `data:image/png;base64,${buf.toString('base64')}`;
+      // 1. Check local nest_ assets directory for registration-welcome.jpg
+      const localAssetJpg = path.join(__dirname, '..', '..', 'assets', 'registration-welcome.jpg');
+      if (fs.existsSync(localAssetJpg)) {
+        const buf = fs.readFileSync(localAssetJpg);
+        return `data:image/jpeg;base64,${buf.toString('base64')}`;
       }
       // 2. Check next_ public directory if running in local monorepo
-      const nextPublic = path.join(process.cwd(), '..', 'next_', 'public', 'fylex_logo.png');
-      if (fs.existsSync(nextPublic)) {
-        const buf = fs.readFileSync(nextPublic);
+      const nextPublicJpg = path.join(process.cwd(), '..', 'next_', 'public', 'assets', 'registration-welcome.jpg');
+      if (fs.existsSync(nextPublicJpg)) {
+        const buf = fs.readFileSync(nextPublicJpg);
+        return `data:image/jpeg;base64,${buf.toString('base64')}`;
+      }
+      // 3. Fallback to fylex_logo.png
+      const localAssetLogo = path.join(__dirname, '..', '..', 'assets', 'fylex_logo.png');
+      if (fs.existsSync(localAssetLogo)) {
+        const buf = fs.readFileSync(localAssetLogo);
         return `data:image/png;base64,${buf.toString('base64')}`;
       }
     } catch (e) {
-      this.logger.warn(`Could not read fylex_logo.png from filesystem, using compiled constant: ${e.message}`);
+      this.logger.warn(`Could not read registration-welcome.jpg from filesystem: ${e.message}`);
     }
     return FYLEX_LOGO_BASE64;
   }
