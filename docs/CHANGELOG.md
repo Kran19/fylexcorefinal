@@ -1113,3 +1113,23 @@
 - **Testing Completed:** Verified role check and token sign options in `login()`.
 - **Rollback Strategy:** Revert `nest_/src/modules/auth/auth.service.ts`.
 - **Status:** Complete
+
+## Task 82: Integrate FYLEX Luxury Watch Wall Image for WhatsApp Registration Welcome Message and Customer Signup
+- **Task Number:** 82
+- **Task Name:** Integrate FYLEX Luxury Watch Wall Image for WhatsApp Registration Welcome Message and Customer Signup
+- **Files Modified:**
+  - `next_/public/assets/registration-welcome.jpg`
+  - `next_/public/registration-welcome.jpg`
+  - `next_/lib/utils.js`
+  - `nest_/src/modules/auth/whatsapp.service.ts`
+  - `next_/app/(customer)/signup/page.jsx`
+- **Reason:** Saved uploaded FYLEX luxury watch display wall image ("FYLEX IT'S YOUR TIME") as a static asset, configured NestJS `WhatsappService` to pass header image URL (`https://fylexwatches.com/preload/assets/registration-welcome.jpg`) in Zaple WhatsApp template messages, updated `getFileUrl` static asset rules in `utils.js`, and updated `signup/page.jsx` to render the luxury wall banner and provide a WhatsApp share action upon successful registration.
+- **Risk:** Low
+- **API Impact:** Includes media parameter header image in Zaple WhatsApp welcome template dispatches.
+- **Database Impact:** None
+- **Frontend Impact:** Displays luxury watch wall hero image on signup and success screen, along with direct WhatsApp sharing options.
+- **Backend Impact:** Dispatches header image URL with Welcome WhatsApp template message.
+- **Testing Completed:** Verified image placement, getFileUrl resolution, Zaple form-data template body parameters, and signup success view.
+- **Rollback Strategy:** Revert modified files.
+- **Status:** Complete
+

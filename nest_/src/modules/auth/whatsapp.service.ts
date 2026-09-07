@@ -57,10 +57,11 @@ export class WhatsappService {
     }
 
     const customerName = (name || 'Valued Customer').trim();
-    this.logger.log(`Sending Welcome WhatsApp Template [${this.welcomeTemplateId}] to ${cleanMobile} (Name: ${customerName})`);
+    const welcomeImageUrl = process.env.ZAPLE_WELCOME_IMAGE_URL || 'https://fylexwatches.com/preload/assets/registration-welcome.jpg';
+    this.logger.log(`Sending Welcome WhatsApp Template [${this.welcomeTemplateId}] to ${cleanMobile} (Name: ${customerName}, Image: ${welcomeImageUrl})`);
 
     try {
-      const apiResult = await this.dispatchZapleTemplate(cleanMobile, this.welcomeTemplateId, [customerName]);
+      const apiResult = await this.dispatchZapleTemplate(cleanMobile, this.welcomeTemplateId, [customerName], welcomeImageUrl);
       this.logger.log(`Zaple Welcome WhatsApp API response for ${cleanMobile}: ${JSON.stringify(apiResult)}`);
       return { success: true, message: 'Welcome message sent successfully via WhatsApp' };
     } catch (error) {
@@ -100,7 +101,7 @@ export class WhatsappService {
   /**
    * Generic multipart/form-data dispatcher to Zaple.ai API
    */
-  private dispatchZapleTemplate(mobile: string, templateId: string, args: string[] = []): Promise<any> {
+  private dispatchZapleTemplate(mobile: string, templateId: string, args: string[] = [], imageUrl?: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const fullMobile = mobile.length === 10 ? `91${mobile}` : mobile;
       const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
@@ -109,6 +110,15 @@ export class WhatsappService {
         `--${boundary}\r\nContent-Disposition: form-data; name="send_to"\r\n\r\n${fullMobile}\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="country_code"\r\n\r\n91\r\n` +
         `--${boundary}\r\nContent-Disposition: form-data; name="template_id"\r\n\r\n${templateId}\r\n`;
+
+      if (imageUrl) {
+        body += 
+          `--${boundary}\r\nContent-Disposition: form-data; name="header_image"\r\n\r\n${imageUrl}\r\n` +
+          `--${boundary}\r\nContent-Disposition: form-data; name="media_url"\r\n\r\n${imageUrl}\r\n` +
+          `--${boundary}\r\nContent-Disposition: form-data; name="header_media_url"\r\n\r\n${imageUrl}\r\n` +
+          `--${boundary}\r\nContent-Disposition: form-data; name="file_url"\r\n\r\n${imageUrl}\r\n` +
+          `--${boundary}\r\nContent-Disposition: form-data; name="image_url"\r\n\r\n${imageUrl}\r\n`;
+      }
 
       args.forEach((arg, index) => {
         body += `--${boundary}\r\nContent-Disposition: form-data; name="template_argument${index + 1}"\r\n\r\n${arg}\r\n`;

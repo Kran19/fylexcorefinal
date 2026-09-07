@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { getFileUrl } from '@/lib/utils';
 import Swal from 'sweetalert2';
 
 function InputField({ label, type = 'text', id, value, onChange, placeholder, hint, prefix, maxLength, disabled }) {
@@ -132,8 +133,8 @@ export default function Signup() {
         {/* Image Panel */}
         <div className={`auth-image-panel ${loaded ? 'auth-loaded' : ''}`}>
           <img
-            src="/assets/auth-hero.png"
-            alt="Luxury timepiece"
+            src={getFileUrl('/assets/registration-welcome.jpg')}
+            alt="FYLEX Luxury Timepieces Collection"
             className="auth-hero-img"
           />
           <div className="auth-image-overlay" />
@@ -143,7 +144,14 @@ export default function Signup() {
         <div className={`auth-form-panel auth-form-panel-signup ${loaded ? 'auth-loaded' : ''}`}>
           <div className="auth-form-inner auth-form-inner-signup">
             {done ? (
-              <div className="auth-success">
+              <div className="auth-success" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ width: '100%', maxWidth: '340px', borderRadius: '16px', overflow: 'hidden', marginBottom: '16px', border: '1px solid rgba(255, 255, 255, 0.12)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                  <img
+                    src={getFileUrl('/assets/registration-welcome.jpg')}
+                    alt="FYLEX Wall"
+                    style={{ width: '100%', height: 'auto', display: 'block', objectFit: 'cover' }}
+                  />
+                </div>
                 <div className="auth-success-icon">
                   <svg width="52" height="52" viewBox="0 0 52 52">
                     <circle cx="26" cy="26" r="24" fill="none" stroke="#1a3a2a" strokeWidth="2">
@@ -155,8 +163,19 @@ export default function Signup() {
                   </svg>
                 </div>
                 <h3 className="auth-success-title">Account Created!</h3>
-                <p className="auth-success-sub">Welcome to Fylex, {data.name.split(' ')[0] || 'Friend'}. Your journey begins now.</p>
-                <Link href="/" className="auth-submit-btn" style={{ maxWidth: '260px', textDecoration: 'none', marginTop: '8px' }}>Continue to Store</Link>
+                <p className="auth-success-sub">Welcome to Fylex, {data.name.split(' ')[0] || 'Friend'}. A confirmation message has been sent to your WhatsApp.</p>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', width: '100%', marginTop: '12px' }}>
+                  <Link href="/" className="auth-submit-btn" style={{ maxWidth: '200px', textDecoration: 'none' }}>Continue to Store</Link>
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(`✨ I just registered on FYLEX - IT'S YOUR TIME! Explore handcrafted luxury timepieces at https://fylexwatches.com`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="auth-submit-btn"
+                    style={{ maxWidth: '200px', textDecoration: 'none', backgroundColor: '#25D366', color: '#ffffff' }}
+                  >
+                    Share on WhatsApp
+                  </a>
+                </div>
               </div>
             ) : (
               <>
