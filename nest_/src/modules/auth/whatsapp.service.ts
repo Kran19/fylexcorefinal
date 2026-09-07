@@ -247,7 +247,6 @@ export class WhatsappService {
           `--${boundary}\r\nContent-Disposition: form-data; name="file_url"\r\n\r\n${mediaObj.imageUrl}\r\n` +
           `--${boundary}\r\nContent-Disposition: form-data; name="image_url"\r\n\r\n${mediaObj.imageUrl}\r\n`;
       }
-      }
 
       args.forEach((arg, index) => {
         body += `--${boundary}\r\nContent-Disposition: form-data; name="template_argument${index + 1}"\r\n\r\n${arg}\r\n`;
