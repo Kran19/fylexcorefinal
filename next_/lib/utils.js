@@ -16,6 +16,15 @@ export function getFileUrl(path) {
   let cleanPath = path.trim();
   if (!cleanPath) return null;
 
+  // Normalize internal host uploads (e.g. http://187.127.131.26/uploads/..., http://127.0.0.1:3001/uploads/..., http://localhost:5000/api/uploads/...)
+  if (cleanPath.includes('/uploads/') && !cleanPath.startsWith('/preload/')) {
+    const uploadIndex = cleanPath.indexOf('/uploads/');
+    cleanPath = cleanPath.slice(uploadIndex + 1); // "uploads/..."
+  } else if (cleanPath.includes('/api/uploads/')) {
+    const apiUploadIndex = cleanPath.indexOf('/api/uploads/');
+    cleanPath = cleanPath.slice(apiUploadIndex + 5); // "uploads/..."
+  }
+
   // 1. Full absolute URLs (http, https, data)
   if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://') || cleanPath.startsWith('data:')) {
     return cleanPath;

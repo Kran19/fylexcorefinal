@@ -92,18 +92,24 @@ const OrdersPage = () => {
           shipped: { bg: '#ecfeff', text: '#155e75', border: '#a5f3fc' },
           delivered: { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
           cancelled: { bg: '#fef2f2', text: '#991b1b', border: '#fecaca' },
-          refunded: { bg: '#fafafa', text: '#171717', border: '#e5e5e5' },
+          refunded: { bg: '#faf5ff', text: '#6b21a8', border: '#e9d5ff' },
+          returned: { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' },
         }[v] || { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
         return `<div style="display:inline-flex;padding:5px 12px;border-radius:10px;font-size:11px;font-weight:700;background:${colors.bg};color:${colors.text};border:1px solid ${colors.border};text-transform:uppercase;letter-spacing:0.02em">${v}</div>`;
       },
     },
     {
-      title: 'PAYMENT', field: 'paymentStatus', width: 120, hozAlign: 'center',
+      title: 'PAYMENT', field: 'paymentStatus', width: 140, hozAlign: 'center',
       formatter: (cell) => {
         const v = (cell.getValue() || '').toLowerCase();
-        const active = v === 'paid';
-        const pending = v === 'pending';
-        return `<div style="display:inline-flex;padding:5px 12px;border-radius:10px;font-size:11px;font-weight:700;background:${active ? '#f0fdf4' : pending ? '#fffbeb' : '#fef2f2'};color:${active ? '#166534' : pending ? '#92400e' : '#991b1b'};border:1px solid ${active ? '#bbf7d0' : pending ? '#fde68a' : '#fecaca'};text-transform:uppercase">${v}</div>`;
+        const colors = {
+          paid: { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
+          pending: { bg: '#fffbeb', text: '#92400e', border: '#fde68a' },
+          failed: { bg: '#fef2f2', text: '#991b1b', border: '#fecaca' },
+          partially_refunded: { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
+          refunded: { bg: '#faf5ff', text: '#6b21a8', border: '#e9d5ff' },
+        }[v] || { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' };
+        return `<div style="display:inline-flex;padding:5px 12px;border-radius:10px;font-size:11px;font-weight:700;background:${colors.bg};color:${colors.text};border:1px solid ${colors.border};text-transform:uppercase">${v.replace('_', ' ')}</div>`;
       },
     },
     {

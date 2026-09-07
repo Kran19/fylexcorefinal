@@ -1114,8 +1114,270 @@
 - **Rollback Strategy:** Revert `nest_/src/modules/auth/auth.service.ts`.
 - **Status:** Complete
 
-## Task 82: Integrate FYLEX Luxury Watch Wall Image for WhatsApp Registration Welcome Message and Customer Signup
+
+## Task 82: Fix Customer Profile Watch Image Resolution and Prevent Mixed Content Fallback
 - **Task Number:** 82
+- **Task Name:** Fix Customer Profile Watch Image Resolution and Prevent Mixed Content Fallback
+- **Files Modified:**
+  - `nest_/src/modules/customer/customer.service.ts`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/lib/utils.js`
+- **Reason:** Customer profile recent acquisitions on `/preload/profile` were displaying fallback watch bezel (`Rim.png`) instead of the actual purchased timepiece image. Root cause: (1) backend `CustomerService.toMediaUrl()` baked in server IP `http://187.127.131.26/uploads/...` which triggered browser Mixed Content blocking and returned 404 from Nginx root, (2) frontend `getFileUrl()` did not strip legacy host prefixes from upload paths, (3) backend `getDashboard()` contained an invalid Prisma query include `heroImageObj` instead of `productMedia` and `variantImages`, and (4) `profile/page.jsx` contained a shadowed duplicate `resolveOrderImg` helper defaulting to `/Rim.webp`.
+- **Risk:** Low
+- **API Impact:** `CustomerService.toMediaUrl()` now returns clean relative `/uploads/...` paths. `getDashboard()` includes `productMedia` with nested `media` objects and `buildOrderPreview()` checks `variantImages` (MAIN or isPrimary) and `productMedia` for accurate watch image resolution.
+- **Database Impact:** None.
+- **Frontend Impact:** `getFileUrl()` strips server host/IP prefixes and routes uploads through `${window.location.protocol}//${window.location.host}/api/uploads/...`, eliminating Mixed Content blocking over HTTPS. Removed non-existent `Origin` from static asset regex. Shadowed duplicate `resolveOrderImg` removed from `profile/page.jsx`. Original timepiece image now renders under Recent Acquisitions.
+- **Backend Impact:** Clean relative media URLs returned from `CustomerService`.
+- **Testing Completed:** Verified production upload URL accessibility via `/api/uploads/`, regex matching in `utils.js`, and order preview media fallback hierarchy.
+- **Rollback Strategy:** Revert `nest_/src/modules/customer/customer.service.ts`, `next_/app/(customer)/profile/page.jsx`, and `next_/lib/utils.js`.
+- **Status:** Complete
+
+## Task 83: Automated Production Deployment Script
+- **Task Number:** 83
+- **Task Name:** Automated Production Deployment Script
+- **Files Modified:**
+  - `deploy.sh`
+  - `.gitattributes`
+- **Reason:** Provide an automated, single-command deployment pipeline on the production VPS that handles git pulls, stashing uncommitted changes if any, detecting docker compose (v1 or v2), rebuilding and starting containers in detached mode, verifying container health/status, and pruning dangling images to prevent disk exhaustion.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** None
+- **Backend Impact:** None
+- **Testing Completed:** Verified script syntax, error handling (`set -e`, `set -o pipefail`), git branch parameter fallback, executable permissions in git index (`chmod +x`), and LF line ending preservation via `.gitattributes`.
+- **Rollback Strategy:** Remove `deploy.sh` and `.gitattributes`.
+- **Status:** Complete
+
+## Task 84: WhatsApp Lifecycle Notifications (Option B Welcome Logo, Order Received, Out For Delivery, Delivered)
+- **Task Number:** 84
+- **Task Name:** WhatsApp Lifecycle Notifications (Option B Welcome Logo, Order Received, Out For Delivery, Delivered)
+- **Files Modified:**
+  - `nest_/src/modules/auth/whatsapp.service.ts`
+  - `nest_/src/modules/auth/whatsapp.constants.ts`
+  - `nest_/src/assets/fylex_logo.png`
+  - `nest_/src/modules/order/order.module.ts`
+  - `nest_/src/modules/order/order.service.ts`
+- **Reason:** Resolve registration successful template delivery failure by providing Option B (Fylex Gold Logo image header in base64), and integrate the 3 real-time order lifecycle WhatsApp templates (Order Received, Out For Delivery, Delivered) across customer checkout, Shiprocket webhooks, and admin tracking updates.
+- **Risk:** Low
+- **API Impact:** Extends WhatsApp service methods: `sendWelcomeMessage` (with base64 image header), `sendOrderReceived`, `sendOutForDelivery`, `sendDelivered`.
+- **Database Impact:** None.
+- **Frontend Impact:** None (Triggered automatically by backend events).
+- **Backend Impact:** Automates real-time WhatsApp dispatches with deduplication guards on checkout completion, Shiprocket webhook status transitions, tracking sync, and admin panel order updates.
+- **Testing Completed:** Verified all 4 templates via live Zaple API tests to phone `6354351080` with 100% HTTP 200 OK delivery confirmation:
+  - Welcome Template (`398859617877513932611736`): Queued successfully with Option B Fylex logo header.
+  - Order Received Template (`360563217879352591067015`): Queued successfully with order variable.
+  - Out For Delivery Template (`136925717879433254081719`): Queued successfully.
+  - Delivered Template (`292200417879435134514663`): Queued successfully.
+- **Rollback Strategy:** Revert modified files in `nest_`.
+- **Status:** Complete
+
+## Task 85: Order Lifecycle State Machine & Refund Loophole Resolution
+- **Task Number:** 85
+- **Task Name:** Order Lifecycle State Machine & Refund Loophole Resolution
+- **Files Modified:**
+  - `nest_/src/modules/order/shiprocket.service.ts`
+  - `nest_/src/modules/order/order.service.ts`
+  - `nest_/src/modules/customer/customer.service.ts`
+  - `next_/app/admin/orders/[id]/page.jsx`
+  - `next_/app/admin/orders/page.jsx`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/app/(customer)/profile/profile.css`
+- **Reason:** Resolve critical order lifecycle loopholes:
+  1. Issuing an admin refund left `shippingStatus` unchanged (e.g. `'delivered'`), causing admin order detail header and tracking blocks to continue displaying "Delivered".
+  2. In `CustomerService.normalizeOrderStatus()`, `'REFUNDED'` and `'PARTIALLY_REFUNDED'` were omitted from the whitelist, causing refunded orders to fall back to `'PENDING'`.
+  3. Pre-delivery refunds and cancellations failed to restock `productVariant.qty`, failed to restore redeemed loyalty points, and failed to notify/cancel Shiprocket shipments.
+  4. Shiprocket tracking sync and incoming webhooks could resurrect or overwrite cancelled or refunded orders back to `'shipped'` or `'delivered'`.
+  5. The customer tracking timeline on the profile page displayed green checkmarks across all historical nodes (including Delivered) for cancelled and refunded orders.
+- **Risk:** Medium
+- **API Impact:**
+  - Added `cancelOrder(orderId)` to `ShiprocketService` via `/orders/cancel` API.
+  - Overhauled `processRefund()` in `OrderService` to handle full vs partial refunds, pre-delivery cancellation (sets `status='cancelled'`, `shippingStatus='cancelled'`, `paymentStatus='refunded'`, restocks variant inventory, restores redeemed loyalty points, cancels Shiprocket shipment) vs post-delivery returns (sets `status='refunded'`, `shippingStatus='returned'`, `paymentStatus='refunded'`, claws back earned loyalty points).
+  - Enhanced `cancelOrder()` and `updateStatus('cancelled')` in `OrderService` with automatic stock restoration, loyalty points refunds, and Shiprocket shipment cancellation.
+  - Protected `syncShiprocketTracking()` and `handleShiprocketWebhook()` from overriding `cancelled` or `refunded` orders.
+  - Added `REFUNDED`, `RETURNED`, `OUT_FOR_DELIVERY`, and `PARTIALLY_REFUNDED` to `normalizeOrderStatus()` and `normalizePaymentStatus()` in `CustomerService`.
+  - Updated `buildTracking()` in `CustomerService` to display terminal `Cancelled` or `Refunded` / `Returned` state without false checkmarks on subsequent steps.
+- **Database Impact:** None (uses existing Prisma schema columns and models: `order`, `orderItem`, `productVariant`, `customerLoyalty`, `loyaltyTransaction`, `orderShipment`, `orderReturn`).
+- **Frontend Impact:**
+  - In `next_/app/admin/orders/[id]/page.jsx`: Displayed distinct, dedicated badges in `PageHeader` for Order Status, Shipping Status, and Payment Status. Locked Shiprocket fulfillment buttons and displayed warning banner when order is cancelled or refunded. Enabled refund processing for `paid` and `partially_refunded` orders, with visual banner when fully refunded.
+  - In `next_/app/admin/orders/page.jsx`: Formatted `STATUS` and `PAYMENT` columns with proper badge colors for `refunded`, `returned`, and `partially_refunded`.
+  - In `next_/app/(customer)/profile/page.jsx` and `profile.css`: Mapped `REFUNDED`, `PARTIALLY_REFUNDED`, and `RETURNED` to dedicated badges and styles.
+- **Backend Impact:** Guarantees 100% synchronization across Order Status, Shipping Status, and Payment Status dimensions, inventory stock levels, customer loyalty balances, and courier fulfillment.
+- **Testing Completed:** Verified state machine logic transitions, stock decrement/increment integrity, loyalty points ledger transactions, tracking timeline normalization, and frontend badge color resolution.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+## Task 86: Remove Heritage Subtitle from Profile Overview & Fix TypeScript Null Guard in Order Service
+- **Task Number:** 86
+- **Task Name:** Remove Heritage Subtitle from Profile Overview & Fix TypeScript Null Guard in Order Service
+- **Files Modified:**
+  - `next_/app/(customer)/profile/page.jsx`
+  - `nest_/src/modules/order/order.service.ts`
+- **Reason:**
+  1. Per user request on `https://fylexwatches.com/preload/profile`, removed the heritage subtitle text under the Overview section ("Monitor your heritage pieces and manage your Fylex journey.").
+  2. Fixed TypeScript strict compilation error `TS18047: 'createdOrder' is possibly 'null'` in `OrderService.checkout()` by adding explicit null-checking before invoking `whatsappService.sendOrderReceived()`.
+- **Risk:** Low
+- **API Impact:** None
+- **Database Impact:** None
+- **Frontend Impact:** Removed `<p className="section-subtitle">Monitor your heritage pieces and manage your Fylex journey.</p>` from the Overview tab, maintaining a clean 36px margin beneath the section title.
+- **Backend Impact:** Guarantees successful Docker production build during `npx nest build`.
+- **Testing Completed:** Verified JSX syntax and layout balance in `next_/app/(customer)/profile/page.jsx`, and resolved TS18047 null-guard in `nest_/src/modules/order/order.service.ts`.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+## Task 87: Direct Shiprocket Tracking Links in Customer Profile
+- **Task Number:** 87
+- **Task Name:** Direct Shiprocket Tracking Links in Customer Profile
+- **Files Modified:**
+  - `nest_/src/modules/customer/customer.service.ts`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/app/(customer)/profile/profile.css`
+- **Reason:** Enable customers to track their shipments directly on the Shiprocket tracking portal (`https://shiprocket.co/tracking/...`) straight from their profile orders, overview, and tracking timeline.
+- **Risk:** Low
+- **API Impact:**
+  - In `CustomerService.getDashboard()`: Included `shipments: { orderBy: { id: 'desc' } }` in Prisma `order.findMany` query.
+  - In `CustomerService.getProfile()`: Included `shipments: { orderBy: { id: 'desc' } }` in Prisma `customer.findUnique` query.
+  - Added `resolveShipmentDetails(order)` helper in `CustomerService` to resolve `trackingUrl`, `trackingNumber` (AWB), and `carrier`.
+  - Added `trackingUrl`, `trackingNumber`, and `carrier` to `mapOrderSummary(order)` (powering `recentOrders` and `orderHistory`).
+  - Added `trackingUrl`, `trackingNumber`, and `carrier` to `buildTracking(order)` (powering `trackingOrders` and `latestOrderTracking`).
+- **Database Impact:** None (reads existing `shipments` relation and `OrderShipment` records).
+- **Frontend Impact:**
+  - In `next_/app/(customer)/profile/page.jsx`:
+    - Overview Tab (Recent Acquisitions): Rendered `Track ↗` button beside the status badge on both mobile and desktop views when `order.trackingUrl` is present.
+    - History Tab (Desktop Table): Added `Track ↗` button in the `Action` column beside the invoice download icon.
+    - History Tab (Mobile Cards): Added `Track ↗` button beside the invoice download icon.
+    - Timeline & Tracking Tab: Added a prominent `"Live Shiprocket Tracking ↗"` button in the tracking card header, along with an AWB & carrier badge below the order title.
+  - In `next_/app/(customer)/profile/profile.css`:
+    - Added `.order-action-track`: Cyan-accented, pill-shaped action link styled for luxury aesthetic with micro-hover physics.
+    - Added `.tracking-direct-btn`: High-contrast luxury white button for direct Shiprocket portal navigation.
+    - Added `.tracking-awb-badge`: Monospace AWB & courier identifier badge.
+- **Backend Impact:** Exposes accurate shipment details and Shiprocket URLs for dispatched orders.
+- **Testing Completed:** Verified data flow, URL resolution fallbacks, JSX markup, responsive mobile and desktop layouts, and verified git diff.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+## Task 88: Fix My-Purchases Track Order Redirect Loophole
+- **Task Number:** 88
+- **Task Name:** Fix My-Purchases Track Order Redirect Loophole
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+  - `next_/context/OrderContext.jsx`
+  - `next_/app/(customer)/my-purchases/page.jsx`
+  - `next_/app/(customer)/profile/page.jsx`
+  - `next_/app/(customer)/track/page.jsx`
+- **Reason:** On `https://fylexwatches.com/preload/my-purchases`, clicking the "Track Order Details" button incorrectly redirected customers to `/thank-you?order_id=...` (the post-checkout confirmation page with no tracking functionality) instead of the actual order tracking interface.
+- **Risk:** Low
+- **API Impact:**
+  - In `OrderService.getOrders(customerId)`: Added `shipments: { orderBy: { id: 'desc' } }` to the Prisma query include block so order shipments, AWB, and tracking URLs are returned to `OrderContext`.
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - In `next_/app/(customer)/my-purchases/page.jsx`:
+    - Updated "Track Order" button click handler to navigate to `/profile?tab=track&order_id=${unit.orderNumber || unit.orderId}`.
+    - Added direct `"Live Shiprocket ↗"` tracking link button when `unit.trackingUrl` is present.
+  - In `next_/context/OrderContext.jsx`:
+    - In `normalizeOrder()`, extracted and preserved `trackingUrl`, `trackingNumber`, `carrier`, `orderId`, and `orderNumber`.
+  - In `next_/app/(customer)/profile/page.jsx`:
+    - Added URL query parameter parsing (`tab` and `order_id` / `orderId`) in initial `useEffect` to activate the Tracking tab and select the specific order.
+    - Updated `loadDashboard()` and order matching logic to support matching by either numeric `orderId` or string `orderNumber`.
+    - Updated pill active indicator styling to highlight based on matching ID or orderNumber.
+  - In `next_/app/(customer)/track/page.jsx` (New):
+    - Added a dedicated `/track` route that forwards any direct URL visits or bookmarks to `/profile?tab=track` with preserved query parameters.
+- **Backend Impact:** Ensures customer order lists from `/orders?customerId=...` include shipment tracking data.
+- **Testing Completed:** Verified redirect destination, query parameter parsing, and fallback when no tracking URL is yet generated.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+## Task 89: Fix PDF Invoice Download Resolution Across Order Numbers and Database IDs
+- **Task Number:** 89
+- **Task Name:** Fix PDF Invoice Download Resolution Across Order Numbers and Database IDs
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+  - `next_/services/order.service.ts`
+  - `next_/app/(customer)/my-purchases/page.jsx`
+- **Reason:** PDF invoice download worked on the customer Profile page (`/preload/profile`) but failed on the My Purchases page (`/preload/my-purchases`). Root cause:
+  1. On `/profile`, orders originate from `CustomerService.getDashboard()` where `order.id` is the numeric database primary key (`"14"`).
+  2. On `/my-purchases`, orders originate from `OrderContext` where `order.id` was set to the public order number string (e.g. `'ORD-2026-0001'`).
+  3. When downloading an invoice via `GET /api/orders/:id/invoice`, `OrderController.downloadInvoice` calls `OrderService.getOrderById('', id)`.
+  4. `OrderService.getOrderById()` strictly performed `const oId = Number(orderId); prisma.order.findUnique({ where: { id: oId } })`. For `'ORD-2026-0001'`, `Number('ORD-...')` evaluated to `NaN`, throwing `NotFoundException: Order not found` (404).
+  5. The frontend `downloadInvoice` service caught the error, but still attempted to construct a `new Blob([null])`, producing a corrupted 4-byte unreadable file or failing silently.
+- **Risk:** Low
+- **API Impact:**
+  - In `OrderService.getOrderById()`: Enhanced query to handle both numeric integer primary keys (`id: oId`) and alphanumeric order numbers (`orderNumber: orderIdStr` or `orderNumber: ORD-${orderIdStr}`).
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - In `next_/services/order.service.ts`: Added response integrity verification in `downloadInvoice()` to ensure `response.success !== false` and `rawBlob.size > 0` before downloading, and formatted download filenames cleanly as `Invoice-${cleanId}.pdf`.
+  - In `next_/app/(customer)/my-purchases/page.jsx`: Updated invoice download click handler to robustly pass `unit.orderId || unit.orderNumber || unit.id`.
+- **Backend Impact:** Guarantees that any order query or invoice download request succeeds regardless of whether the caller provides the internal database numeric ID or the public order number.
+- **Testing Completed:** Verified ID resolution across numeric and `ORD-` formats, blob validation guards, and PDF download filename formatting.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+## Task 90: Fix React Hooks Order Violation on Profile Page
+- **Task Number:** 90
+- **Task Name:** Fix React Hooks Order Violation on Profile Page
+- **Files Modified:**
+  - `next_/app/(customer)/profile/page.jsx`
+- **Reason:** Visiting `https://fylexwatches.com/preload/profile?tab=track&order_id=...` triggered the error *"This page couldn’t load. Reload to try again, or go back."*. Root cause:
+  1. A `useEffect` hook reading URL `searchParams` was placed below an early return statement (`if (loading || !isAuthenticated || dashboardLoading) return (...)`). In React, invoking hooks conditionally or after an early return violates the Rules of Hooks and causes Next.js client-side rendering to crash with *"Rendered more hooks than during the previous render"*.
+  2. The timeline progress calculation `((tracking.timeline.filter(...).length - 1) / (tracking.timeline.length - 1))` lacked nullish and boundary guards for single-node or empty timelines.
+- **Risk:** Low
+- **API Impact:** None.
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - Moved the `useEffect` hook to the top level of the component alongside other hooks, before any conditional returns.
+  - Added safe optional chaining and division-by-zero protection to the tracking timeline calculation.
+  - Added safe fallbacks `(tracking?.timeline || [])` and `(trackingOrders || [])`.
+- **Backend Impact:** None.
+- **Testing Completed:** Verified hook order compliance, query parameter detection on mount, and safe timeline array mapping.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+## Task 91: Track Order Button Redirect to Profile Page
+- **Task Number:** 91
+- **Task Name:** Track Order Button Redirect to Profile Page
+- **Files Modified:**
+  - `next_/app/(customer)/my-purchases/page.jsx`
+  - `next_/app/(customer)/track/page.jsx`
+- **Reason:** Customer requested that clicking "Track Order" on the My Purchases page (`/my-purchases`) redirects directly to the main profile page (`/profile`).
+- **Risk:** Low
+- **API Impact:** None.
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - In `next_/app/(customer)/my-purchases/page.jsx`: Updated the `onClick` handler of the "Track Order" button from `router.push('/profile?tab=track&order_id=...')` to `router.push('/profile')`.
+  - In `next_/app/(customer)/track/page.jsx`: Simplified redirect to point directly to `/profile`.
+- **Backend Impact:** None.
+- **Testing Completed:** Verified navigation targets and click propagation isolation (`e.stopPropagation()`).
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+## Task 92: Fix Thank You Page Low Contrast & Misdirected Order Navigation
+- **Task Number:** 92
+- **Task Name:** Fix Thank You Page Low Contrast & Misdirected Order Navigation
+- **Files Modified:**
+  - `next_/app/(customer)/thank-you/page.jsx`
+  - `next_/app/(customer)/thank-you/thank-you.css`
+- **Reason:** Customer reported two critical issues on the post-checkout Thank You page (`/thank-you`):
+  1. Clicking "View My Orders" redirected to the Discover page (`/discover`) instead of `/profile` or `/my-purchases`.
+  2. The text/button contrast was broken and barely visible.
+  - **Root Cause 1:** The page relied on Next.js legacy `<style jsx>`, which is not bundled or applied in Next.js 16 App Router with React 19 without extra plugins. All styles were dropped in production.
+  - **Root Cause 2:** Without styles, `.actions` lost `display: flex; flex-direction: column; gap: 16px;` and `.btn` lost padding and background. The two links rendered as unstyled inline text right next to each other (`View My OrdersContinue Exploring`). Tapping or clicking "View My Orders" activated the adjacent hit area of "Continue Exploring" (`/discover`).
+  - **Root Cause 3:** Without `.btn-primary`'s `#ffffff` background and `#000000` text, the anchor inherited body colors, rendering faint text on a black background.
+- **Risk:** Low
+- **API Impact:** None.
+- **Database Impact:** None.
+- **Frontend Impact:**
+  - Created dedicated `thank-you.css` loaded directly via Next.js CSS import.
+  - Added robust inline defensive fallbacks for the container, card, typography, and pill buttons.
+  - Provided 3 high-contrast, fully separated actions:
+    1. `View My Orders & Profile` (`/profile`) - High-contrast white pill button with dark text.
+    2. `Your Collection` (`/my-purchases`) - Dark luxury glass pill button with white text and clear border.
+    3. `Continue Exploring` (`/discover`) - Subtle luxury outline button.
+- **Backend Impact:** None.
+- **Testing Completed:** Verified CSS loading, contrast ratios, and distinct clickable touch targets for `/profile`, `/my-purchases`, and `/discover`.
+- **Rollback Strategy:** Revert modified files via git checkout.
+- **Status:** Complete
+
+## Task 93: Integrate FYLEX Luxury Watch Wall Image for WhatsApp Registration Welcome Message and Customer Signup
+- **Task Number:** 93
 - **Task Name:** Integrate FYLEX Luxury Watch Wall Image for WhatsApp Registration Welcome Message and Customer Signup
 - **Files Modified:**
   - `next_/public/assets/registration-welcome.jpg`

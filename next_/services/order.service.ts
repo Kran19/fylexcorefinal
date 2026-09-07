@@ -12,18 +12,27 @@ export const processOrderRefund = (id: string | number, data: any) =>
   api.post(`/orders/${id}/refund`, data);
 export const downloadInvoice = async (id: string | number, download = false) => {
   try {
-    const response = await api.get(`/orders/${id}/invoice?download=${download}`, {
+    const response: any = await api.get(`/orders/${id}/invoice?download=${download}`, {
       responseType: 'blob'
     });
     
-    // api interceptor wraps the response
-    const blob = response.data instanceof Blob ? response.data : new Blob([response.data as any], { type: 'application/pdf' });
+    if (response && response.success === false) {
+      throw new Error(response.error || 'Failed to download invoice');
+    }
+
+    const rawBlob = response?.data instanceof Blob ? response.data : (response instanceof Blob ? response : null);
+    if (!rawBlob || rawBlob.size === 0) {
+      throw new Error('Invoice file is empty or unavailable');
+    }
+
+    const blob = new Blob([rawBlob], { type: 'application/pdf' });
     const url = window.URL.createObjectURL(blob);
     
     if (download) {
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Invoice-ORD-${id}.pdf`);
+      const cleanId = String(id).startsWith('ORD-') ? id : `ORD-${id}`;
+      link.setAttribute('download', `Invoice-${cleanId}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -34,6 +43,7 @@ export const downloadInvoice = async (id: string | number, download = false) => 
     setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     return { success: true };
   } catch (err: any) {
+    console.error('Invoice download error:', err);
     return { success: false, error: err.message || 'Failed to download invoice' };
   }
 };

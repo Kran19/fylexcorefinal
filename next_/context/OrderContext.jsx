@@ -17,9 +17,21 @@ export function OrderProvider({ children }) {
       ? order.products 
       : [];
 
+    const shipment = order.shipments?.[0];
+    const awb = shipment?.trackingNumber?.trim();
+    let trackingUrl = shipment?.trackingUrl?.trim() || null;
+    if (!trackingUrl && awb) {
+      trackingUrl = `https://shiprocket.co/tracking/${awb}`;
+    }
+
     return {
       ...order,
       id: order.orderNumber || order.id?.toString(),
+      orderId: order.id?.toString(),
+      orderNumber: order.orderNumber || order.id?.toString(),
+      trackingUrl: trackingUrl || order.trackingUrl || null,
+      trackingNumber: awb || order.trackingNumber || null,
+      carrier: shipment?.carrier || order.carrier || (trackingUrl ? 'Shiprocket' : null),
       date: order.createdAt 
         ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
         : (order.date || 'N/A'),

@@ -18,24 +18,32 @@ const emptyDashboard = {
 };
 
 const statusStyles = {
-  PENDING:    'status-processing',
-  CONFIRMED:  'status-processing',
-  PROCESSING: 'status-processing',
-  SHIPPED:    'status-shipped',
-  DELIVERED:  'status-delivered',
-  CANCELLED:  'status-cancelled',
-  FAILED:     'status-cancelled',
+  PENDING:            'status-processing',
+  CONFIRMED:          'status-processing',
+  PROCESSING:         'status-processing',
+  SHIPPED:            'status-shipped',
+  OUT_FOR_DELIVERY:   'status-shipped',
+  DELIVERED:          'status-delivered',
+  CANCELLED:          'status-cancelled',
+  FAILED:             'status-cancelled',
+  REFUNDED:           'status-refunded',
+  PARTIALLY_REFUNDED: 'status-refunded',
+  RETURNED:           'status-returned',
 };
 
 const resolveOrderImg = (order) => {
   if (!order) return getFileUrl('/Rim.png');
-  const rawPath = order.preview?.image ||
-                  order.items?.[0]?.image ||
-                  order.items?.[0]?.productVariant?.variantImages?.[0]?.media?.filePath ||
-                  order.items?.[0]?.product?.heroImageObj?.filePath ||
-                  order.items?.[0]?.product?.heroImage ||
-                  order.heroImage;
-  return getFileUrl(rawPath) || getFileUrl('/Rim.png');
+  const raw = order.preview?.image ||
+              order.items?.[0]?.image ||
+              order.items?.[0]?.productVariant?.variantImages?.[0]?.media?.filePath ||
+              order.items?.[0]?.productVariant?.variantImages?.[0]?.media ||
+              order.items?.[0]?.productVariant?.image ||
+              order.items?.[0]?.product?.heroImage ||
+              order.items?.[0]?.product?.image ||
+              order.heroImage;
+  const path = typeof raw === 'object' ? (raw?.url || raw?.path || raw?.filePath || raw?.fileName) : raw;
+  if (!path || typeof path !== 'string' || path.trim() === '') return getFileUrl('/Rim.png');
+  return getFileUrl(path) || getFileUrl('/Rim.png');
 };
 
 const Profile = () => {
@@ -90,6 +98,22 @@ const Profile = () => {
     if (!loading && !isAuthenticated) navigate.replace('/login');
   }, [isAuthenticated, loading, navigate]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      const orderIdParam = params.get('order_id') || params.get('orderId');
+      if (tabParam && ['overview', 'orders', 'track', 'settings'].includes(tabParam)) {
+        setActiveTab(tabParam);
+      } else if (orderIdParam) {
+        setActiveTab('track');
+      }
+      if (orderIdParam) {
+        setSelectedTrackingOrderId(orderIdParam);
+      }
+    }
+  }, []);
+
   const loadDashboard = async () => {
     setDashboardLoading(true);
     setDashboardError('');
@@ -100,7 +124,25 @@ const Profile = () => {
       return;
     }
     setDashboard(result.data);
-    setSelectedTrackingOrderId(result.data.latestOrderTracking?.orderId || result.data.trackingOrders?.[0]?.orderId || '');
+
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const requestedOrderId = params?.get('order_id') || params?.get('orderId');
+    const matchingOrder = requestedOrderId
+      ? result.data.trackingOrders?.find(o => 
+          String(o.orderId) === String(requestedOrderId) || 
+          String(o.orderNumber) === String(requestedOrderId)
+        )
+      : null;
+
+    setSelectedTrackingOrderId(
+      matchingOrder?.orderId || 
+      matchingOrder?.orderNumber ||
+      requestedOrderId || 
+      result.data.latestOrderTracking?.orderId || 
+      result.data.trackingOrders?.[0]?.orderId || 
+      ''
+    );
+
     setSettingsForm({
       name: result.data.profile.name || '',
       mobile: result.data.profile.mobile || '',
@@ -137,7 +179,10 @@ const Profile = () => {
   }
 
   const { profile, stats, recentOrders, orderHistory, trackingOrders } = dashboard;
-  const tracking = trackingOrders.find(o => o.orderId === selectedTrackingOrderId) || dashboard.latestOrderTracking;
+  const tracking = (trackingOrders || []).find(o => 
+    String(o.orderId) === String(selectedTrackingOrderId) || 
+    String(o.orderNumber) === String(selectedTrackingOrderId)
+  ) || dashboard.latestOrderTracking;
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg> },
@@ -145,13 +190,6 @@ const Profile = () => {
     { id: 'track',    label: 'Tracking', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
     { id: 'settings', label: 'Settings', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg> },
   ];
-
-  const resolveOrderImg = (order) => {
-    const raw = order?.preview?.image || order?.items?.[0]?.productVariant?.image || order?.items?.[0]?.product?.image || order?.items?.[0]?.image;
-    const path = typeof raw === 'object' ? (raw?.url || raw?.path || raw?.filePath) : raw;
-    if (!path || typeof path !== 'string' || path.trim() === '') return '/Rim.webp';
-    return getFileUrl(path);
-  };
 
   return (
     <div className="profile-page-wrapper">
@@ -214,8 +252,7 @@ const Profile = () => {
           {/* ── OVERVIEW ── */}
           {activeTab === 'overview' && (
             <div className="tab-pane">
-              <h1 className="section-title">The Collection Overview</h1>
-              <p className="section-subtitle">Monitor your heritage pieces and manage your Fylex journey.</p>
+              <h1 className="section-title" style={{ marginBottom: '36px' }}>The Collection Overview</h1>
 
               <div className="stats-cluster">
                 <div className="stat-box">
@@ -245,12 +282,42 @@ const Profile = () => {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-muted)' }}>#{order.orderNumber || order.id}</span>
                       <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#ffffff', marginTop: '2px' }}>{order.preview?.title || 'Bespoke Timepiece'}</h4>
-                      <div className="md:hidden" style={{ marginTop: '8px' }}>
+                      <div className="md:hidden" style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <span className={`item-status-pill ${statusStyles[order.status?.toUpperCase()] || 'status-processing'}`}>{order.status}</span>
+                        {order.trackingUrl && (
+                          <a
+                            href={order.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="order-action-track"
+                            title={`Track shipment on ${order.carrier || 'Shiprocket'}`}
+                          >
+                            <span>Track</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 11, height: 11 }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
                       </div>
                     </div>
                     <div className="hidden md:block">
-                      <span className={`item-status-pill ${statusStyles[order.status?.toUpperCase()] || 'status-processing'}`}>{order.status}</span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {order.trackingUrl && (
+                          <a
+                            href={order.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="order-action-track"
+                            title={`Track shipment on ${order.carrier || 'Shiprocket'}`}
+                          >
+                            <span>Track</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 11, height: 11 }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
+                        <span className={`item-status-pill ${statusStyles[order.status?.toUpperCase()] || 'status-processing'}`}>{order.status}</span>
+                      </div>
                     </div>
                   </div>
                 )) : <div className="empty-state">No recent acquisitions.</div>}
@@ -298,13 +365,29 @@ const Profile = () => {
                         <td className="col-amt">₹{Number(order.grandTotal || 0).toLocaleString('en-IN')}</td>
                         <td><span className={`item-status-pill ${statusStyles[order.status?.toUpperCase()] || 'status-processing'}`}>{order.status}</span></td>
                         <td>
-                          <button 
-                            onClick={() => orderService.downloadInvoice(order.id, true)}
-                            title="Download Invoice"
-                            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '4px' }}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 18, height: 18 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {order.trackingUrl && (
+                              <a
+                                href={order.trackingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="order-action-track"
+                                title={`Track shipment on ${order.carrier || 'Shiprocket'}`}
+                              >
+                                <span>Track</span>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 11, height: 11 }}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            )}
+                            <button 
+                              onClick={() => orderService.downloadInvoice(order.id, true)}
+                              title="Download Invoice"
+                              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ffffff', padding: '4px', display: 'flex', alignItems: 'center' }}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 18, height: 18 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -323,11 +406,25 @@ const Profile = () => {
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div className="m-order-price" style={{ marginBottom: '6px' }}>₹{Number(order.grandTotal || 0).toLocaleString('en-IN')}</div>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                        {order.trackingUrl && (
+                          <a
+                            href={order.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="order-action-track"
+                            title={`Track shipment on ${order.carrier || 'Shiprocket'}`}
+                          >
+                            <span>Track</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 11, height: 11 }}>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
                         <button 
                           onClick={() => orderService.downloadInvoice(order.id, true)}
                           title="Download Invoice"
-                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ffffff' }}
+                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ffffff', display: 'flex', alignItems: 'center' }}
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 16, height: 16 }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         </button>
@@ -359,27 +456,30 @@ const Profile = () => {
                   onTouchMove={handlePillsTouchMove}
                   onTouchEnd={handlePillsMouseUpOrLeave}
                 >
-                  {trackingOrders.map(order => (
-                    <button
-                      key={order.orderId}
-                      onClick={() => setSelectedTrackingOrderId(order.orderId)}
-                      style={{
-                        flexShrink: 0,
-                        padding: '10px 20px',
-                        borderRadius: '999px',
-                        background: selectedTrackingOrderId === order.orderId ? '#ffffff' : '#111111',
-                        color: selectedTrackingOrderId === order.orderId ? '#000000' : '#ffffff',
-                        border: '1px solid ' + (selectedTrackingOrderId === order.orderId ? '#ffffff' : 'rgba(255,255,255,0.15)'),
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      #{order.orderNumber || order.orderId} · {order.preview?.title || 'Watch'}
-                    </button>
-                  ))}
+                  {trackingOrders.map(order => {
+                    const isSelected = String(selectedTrackingOrderId) === String(order.orderId) || String(selectedTrackingOrderId) === String(order.orderNumber);
+                    return (
+                      <button
+                        key={order.orderId}
+                        onClick={() => setSelectedTrackingOrderId(order.orderId)}
+                        style={{
+                          flexShrink: 0,
+                          padding: '10px 20px',
+                          borderRadius: '999px',
+                          background: isSelected ? '#ffffff' : '#111111',
+                          color: isSelected ? '#000000' : '#ffffff',
+                          border: '1px solid ' + (isSelected ? '#ffffff' : 'rgba(255,255,255,0.15)'),
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        #{order.orderNumber || order.orderId} · {order.preview?.title || 'Watch'}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : trackingOrders.length === 1 ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', background: '#111111', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.12)', marginBottom: '24px' }}>
@@ -394,8 +494,31 @@ const Profile = () => {
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <span style={{ fontSize: '9px', color: '#a0a0a0', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Current Journey</span>
                       <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 500, marginTop: '4px', wordBreak: 'break-word' }}>Order #{tracking.orderNumber}</h4>
+                      {tracking.trackingNumber && (
+                        <div className="tracking-awb-badge">
+                          <span>AWB:</span>
+                          <strong>{tracking.trackingNumber}</strong>
+                          {tracking.carrier && <span style={{ opacity: 0.7 }}>· {tracking.carrier}</span>}
+                        </div>
+                      )}
                     </div>
-                    <span style={{ fontSize: '9px', fontWeight: 700, background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '999px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ffffff', flexShrink: 0, whiteSpace: 'nowrap' }}>{tracking.currentStatus}</span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {tracking.trackingUrl && (
+                        <a
+                          href={tracking.trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="tracking-direct-btn"
+                          title={`Track directly on ${tracking.carrier || 'Shiprocket'}`}
+                        >
+                          <span>Live Shiprocket Tracking</span>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 12, height: 12 }}>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      )}
+                      <span style={{ fontSize: '9px', fontWeight: 700, background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '999px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ffffff', flexShrink: 0, whiteSpace: 'nowrap' }}>{tracking.currentStatus}</span>
+                    </div>
                   </div>
 
                   {/* Desktop timeline */}
@@ -408,14 +531,14 @@ const Profile = () => {
                       <div style={{ 
                         position: 'absolute', top: '14px', left: '0', height: '2px', 
                         background: '#ffffff', borderRadius: '2px', transition: 'width 1s ease',
-                        width: `${(tracking.timeline.filter(s => s.completed).length - 1) / (tracking.timeline.length - 1) * 100}%`,
+                        width: `${tracking?.timeline && tracking.timeline.length > 1 ? Math.max(0, Math.min(100, ((tracking.timeline.filter(s => s.completed).length - 1) / (tracking.timeline.length - 1)) * 100)) : 0}%`,
                         boxShadow: '0 0 10px rgba(255,255,255,0.4)'
                       }}></div>
 
                       {/* Nodes */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-                        {tracking.timeline.map((step, index) => (
-                          <div key={step.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '120px', marginLeft: index === 0 ? '-60px' : '0', marginRight: index === tracking.timeline.length - 1 ? '-60px' : '0' }}>
+                        {(tracking?.timeline || []).map((step, index) => (
+                          <div key={step.label || index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '120px', marginLeft: index === 0 ? '-60px' : '0', marginRight: index === (tracking?.timeline?.length || 1) - 1 ? '-60px' : '0' }}>
                             <div style={{
                               width: '30px', height: '30px', borderRadius: '50%', background: '#000000',
                               border: `2px solid ${step.completed ? '#ffffff' : 'rgba(255, 255, 255, 0.2)'}`,
@@ -442,8 +565,8 @@ const Profile = () => {
                     {/* Vertical Background Line */}
                     <div style={{ position: 'absolute', left: '14px', top: '14px', bottom: '14px', width: '2px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px' }}></div>
                     
-                    {tracking.timeline.map((step, index) => (
-                      <div key={step.label} style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', position: 'relative', zIndex: 2 }}>
+                    {(tracking?.timeline || []).map((step, index) => (
+                      <div key={step.label || index} style={{ display: 'flex', alignItems: 'flex-start', gap: '20px', position: 'relative', zIndex: 2 }}>
                         {/* Node */}
                         <div style={{
                           width: '30px', height: '30px', borderRadius: '50%', background: '#000000', flexShrink: 0,
