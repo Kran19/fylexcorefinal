@@ -56,28 +56,26 @@ export class WhatsappService {
    */
   private getWelcomeLogoBase64(): string {
     try {
-      // 1. Check local nest_ assets directory for registration-welcome.jpg
-      const localAssetJpg = path.join(__dirname, '..', '..', 'assets', 'registration-welcome.jpg');
-      if (fs.existsSync(localAssetJpg)) {
-        const buf = fs.readFileSync(localAssetJpg);
-        return `data:image/jpeg;base64,${buf.toString('base64')}`;
-      }
-      // 2. Check next_ public directory if running in local monorepo
-      const nextPublicJpg = path.join(process.cwd(), '..', 'next_', 'public', 'assets', 'registration-welcome.jpg');
-      if (fs.existsSync(nextPublicJpg)) {
-        const buf = fs.readFileSync(nextPublicJpg);
-        return `data:image/jpeg;base64,${buf.toString('base64')}`;
-      }
-      // 3. Fallback to fylex_logo.png
-      const localAssetLogo = path.join(__dirname, '..', '..', 'assets', 'fylex_logo.png');
-      if (fs.existsSync(localAssetLogo)) {
-        const buf = fs.readFileSync(localAssetLogo);
-        return `data:image/png;base64,${buf.toString('base64')}`;
+      const pathsToTry = [
+        path.join(__dirname, '..', '..', 'assets', 'registration-welcome.jpg'),
+        path.join(process.cwd(), 'src', 'assets', 'registration-welcome.jpg'),
+        path.join(process.cwd(), 'dist', 'src', 'assets', 'registration-welcome.jpg'),
+        path.join(process.cwd(), '..', 'next_', 'public', 'assets', 'registration-welcome.jpg'),
+        path.join(__dirname, '..', '..', 'assets', 'fylex_logo.png'),
+        path.join(process.cwd(), 'src', 'assets', 'fylex_logo.png'),
+      ];
+
+      for (const p of pathsToTry) {
+        if (fs.existsSync(p)) {
+          const buf = fs.readFileSync(p);
+          this.logger.log(`Using welcome image from filesystem: ${p} (${buf.length} bytes)`);
+          return buf.toString('base64');
+        }
       }
     } catch (e) {
       this.logger.warn(`Could not read registration-welcome.jpg from filesystem: ${e.message}`);
     }
-    return FYLEX_LOGO_BASE64;
+    return FYLEX_LOGO_BASE64.replace(/^data:image\/[a-zA-Z]+;base64,/, '').trim();
   }
 
   /**
@@ -94,7 +92,7 @@ export class WhatsappService {
     }
 
     const customerName = (name || 'Valued Customer').trim();
-    const welcomeImageUrl = process.env.ZAPLE_WELCOME_IMAGE_URL || 'https://fylexwatches.com/preload/assets/registration-welcome.jpg';
+    const welcomeImageUrl = process.env.ZAPLE_WELCOME_IMAGE_URL || 'https://fylexwatches.com/assets/registration-welcome.jpg';
     this.logger.log(`Sending Welcome WhatsApp Template [${this.welcomeTemplateId}] to ${cleanMobile} (Name: ${customerName}, Image: ${welcomeImageUrl})`);
 
     try {
@@ -235,11 +233,10 @@ export class WhatsappService {
       const mediaObj = typeof media === 'string' ? { imageUrl: media } : media;
 
       if (mediaObj?.mediaUrlType && mediaObj?.base64) {
-        body += `--${boundary}\r\nContent-Disposition: form-data; name="media_url_type"\r\n\r\n${mediaObj.mediaUrlType}\r\n`;
-        body += `--${boundary}\r\nContent-Disposition: form-data; name="base64"\r\n\r\n${mediaObj.base64}\r\n`;
-      }
-
-      if (mediaObj?.imageUrl) {
+        const cleanBase64 = mediaObj.base64.replace(/^data:image\/[a-zA-Z]+;base64,/, '').trim();
+        body += `--${boundary}\r\nContent-Disposition: form-data; name="media_url_type"\r\n\r\nbase64\r\n`;
+        body += `--${boundary}\r\nContent-Disposition: form-data; name="base64"\r\n\r\n${cleanBase64}\r\n`;
+      } else if (mediaObj?.imageUrl) {
         body += 
           `--${boundary}\r\nContent-Disposition: form-data; name="header_image"\r\n\r\n${mediaObj.imageUrl}\r\n` +
           `--${boundary}\r\nContent-Disposition: form-data; name="media_url"\r\n\r\n${mediaObj.imageUrl}\r\n` +
