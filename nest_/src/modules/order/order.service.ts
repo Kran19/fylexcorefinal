@@ -353,9 +353,10 @@ export class OrderService {
   }
 
   /**
-   * Pushes confirmed order to Shiprocket, creates shipment, and assigns AWB.
+   * Pushes confirmed order to Shiprocket merchant portal.
+   * By default, autoAssignAwb is false so it only creates the order in Shiprocket without auto-selecting courier or debiting wallet.
    */
-  async sendToShiprocket(orderId: string | number, adminId?: string) {
+  async sendToShiprocket(orderId: string | number, adminId?: string, autoAssignAwb: boolean = false) {
     const oId = Number(orderId);
     const order = await this.prisma.order.findUnique({
       where: { id: oId },
@@ -387,9 +388,9 @@ export class OrderService {
       const srAwb = srResponse?.awb_code || srResponse?.data?.awb_code || null;
       const srCourier = srResponse?.courier_name || srResponse?.data?.courier_name || null;
 
-      // Auto-attempt AWB generation if shipment ID exists
+      // Only attempt AWB generation if explicitly requested via autoAssignAwb flag
       let finalAwb = srAwb;
-      if (!finalAwb && srShipmentId) {
+      if (autoAssignAwb && !finalAwb && srShipmentId) {
         try {
           const awbRes = await this.shiprocketService.generateAwb(srShipmentId);
           finalAwb = awbRes?.response?.data?.awb_code || awbRes?.awb_code || null;
