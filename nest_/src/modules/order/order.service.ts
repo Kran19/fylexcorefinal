@@ -727,6 +727,7 @@ export class OrderService {
       include: {
         items: true,
         addresses: true,
+        shipments: true,
         statusHistory: true
       }
     });
@@ -758,7 +759,8 @@ export class OrderService {
       }
     }
 
-    const realShipment = (order.shipments && order.shipments.length > 0) ? order.shipments[0] : null;
+    const shipmentsArr = (order as any).shipments || [];
+    const realShipment = (shipmentsArr && shipmentsArr.length > 0) ? shipmentsArr[0] : null;
     if (realShipment?.trackingNumber) {
       awbCode = realShipment.trackingNumber;
     }
