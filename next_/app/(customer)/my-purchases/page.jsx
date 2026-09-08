@@ -33,8 +33,15 @@ export default function MyPurchases() {
     return item.subtitle || item.titleAccent || '';
   };
 
-  // Flatten orders into individual item cards, expanding for quantity
-  const allPurchasedUnits = orders.flatMap(order => 
+  // Only show watches in "Your Collection" when the order status or shipping status is DELIVERED / COMPLETED
+  const deliveredOrders = (orders || []).filter(order => {
+    const status = (order.status || '').toLowerCase();
+    const shippingStatus = (order.shippingStatus || '').toLowerCase();
+    return status === 'delivered' || shippingStatus === 'delivered' || status === 'completed';
+  });
+
+  // Flatten delivered orders into individual item cards, expanding for quantity
+  const allPurchasedUnits = deliveredOrders.flatMap(order => 
     order.items.flatMap(item => 
       Array.from({ length: item.qty || 1 }, (_, i) => ({
         ...item,

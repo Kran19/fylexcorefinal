@@ -534,6 +534,24 @@ export class OrderService {
           updatedAt: new Date(),
         }
       });
+
+      const srCourier = trackingData?.courier_name || trackingData?.tracking_data?.courier_name || trackingData?.data?.courier_name || trackingData?.tracking_data?.shipment_track?.[0]?.courier_name || null;
+      const srAwb = trackingData?.awb_code || trackingData?.tracking_data?.awb_code || trackingData?.data?.awb_code || trackingData?.tracking_data?.shipment_track?.[0]?.awb_code || null;
+
+      if (srAwb || srCourier) {
+        const existingShipment = order.shipments?.[0];
+        if (existingShipment) {
+          await this.prisma.orderShipment.update({
+            where: { id: existingShipment.id },
+            data: {
+              trackingNumber: (srAwb && !srAwb.startsWith('ORD-')) ? srAwb : existingShipment.trackingNumber,
+              carrier: srCourier || existingShipment.carrier,
+              status: newShippingStatus,
+              trackingUrl: (srAwb && !srAwb.startsWith('ORD-')) ? `https://shiprocket.co/tracking/${srAwb}` : existingShipment.trackingUrl,
+            }
+          });
+        }
+      }
     }
 
     return {
