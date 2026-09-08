@@ -297,21 +297,6 @@ const OrderDetailPage = () => {
     }
   };
 
-  const handleRefund = async () => {
-    if (!refundAmount || isNaN(refundAmount) || Number(refundAmount) <= 0) return toast?.error?.('Invalid refund amount');
-    setProcessingRefund(true);
-    const res = await orderService.processOrderRefund(orderId, { amount: Number(refundAmount), reason: refundReason });
-    setProcessingRefund(false);
-    if (res?.error || res?.success === false) {
-      toast?.error?.(res?.error || 'Failed to process refund');
-    } else {
-      toast?.success?.(res?.message || 'Refund processed successfully!');
-      setRefundAmount('');
-      setRefundReason('');
-      fetchOrder();
-    }
-  };
-
   if (loading) return <Loader message="Loading order details..." />;
   if (error)   return <ErrorBanner message={error} onRetry={fetchOrder} />;
   if (!order)  return <ErrorBanner message="Order not found" />;
