@@ -400,13 +400,14 @@ export class OrderService {
       }
 
       // Upsert OrderShipment record
+      const cleanCarrier = (srCourier && srCourier !== 'Standard Luxury Courier') ? srCourier : null;
       const existingShipment = order.shipments?.[0];
       if (existingShipment) {
         await this.prisma.orderShipment.update({
           where: { id: existingShipment.id },
           data: {
-            carrier: srCourier,
-            trackingNumber: finalAwb || String(srShipmentId || srOrderId),
+            carrier: cleanCarrier,
+            trackingNumber: finalAwb || null,
             status: 'processing',
             trackingUrl: finalAwb ? `https://shiprocket.co/tracking/${finalAwb}` : null,
           }
@@ -415,9 +416,9 @@ export class OrderService {
         await this.prisma.orderShipment.create({
           data: {
             orderId: order.id,
-            carrier: srCourier,
+            carrier: cleanCarrier,
             carrierService: 'Standard Delivery',
-            trackingNumber: finalAwb || String(srShipmentId || srOrderId),
+            trackingNumber: finalAwb || null,
             status: 'processing',
             trackingUrl: finalAwb ? `https://shiprocket.co/tracking/${finalAwb}` : null,
           }

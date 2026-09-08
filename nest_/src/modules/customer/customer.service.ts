@@ -114,8 +114,14 @@ export class CustomerService {
     if (!order) return { trackingUrl: null, trackingNumber: null, carrier: null };
     const shipment = order.shipments?.[0];
     let trackingUrl = shipment?.trackingUrl?.trim() || null;
-    const awb = shipment?.trackingNumber?.trim() || null;
-    const carrier = shipment?.carrier?.trim() || null;
+    const rawAwb = shipment?.trackingNumber?.trim() || null;
+    const rawCarrier = shipment?.carrier?.trim() || null;
+
+    // Filter out internal numeric shipment IDs (e.g. 1564824060) from being displayed as real AWBs
+    const isRealAwb = rawAwb && !/^\d{8,12}$/.test(rawAwb);
+    const awb = isRealAwb ? rawAwb : null;
+
+    const cleanCarrier = (rawCarrier && rawCarrier !== 'Standard Luxury Courier') ? rawCarrier : null;
 
     if (!trackingUrl && awb) {
       trackingUrl = `https://shiprocket.co/tracking/${awb}`;
@@ -131,7 +137,7 @@ export class CustomerService {
     return {
       trackingUrl: trackingUrl || null,
       trackingNumber: awb || null,
-      carrier: carrier || (trackingUrl ? 'Shiprocket' : null),
+      carrier: cleanCarrier,
     };
   }
 
