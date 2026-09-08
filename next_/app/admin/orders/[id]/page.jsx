@@ -706,7 +706,9 @@ const OrderDetailPage = () => {
                   {order.statusHistory.map(h => (
                     <div key={h.id} style={{ fontSize: 12, borderLeft: '2px solid var(--admin-border)', paddingLeft: 10 }}>
                       <div style={{ fontWeight: 700, color: 'var(--admin-text)' }}>{h.status?.toUpperCase() || 'UPDATE'}</div>
-                      <div style={{ color: 'var(--admin-text-muted)', fontSize: 11 }}>{new Date(h.createdAt).toLocaleString()}</div>
+                      <div style={{ color: 'var(--admin-text-muted)', fontSize: 11 }}>
+                        {h.createdAt ? new Date(h.createdAt).toLocaleString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—'}
+                      </div>
                       {h.notes && <div style={{ marginTop: 4, color: 'var(--admin-text-secondary)', fontStyle: 'italic' }}>"{h.notes}"</div>}
                     </div>
                   ))}

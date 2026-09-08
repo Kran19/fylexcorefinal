@@ -117,9 +117,9 @@ export class CustomerService {
     const rawAwb = shipment?.trackingNumber?.trim() || null;
     const rawCarrier = shipment?.carrier?.trim() || null;
 
-    // Filter out internal numeric shipment IDs (e.g. 1564824060) from being displayed as real AWBs
-    const isRealAwb = rawAwb && !/^\d{8,12}$/.test(rawAwb);
-    const awb = isRealAwb ? rawAwb : null;
+    // Filter out internal order prefixes or placeholder text from being displayed as real AWBs
+    const isInvalidAwb = !rawAwb || rawAwb.startsWith('ORD-') || rawAwb.startsWith('SHP-') || ['pending', 'null', 'n/a'].includes(rawAwb.toLowerCase());
+    const awb = !isInvalidAwb ? rawAwb : null;
 
     const cleanCarrier = (rawCarrier && rawCarrier !== 'Standard Luxury Courier') ? rawCarrier : null;
 

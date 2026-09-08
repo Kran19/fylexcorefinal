@@ -451,6 +451,7 @@ export class OrderService {
           status: 'processing',
           notes: `Dispatched to Shiprocket (Shipment ID: ${srShipmentId || 'N/A'}, AWB: ${finalAwb || 'Pending'})`,
           adminId: adminId ? Number(adminId) : null,
+          createdAt: new Date(),
         }
       });
 
@@ -507,10 +508,12 @@ export class OrderService {
     }
 
     const rawCourier = trackingData?.courier_name || trackingData?.tracking_data?.courier_name || trackingData?.data?.courier_name || trackingData?.tracking_data?.shipment_track?.[0]?.courier_name || null;
-    const srCourier = (rawCourier && rawCourier !== 'Standard Luxury Courier') ? rawCourier : null;
+    const srCourier = (rawCourier && rawCourier !== 'Standard Luxury Courier') ? String(rawCourier).trim() : null;
 
     const rawAwb = trackingData?.awb_code || trackingData?.tracking_data?.awb_code || trackingData?.data?.awb_code || trackingData?.tracking_data?.shipment_track?.[0]?.awb_code || null;
-    const srAwb = (rawAwb && !/^\d{8,12}$/.test(rawAwb) && !rawAwb.startsWith('ORD-')) ? rawAwb : null;
+    const awbStr = rawAwb ? String(rawAwb).trim() : null;
+    const isInvalidSrAwb = !awbStr || awbStr.startsWith('ORD-') || awbStr.startsWith('SHP-') || ['pending', 'null', 'n/a'].includes(awbStr.toLowerCase());
+    const srAwb = !isInvalidSrAwb ? awbStr : null;
 
     if (trackingData?.tracking_data?.track_status) {
       const statusStr = (trackingData.tracking_data.track_status || '').toUpperCase();
@@ -554,7 +557,9 @@ export class OrderService {
 
     const existingShipment = order.shipments?.[0];
     if (existingShipment) {
-      const cleanAwb = srAwb || (isNumericAwb ? null : (existingShipment.trackingNumber && /^\d{8,12}$/.test(existingShipment.trackingNumber) ? null : existingShipment.trackingNumber));
+      const existingAwb = existingShipment.trackingNumber?.trim();
+      const isExistingInvalid = !existingAwb || existingAwb.startsWith('ORD-') || existingAwb.startsWith('SHP-') || ['pending', 'null', 'n/a'].includes(existingAwb.toLowerCase());
+      const cleanAwb = srAwb || (!isExistingInvalid ? existingAwb : null);
       const cleanCarrier = srCourier || (existingShipment.carrier === 'Standard Luxury Courier' ? null : existingShipment.carrier);
 
       await this.prisma.orderShipment.update({

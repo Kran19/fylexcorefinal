@@ -82,12 +82,10 @@ async function main() {
       trackingRes = await shiprocketService.getTrackingByShipmentId(rawAwb);
     }
 
-    console.log(`Shiprocket Raw Tracking Response for Order #${shipment.order.orderNumber || shipment.orderId}:`, JSON.stringify(trackingRes, null, 2));
-
     const { awb: realAwb, courier: realCourier } = extractShiprocketTracking(trackingRes);
 
-    // If candidate AWB is equal to the numeric shipment ID fallback, reject it as a real AWB
-    const finalAwb = (realAwb && realAwb !== rawAwb) || (!isNumericShipmentId && realAwb) ? realAwb : null;
+    const isCurrentAwbInvalid = !rawAwb || rawAwb.startsWith('ORD-') || rawAwb.startsWith('SHP-') || ['pending', 'null', 'n/a'].includes(rawAwb.toLowerCase());
+    const finalAwb = realAwb || (!isCurrentAwbInvalid ? rawAwb : null);
     const finalCourier = realCourier || (isPlaceholderCarrier ? null : rawCarrier);
 
     await prisma.orderShipment.update({
