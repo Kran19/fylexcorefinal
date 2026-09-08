@@ -658,11 +658,11 @@ export class OrderService {
 
   async trackOrder(orderId: string, mobile: string) {
     if (!orderId || !mobile) {
-      throw new NotFoundException({
+      return {
         success: false,
         message: 'No order found',
         data: null
-      });
+      };
     }
 
     const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
@@ -670,11 +670,11 @@ export class OrderService {
     const strippedOrderId = cleanOrderId.replace(/^#+/, '').replace(/^ORD-?/i, '').trim();
 
     if (!cleanMobile || cleanMobile.length !== 10) {
-      throw new NotFoundException({
+      return {
         success: false,
         message: 'No order found',
         data: null
-      });
+      };
     }
 
     const order = await this.prisma.order.findFirst({
@@ -708,24 +708,27 @@ export class OrderService {
     });
 
     if (!order) {
-      throw new NotFoundException({
+      return {
         success: false,
         message: 'No order found',
         data: null
-      });
+      };
     }
 
-    const rawStatus = order.shippingStatus || order.status || 'Processing';
+    const rawStatus = String(order.shippingStatus || order.status || 'Processing');
     const formattedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
 
     const createdDate = order.createdAt ? new Date(order.createdAt) : new Date();
     const deliveryDate = new Date(createdDate.getTime() + 4 * 24 * 60 * 60 * 1000);
     const expectedDeliveryStr = deliveryDate.toISOString().split('T')[0];
 
-    const latestHistoryWithAwb = ((order as any).statusHistory || []).find((h: any) => h.notes && h.notes.includes('AWB:'));
+    const latestHistoryWithAwb = Array.isArray((order as any).statusHistory)
+      ? ((order as any).statusHistory).find((h: any) => h && h.notes && String(h.notes).includes('AWB:'))
+      : null;
+
     let awbCode = `FYL${order.id}${cleanMobile.slice(-4)}`;
     if (latestHistoryWithAwb && latestHistoryWithAwb.notes) {
-      const match = latestHistoryWithAwb.notes.match(/AWB:\s*([^\s)]+)/);
+      const match = String(latestHistoryWithAwb.notes).match(/AWB:\s*([^\s)]+)/);
       if (match && match[1] && match[1] !== 'N/A') {
         awbCode = match[1];
       }
@@ -739,7 +742,9 @@ export class OrderService {
         status: formattedStatus,
         courier: 'Delhivery',
         expected_delivery: expectedDeliveryStr,
-        tracking_number: awbCode
+        tracking_number: awbCode,
+        grand_total: Number(order.grandTotal || 0),
+        items: Array.isArray(order.items) ? order.items.map((i: any) => i.productName || 'Watch') : []
       }
     };
   }
