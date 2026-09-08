@@ -40,6 +40,7 @@ export class OrderController {
   }
 
   @Post('shiprocket-webhook')
+  @Post('tracking-update')
   async handleShiprocketWebhook(@Body() payload: any) {
     return this.orderService.handleShiprocketWebhook(payload);
   }
