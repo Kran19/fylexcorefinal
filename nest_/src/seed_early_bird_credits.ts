@@ -17,6 +17,7 @@ async function main() {
     program = await prisma.loyaltyProgram.create({
       data: {
         name: 'Fylex Rewards',
+        slug: 'fylex-rewards',
         description: 'Fylex Default Loyalty Program',
         status: 1,
       }

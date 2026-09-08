@@ -9,6 +9,7 @@ import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 
 import { WhatsappService } from './whatsapp.service';
+import { isEarlyBirdMobile } from '../marketing/early-bird-mobiles';
 
 type AuthRole = 'customer' | 'admin';
 
