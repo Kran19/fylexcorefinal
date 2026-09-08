@@ -11,6 +11,13 @@ import { map } from 'rxjs/operators';
 export class ResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const response = context.switchToHttp().getResponse();
+    const request = context.switchToHttp().getRequest();
+    const url = request?.url || '';
+
+    // Bypass wrapper for webhooks (Shiprocket, etc.) so external services get raw 200 responses
+    if (url.includes('webhook') || url.includes('tracking-update')) {
+      return next.handle();
+    }
     
     return next.handle().pipe(
       map((data) => {

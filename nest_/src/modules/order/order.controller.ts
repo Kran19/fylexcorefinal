@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, Res, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, Res, UseGuards, Request, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { Response } from 'express';
 import { OrderService } from './order.service';
@@ -40,6 +40,7 @@ export class OrderController {
   }
 
   @Post(['shiprocket-webhook', 'tracking-update', 'webhook-listener', 'status-update'])
+  @HttpCode(HttpStatus.OK)
   async handleShiprocketWebhook(@Body() payload: any) {
     return this.orderService.handleShiprocketWebhook(payload);
   }
