@@ -153,6 +153,7 @@ const Products = () => {
           const vDisplay = getDisplayData(col, v);
           return {
             id: v.id.toString(),
+            variantId: v.id.toString(),
             name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
             img: vDisplay.image || col.heroImage || col.image,
             price: vDisplay.price,
@@ -168,11 +169,30 @@ const Products = () => {
     try {
       const res = await fetchProduct(col.id);
       const fullProduct = (res && res.data) ? res.data : col;
+
+      // 1. Real Purchased Orders from Customer OrderItems
+      const realOrderCards = [];
+      let globalIdx = 1;
+      (fullProduct.orderItems || col.orderItems || []).forEach(item => {
+        const variant = item.productVariant;
+        const qty = Number(item.quantity || 1);
+        for (let i = 0; i < qty; i++) {
+          const vDisplay = getDisplayData(fullProduct, variant);
+          realOrderCards.push({
+            id: `order-${item.id || globalIdx}-${i}`,
+            variantId: variant?.id?.toString() || '',
+            name: vDisplay.subtitle || vDisplay.name || fullProduct.name,
+            img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
+            soldAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
+            isRealOrder: true,
+            sku: item.sku
+          });
+        }
+      });
+
+      // 2. Admin Sold Configurations (variants flagged isSoldConfiguration)
       const rawVariants = fullProduct.variants || col.variants || [];
-      const inStockVariants = rawVariants.filter(isVariantInStock);
-      const variantPool = inStockVariants.length > 0 ? inStockVariants : rawVariants;
-      
-      const soldConfigs = variantPool
+      const adminSoldConfigs = rawVariants
         .filter(v => Boolean(
           v.isSoldConfiguration === true || 
           v.isSoldConfiguration === 1 || 
@@ -183,6 +203,7 @@ const Products = () => {
           const vDisplay = getDisplayData(fullProduct, v);
           return {
             id: v.id.toString(),
+            variantId: v.id.toString(),
             name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
             img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
             price: vDisplay.price,
@@ -193,7 +214,9 @@ const Products = () => {
           };
         });
 
-      setActiveModalData({ ...fullProduct, combinations: soldConfigs });
+      const combined = [...realOrderCards, ...adminSoldConfigs];
+
+      setActiveModalData({ ...fullProduct, combinations: combined.length > 0 ? combined : initialList });
     } catch (e) {
       console.warn('Failed to pre-fetch product modal data on products page', e);
     }
@@ -1179,17 +1202,27 @@ const Products = () => {
 
             <div style={{ overflowY: 'auto', flex: 1, paddingRight: '8px', textAlign: 'left' }}>
               {activeModalData?.combinations && activeModalData.combinations.length > 0 ? (
-                activeModalData.combinations.map((combo) => (
-                  <div key={combo.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px', borderBottom: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', cursor: 'pointer' }} onClick={() => {
+                activeModalData.combinations.map((combo, idx) => (
+                  <div key={combo.id || idx} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '14px', borderBottom: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', cursor: 'pointer' }} onClick={() => {
                     closeInfoModal();
-                    router.push(`/explore?watch=${activeModalData.id}&variant=${combo.id}`);
+                    const targetVar = combo.variantId || combo.id;
+                    if (targetVar && !targetVar.startsWith('order-')) {
+                      router.push(`/explore?watch=${activeModalData.id}&variant=${targetVar}`);
+                    } else {
+                      router.push(`/explore?watch=${activeModalData.id}`);
+                    }
                   }}>
                     <div style={{ width: '56px', height: '56px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.05)' }}>
                       <img src={combo.img || activeModalData.heroImage || activeModalData.image} alt={combo.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#fff' }}>{combo.name}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#008767', fontWeight: 600 }}>Exclusive Build &bull; {(combo.fakeSoldCount && Number(combo.fakeSoldCount) > 0) ? combo.fakeSoldCount : 4} Built</span>
+                      <span style={{ fontSize: '0.75rem', color: '#008767', fontWeight: 600 }}>
+                        {combo.isRealOrder 
+                          ? `Customer Build • Sold ${combo.soldAt || 'Recently'}`
+                          : `Exclusive Build • ${(combo.fakeSoldCount && Number(combo.fakeSoldCount) > 0) ? combo.fakeSoldCount + ' Built' : 'Recently Built'}`
+                        }
+                      </span>
                     </div>
                   </div>
                 ))
