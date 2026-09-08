@@ -34,9 +34,10 @@ export class OrderController {
   async calculateTotal(
     @Body('customerId') customerId: string, 
     @Body('pincode') pincode?: string,
-    @Body('couponCode') couponCode?: string
+    @Body('couponCode') couponCode?: string,
+    @Body('useCredits') useCredits?: boolean
   ) {
-    return this.orderService.calculateOrderTotal(customerId, pincode, couponCode);
+    return this.orderService.calculateOrderTotal(customerId, pincode, couponCode, useCredits);
   }
 
   @Post(['shiprocket-webhook', 'tracking-update', 'webhook-listener', 'status-update'])

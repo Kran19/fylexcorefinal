@@ -60,7 +60,7 @@ export class OrderService {
       if (Number(balance.availablePoints) < dto.redeemPoints) {
         throw new BadRequestException('Insufficient loyalty points');
       }
-      pointDiscount = dto.redeemPoints / 100;
+      pointDiscount = Number(dto.redeemPoints); // 1 FYLEX Credit = Re 1
     }
 
     // 4. Validate Addresses
@@ -1298,7 +1298,7 @@ export class OrderService {
     return { success: true, data: order };
   }
 
-  async calculateOrderTotal(customerId: string, pincode?: string, couponCode?: string) {
+  async calculateOrderTotal(customerId: string, pincode?: string, couponCode?: string, useCredits: boolean = true) {
     const customerIdStr = customerId?.toString() || '';
     const isNumeric = !isNaN(Number(customerIdStr)) && !customerIdStr.includes('usr_') && customerIdStr !== '';
     const cId = isNumeric ? Number(customerIdStr) : null;
@@ -1309,7 +1309,7 @@ export class OrderService {
     });
 
     if (!cart || cart.items.length === 0) {
-      return { subtotal: 0, shipping: 0, tax: 0, discount: 0, total: 0 };
+      return { subtotal: 0, shipping: 0, tax: 0, discount: 0, creditDiscount: 0, availableCredits: 0, appliedCredits: 0, total: 0 };
     }
 
     const subtotal = cart.subtotal ? Number(cart.subtotal) : 0;
@@ -1325,9 +1325,8 @@ export class OrderService {
       }
     }
 
-    let discount = 0;
+    let couponDiscount = 0;
     let appliedOffer = cart.offer;
-
     let couponError = null;
 
     if (couponCode) {
@@ -1341,15 +1340,42 @@ export class OrderService {
     }
 
     if (appliedOffer) {
-      discount = this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items);
+      couponDiscount = this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items);
     }
+
+    // Check Customer FYLEX Loyalty Credits Balance
+    let availableCredits = 0;
+    let appliedCredits = 0;
+    let creditDiscount = 0;
+
+    if (cId) {
+      const loyalty = await this.prisma.customerLoyalty.findFirst({
+        where: { customerId: cId }
+      });
+      if (loyalty) {
+        availableCredits = Number(loyalty.availablePoints || 0);
+      }
+    }
+
+    if (useCredits !== false && availableCredits > 0) {
+      const netSubtotalAfterCoupon = Math.max(0, subtotal - couponDiscount);
+      appliedCredits = Math.min(availableCredits, netSubtotalAfterCoupon);
+      creditDiscount = appliedCredits;
+    }
+
+    const totalDiscount = couponDiscount + creditDiscount;
+    const finalTotal = Math.max(0, subtotal - totalDiscount);
 
     return {
       subtotal,
       shipping: 0,
       tax: 0,
-      discount,
-      total: Math.max(0, subtotal - discount),
+      discount: totalDiscount,
+      couponDiscount,
+      creditDiscount,
+      availableCredits,
+      appliedCredits,
+      total: finalTotal,
       message: 'Free Shipping All Over India',
       couponError,
       offerDescription: appliedOffer?.description || appliedOffer?.name || ''

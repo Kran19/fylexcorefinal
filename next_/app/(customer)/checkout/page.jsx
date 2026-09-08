@@ -52,6 +52,7 @@ const Checkout = () => {
   const [couponInput, setCouponInput] = useState('');
   const [couponErrorMsg, setCouponErrorMsg] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
+  const [useCredits, setUseCredits] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -133,7 +134,7 @@ const Checkout = () => {
         
         setIsCalculating(true);
         // Call API even with incomplete pincode to get latest subtotal/tax/discount
-        const res = await calculateTotalApi(currentUserId, formData.postalCode.length === 6 ? formData.postalCode : null, formData.couponCode);
+        const res = await calculateTotalApi(currentUserId, formData.postalCode.length === 6 ? formData.postalCode : null, formData.couponCode, useCredits);
         
         if (res.success) {
             setTotals(res.data);
@@ -162,7 +163,7 @@ const Checkout = () => {
         setIsCalculating(false);
     };
     refreshTotals();
-  }, [items, formData.postalCode, formData.couponCode, currentUserId, cartTotals.subtotal]);
+  }, [items, formData.postalCode, formData.couponCode, useCredits, currentUserId, cartTotals.subtotal]);
 
   const steps = [
     { id: 1, name: 'User Details' },
@@ -238,7 +239,7 @@ const Checkout = () => {
 
   const handleRazorpayPayment = async (addressId) => {
     const activeCoupon = (!couponErrorMsg && formData.couponCode === couponInput.trim()) ? formData.couponCode : '';
-    const payRes = await initiatePaymentApi(currentUserId, formData.postalCode, `rcpt_${Date.now()}`, activeCoupon);
+    const payRes = await initiatePaymentApi(currentUserId, formData.postalCode, `rcpt_${Date.now()}`, activeCoupon, useCredits);
     if (!payRes.success) throw new Error(payRes.error);
 
     const options = {
@@ -274,6 +275,7 @@ const Checkout = () => {
   };
 
   const finalizeOrder = async (addressId, method, paymentId = null) => {
+    const appliedPoints = (useCredits && (totals.appliedCredits || totals.creditDiscount)) ? (totals.appliedCredits || totals.creditDiscount) : 0;
     const orderRes = await addOrder({
       customerId: String(currentUserId),
       shippingAddressId: String(addressId),
@@ -281,6 +283,7 @@ const Checkout = () => {
       paymentMethod: method,
       paymentId: paymentId,
       couponCode: (!couponErrorMsg && formData.couponCode === couponInput.trim()) ? formData.couponCode : '',
+      redeemPoints: Number(appliedPoints || 0),
       items: items.map(i => ({ variantId: i.variantId, quantity: i.qty })),
     });
 
@@ -581,6 +584,45 @@ const Checkout = () => {
               </div>
               
               <div className="summary-divider" />
+
+              {/* ✨ FYLEX EARLY BIRD CREDITS CARD */}
+              {(totals.availableCredits > 0 || totals.appliedCredits > 0) && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(184, 134, 11, 0.05) 100%)',
+                  border: '1px solid rgba(212, 175, 55, 0.35)',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(212, 175, 55, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '14px', fontWeight: 700 }}>
+                      ✨
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
+                        FYLEX Credits
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#d4af37', marginTop: '2px' }}>
+                        {useCredits ? `₹${totals.appliedCredits || totals.creditDiscount || 500} Auto-Deducted` : `₹${totals.availableCredits} Credits Available`}
+                      </div>
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '6px', fontSize: '12px', fontWeight: 600, color: '#ffffff', userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={useCredits}
+                      onChange={(e) => setUseCredits(e.target.checked)}
+                      style={{ accentColor: '#d4af37', width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <span>Use Credits</span>
+                  </label>
+                </div>
+              )}
+
               <div className="coupon-section" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
                  <div style={{ display: 'flex', gap: '8px' }}>
                    <input 
@@ -597,9 +639,9 @@ const Checkout = () => {
                    />
                    <button 
                      type="button" 
-                     style={{ padding: '0 20px', borderRadius: '8px', background: formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && totals.discount > 0 ? '#ef4444' : '#333', color: 'white', fontWeight: 600, fontSize: '12px', cursor: 'pointer', border: 'none', transition: 'background 0.3s' }}
+                     style={{ padding: '0 20px', borderRadius: '8px', background: formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0 ? '#ef4444' : '#333', color: 'white', fontWeight: 600, fontSize: '12px', cursor: 'pointer', border: 'none', transition: 'background 0.3s' }}
                      onClick={() => {
-                         const isValidAndApplied = formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && totals.discount > 0;
+                         const isValidAndApplied = formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0;
                          if (isValidAndApplied) {
                              setCouponInput('');
                              setFormData(prev => ({ ...prev, couponCode: '' }));
@@ -608,7 +650,7 @@ const Checkout = () => {
                          }
                      }}
                    >
-                     {isCalculating ? 'Wait...' : (formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && totals.discount > 0 ? 'Remove' : 'Apply')}
+                     {isCalculating ? 'Wait...' : (formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0 ? 'Remove' : 'Apply')}
                    </button>
                  </div>
                  {couponErrorMsg && (
@@ -635,18 +677,28 @@ const Checkout = () => {
                     <span>₹{Math.round(totals.tax).toLocaleString()}</span>
                   </div>
                 )}
-                {totals.discount > 0 && (
+                {totals.creditDiscount > 0 && (
+                  <div style={{ padding: '10px 14px', background: 'rgba(212, 175, 55, 0.1)', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)', marginTop: '8px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#d4af37', fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      ✨ FYLEX Credits Applied
+                    </span>
+                    <span style={{ color: '#d4af37', fontWeight: 700, fontSize: '13px' }}>
+                      -₹{Math.round(totals.creditDiscount).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {(totals.couponDiscount || (totals.discount && !totals.creditDiscount)) > 0 && (
                   <div style={{ padding: '12px', background: '#ecfdf5', borderRadius: '8px', border: '1px dashed #10b981', marginTop: '12px', marginBottom: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                       <span style={{ color: '#047857', fontWeight: 600, fontSize: '13px' }}>
                         <i className="fas fa-tag mr-2"></i> Coupon Applied: {formData.couponCode}
                       </span>
                       <span style={{ color: '#047857', fontWeight: 700, fontSize: '14px' }}>
-                        -₹{Math.round(totals.discount).toLocaleString()}
+                        -₹{Math.round(totals.couponDiscount || totals.discount).toLocaleString()}
                       </span>
                     </div>
                     <div style={{ color: '#059669', fontSize: '11px', fontWeight: 500 }}>
-                      You Saved ₹{Math.round(totals.discount).toLocaleString()}!
+                      You Saved ₹{Math.round(totals.couponDiscount || totals.discount).toLocaleString()}!
                     </div>
                     {totals.offerDescription && (
                       <div style={{ color: '#047857', fontSize: '11px', marginTop: '6px', fontStyle: 'italic', borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '4px' }}>

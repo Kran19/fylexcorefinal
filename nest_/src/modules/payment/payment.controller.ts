@@ -10,11 +10,11 @@ export class PaymentController {
   ) {}
 
   @Post('create-order')
-  async createOrder(@Body() body: { customerId: string; pincode?: string; receipt: string; couponCode?: string }) {
+  async createOrder(@Body() body: { customerId: string; pincode?: string; receipt: string; couponCode?: string; useCredits?: boolean }) {
     if (!body.customerId) throw new BadRequestException('customerId is required');
     
     // SECURITY: Calculate total on server, do NOT trust frontend amount
-    const totals = await this.orderService.calculateOrderTotal(body.customerId, body.pincode, body.couponCode);
+    const totals = await this.orderService.calculateOrderTotal(body.customerId, body.pincode, body.couponCode, body.useCredits !== false);
     if (totals.total <= 0) throw new BadRequestException('Invalid order total');
     
     return this.paymentService.createOrder(totals.total, 'INR', body.receipt);

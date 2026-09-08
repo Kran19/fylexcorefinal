@@ -140,8 +140,8 @@ export const toggleWishlistApi = (userId, product) => {
 // Orders API
 export const fetchOrders = (userId) => request('GET', userId ? `/orders?customerId=${userId}` : '/orders');
 
-export const calculateTotalApi = (userId, pincode, couponCode) => {
-    return request('POST', '/orders/calculate-total', { customerId: userId, pincode, couponCode });
+export const calculateTotalApi = (userId, pincode, couponCode, useCredits = true) => {
+    return request('POST', '/orders/calculate-total', { customerId: userId, pincode, couponCode, useCredits });
 };
 
 export const createOrderApi = (orderData) => {
@@ -162,9 +162,9 @@ export const calculateShippingApi = (customerId, pincode) => {
 export const deleteOrderApi = (id) => request('DELETE', `/orders/${id}`);
 
 // Payment API
-export const initiatePaymentApi = (userId, pincode, receipt, couponCode) => {
+export const initiatePaymentApi = (userId, pincode, receipt, couponCode, useCredits = true) => {
     // SECURITY: Amount is NOT sent to server, server calculates it
-    return request('POST', '/payments/create-order', { customerId: userId, pincode, receipt, couponCode });
+    return request('POST', '/payments/create-order', { customerId: userId, pincode, receipt, couponCode, useCredits });
 };
 export const verifyPaymentApi = (paymentData) => request('POST', '/payments/verify', paymentData);
 
