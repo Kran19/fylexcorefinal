@@ -1208,22 +1208,27 @@ const Home = () => {
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </div>
-                <div className="hero-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  {/* Line 1: FYLEX Title */}
-                  <h1 className="hero-title" style={{ color: '#ededed', textAlign: 'center', width: '100%', marginBottom: '16px', textShadow: '0 2px 12px rgba(0,0,0,0.3)', display: 'block' }}>
-                    <span style={{ color: '#ededed', letterSpacing: '0.2em', fontWeight: 300 }}>
+                <div className="hero-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  {/* Line 1: Wing Logo + FYLEX Text */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <img 
+                      src="/fylex_logo.png" 
+                      alt="FYLEX" 
+                      style={{ height: '42px', width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)', filterDropShadow: '0 2px 10px rgba(0,0,0,0.3)' }} 
+                    />
+                    <h1 className="hero-title" style={{ color: '#ededed', textAlign: 'center', margin: 0, fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', letterSpacing: '0.2em', fontWeight: 300, textShadow: '0 2px 12px rgba(0,0,0,0.4)', textTransform: 'uppercase' }}>
                       {(() => {
                         const titleRaw = videoSettings.home_hero_video_title;
                         if (!titleRaw) return 'FYLEX';
                         const cleanText = titleRaw.replace(/<[^>]*>/g, '').trim();
                         return cleanText || 'FYLEX';
                       })()}
-                    </span>
-                  </h1>
+                    </h1>
+                  </div>
 
                   {/* Line 2: WEAR YOUR CHOICE Subtitle */}
-                  <p className="hero-subtitle" style={{ color: '#ededed', textAlign: 'center', width: '100%', marginBottom: '32px', textShadow: '0 2px 15px rgba(0,0,0,0.3)', display: 'block' }}>
-                    {videoSettings.home_hero_video_subtitle || "Wear Your Choice."}
+                  <p className="hero-subtitle" style={{ color: '#ededed', textAlign: 'center', width: '100%', marginBottom: '28px', textShadow: '0 2px 15px rgba(0,0,0,0.4)', display: 'block', textTransform: 'uppercase' }}>
+                    {videoSettings.home_hero_video_subtitle || "WEAR YOUR CHOICE"}
                   </p>
                   <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
                     <Link href="/products">
