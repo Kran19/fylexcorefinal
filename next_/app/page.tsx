@@ -1209,7 +1209,17 @@ const Home = () => {
                   />
                 </div>
                 <div className="hero-center">
-                  <h1 className="hero-title" dangerouslySetInnerHTML={{ __html: videoSettings.home_hero_video_title || "FYLEX" }} />
+                  <h1 className="hero-title" style={{ color: '#ededed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
+                    <img src="/fylex_logo_name.png" alt="FYLEX" style={{ height: '0.85em', display: 'inline-block', filter: 'brightness(0) invert(1)' }} />
+                    <span style={{ color: '#ededed', letterSpacing: '0.15em', fontWeight: 300 }}>
+                      {(() => {
+                        const titleRaw = videoSettings.home_hero_video_title;
+                        if (!titleRaw) return 'FYLEX';
+                        const cleanText = titleRaw.replace(/<[^>]*>/g, '').trim();
+                        return cleanText || 'FYLEX';
+                      })()}
+                    </span>
+                  </h1>
                   <p className="hero-subtitle">{videoSettings.home_hero_video_subtitle || "Wear Your Choice."}</p>
                   <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
                     <Link href="/products">
