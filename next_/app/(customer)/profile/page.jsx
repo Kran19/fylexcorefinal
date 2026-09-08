@@ -490,36 +490,48 @@ const Profile = () => {
 
               {tracking ? (
                 <div className="tracking-viz">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <span style={{ fontSize: '9px', color: '#a0a0a0', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Current Journey</span>
-                      <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 500, marginTop: '4px', wordBreak: 'break-word' }}>Order #{tracking.orderNumber}</h4>
-                      {tracking.trackingNumber && (
-                        <div className="tracking-awb-badge">
-                          <span>AWB:</span>
-                          <strong>{tracking.trackingNumber}</strong>
-                          {tracking.carrier && <span style={{ opacity: 0.7 }}>· {tracking.carrier}</span>}
+                  {(() => {
+                    const rawNum = String(tracking.orderNumber || tracking.orderId || '').trim();
+                    const displayNum = rawNum.startsWith('#') ? rawNum : (rawNum.startsWith('ORD-') ? `#${rawNum}` : `#ORD-${rawNum}`);
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px', position: 'relative', zIndex: 1 }}>
+                        <div style={{ width: '100%' }}>
+                          <span style={{ fontSize: '9.5px', color: '#a0a0a0', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, display: 'block', marginBottom: '4px' }}>Current Journey</span>
+                          <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1rem, 4.5vw, 1.35rem)', fontWeight: 600, margin: 0, color: '#ffffff', letterSpacing: '-0.01em', wordBreak: 'break-all' }}>
+                            Order {displayNum}
+                          </h4>
                         </div>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {tracking.trackingUrl && (
-                        <a
-                          href={tracking.trackingUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="tracking-direct-btn"
-                          title={`Track directly on ${tracking.carrier || 'Shiprocket'}`}
-                        >
-                          <span>Live Shiprocket Tracking</span>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 12, height: 12 }}>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        </a>
-                      )}
-                      <span style={{ fontSize: '9px', fontWeight: 700, background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '999px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ffffff', flexShrink: 0, whiteSpace: 'nowrap' }}>{tracking.currentStatus}</span>
-                    </div>
-                  </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                          {tracking.trackingNumber ? (
+                            <div className="tracking-awb-badge" style={{ margin: 0 }}>
+                              <span>AWB:</span>
+                              <strong>{tracking.trackingNumber}</strong>
+                              {tracking.carrier && <span style={{ opacity: 0.7 }}>· {tracking.carrier}</span>}
+                            </div>
+                          ) : <div />}
+
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            {tracking.trackingUrl && (
+                              <a
+                                href={tracking.trackingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="tracking-direct-btn"
+                                title={`Track directly on ${tracking.carrier || 'Shiprocket'}`}
+                              >
+                                <span>Live Shiprocket Tracking</span>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ width: 12, height: 12 }}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            )}
+                            <span style={{ fontSize: '9px', fontWeight: 700, background: 'rgba(255,255,255,0.1)', padding: '6px 14px', borderRadius: '999px', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ffffff', flexShrink: 0, whiteSpace: 'nowrap' }}>{tracking.currentStatus}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Desktop timeline */}
                   <div className="hidden md:block" style={{ position: 'relative', zIndex: 1, marginTop: '40px' }}>

@@ -307,7 +307,6 @@ export default function MyPurchases() {
                 <div className="purchase-info">
                   <div className="purchase-meta">
                     <span className="purchase-date">{unit.orderDate}</span>
-                    <span className="purchase-order-id">Order #{unit.orderId}</span>
                   </div>
                   <h3 className="purchase-name">
                     {unit.title}

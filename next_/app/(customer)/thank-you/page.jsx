@@ -99,7 +99,7 @@ const ThankYouPage = () => {
             padding: '0 8px'
           }}
         >
-          We've received your request and are currently processing your luxury timepiece.
+          We've received your request and are currently processing your timepiece.
           A confirmation message has been sent to your WhatsApp.
         </p>
 

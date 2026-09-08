@@ -385,7 +385,7 @@ export class OrderService {
       const srOrderId = srResponse?.order_id || srResponse?.data?.order_id;
       const srShipmentId = srResponse?.shipment_id || srResponse?.data?.shipment_id;
       const srAwb = srResponse?.awb_code || srResponse?.data?.awb_code || null;
-      const srCourier = srResponse?.courier_name || srResponse?.data?.courier_name || 'Standard Luxury Courier';
+      const srCourier = srResponse?.courier_name || srResponse?.data?.courier_name || null;
 
       // Auto-attempt AWB generation if shipment ID exists
       let finalAwb = srAwb;
@@ -732,12 +732,17 @@ export class OrderService {
       ? ((order as any).statusHistory).find((h: any) => h && h.notes && String(h.notes).includes('AWB:'))
       : null;
 
-    let awbCode = `FYL${order.id}${cleanMobile.slice(-4)}`;
+    let awbCode: string | null = null;
     if (latestHistoryWithAwb && latestHistoryWithAwb.notes) {
       const match = String(latestHistoryWithAwb.notes).match(/AWB:\s*([^\s)]+)/);
       if (match && match[1] && match[1] !== 'N/A') {
         awbCode = match[1];
       }
+    }
+
+    const realShipment = (order.shipments && order.shipments.length > 0) ? order.shipments[0] : null;
+    if (realShipment?.trackingNumber) {
+      awbCode = realShipment.trackingNumber;
     }
 
     return {
@@ -746,7 +751,7 @@ export class OrderService {
       data: {
         order_number: order.orderNumber || `ORD-${order.id}`,
         status: formattedStatus,
-        courier: 'Delhivery',
+        courier: realShipment?.carrier || null,
         expected_delivery: expectedDeliveryStr,
         tracking_number: awbCode,
         grand_total: Number(order.grandTotal || 0),
@@ -777,6 +782,7 @@ export class OrderService {
       include: {
         items: true,
         addresses: true,
+        shipments: true,
         statusHistory: true
       },
       orderBy: { createdAt: 'desc' }
@@ -800,13 +806,14 @@ export class OrderService {
       const formattedStatus = rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1);
       const createdDate = order.createdAt ? new Date(order.createdAt) : new Date();
       const deliveryDate = new Date(createdDate.getTime() + 4 * 24 * 60 * 60 * 1000);
+      const realShipment = (order.shipments && order.shipments.length > 0) ? order.shipments[0] : null;
 
       return {
         order_number: order.orderNumber || `ORD-${order.id}`,
         status: formattedStatus,
-        courier: 'Delhivery',
+        courier: realShipment?.carrier || null,
         expected_delivery: deliveryDate.toISOString().split('T')[0],
-        tracking_number: `FYL${order.id}${cleanMobile.slice(-4)}`,
+        tracking_number: realShipment?.trackingNumber || null,
         grand_total: Number(order.grandTotal),
         items: order.items ? order.items.map((i: any) => i.productName || 'Watch') : [],
         created_at: createdDate.toISOString().split('T')[0]
