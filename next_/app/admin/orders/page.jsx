@@ -12,7 +12,7 @@ import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import DataTable from '@/components/admin/table/DataTable';
 import { useToast } from '@/context/ToastContext';
 import { deleteOrderApi } from '@/lib/api';
-import { deleteOrder } from '@/services/adminApi';
+import { deleteOrder, cancelOrder, processRefund } from '@/services/adminApi';
 import Swal from 'sweetalert2';
 
 const OrdersPage = () => {
@@ -113,15 +113,82 @@ const OrdersPage = () => {
       },
     },
     {
-      title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 100,
-      formatter: () => `<div style="display:flex;gap:8px;justify-content:flex-end">
+      title: 'ACTIONS', headerSort: false, hozAlign: 'right', width: 140,
+      formatter: (cell) => {
+        const d = cell.getRow().getData();
+        const isCancelled = (d.status || '').toLowerCase() === 'cancelled';
+        return `<div style="display:flex;gap:6px;justify-content:flex-end">
         <button class="btn-icon style-btn-edit" style="background:#f5f3ff;color:#6366f1;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="View Details"><i class="fas fa-eye"></i></button>
-        <button class="btn-icon-delete style-btn-delete" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete Order"><i class="fas fa-trash"></i></button>
-      </div>`,
-      cellClick: (e, cell) => {
+        ${!isCancelled ? `<button class="btn-icon style-btn-cancel-order" style="background:#fef2f2;color:#ef4444;width:32px;height:32px;border-radius:8px;border:1px solid #fecaca;cursor:pointer" title="Cancel Order (No Shiprocket)"><i class="fas fa-ban"></i></button>` : ''}
+        <button class="btn-icon-delete style-btn-delete" style="background:#fff1f2;color:#e11d48;width:32px;height:32px;border-radius:8px;border:none;cursor:pointer" title="Delete Order"><i class="fas fa-trash"></i></button>
+      </div>`;
+      },
+      cellClick: async (e, cell) => {
         const d = cell.getRow().getData();
         if (e.target.closest('.style-btn-edit')) {
           router.push(`/admin/orders/${d.id}`);
+        } else if (e.target.closest('.style-btn-cancel-order')) {
+          const isPaid = (d.paymentStatus || '').toLowerCase() === 'paid';
+          const grandTotal = Math.round(Number(d.grandTotal || d.total || 0));
+
+          const result = await Swal.fire({
+            title: `Cancel Order #${d.orderNumber || d.id}?`,
+            text: 'Choose cancellation option:',
+            icon: 'warning',
+            showCancelButton: true,
+            showDenyButton: isPaid,
+            confirmButtonColor: '#ef4444',
+            denyButtonColor: '#d946ef',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Cancel Only (No Refund)',
+            denyButtonText: `Cancel & Full Refund (₹${grandTotal.toLocaleString('en-IN')})`,
+            background: '#0f172a',
+            color: '#ffffff',
+          });
+
+          if (result.isConfirmed) {
+            const { value: reason } = await Swal.fire({
+              title: 'Cancellation Reason',
+              input: 'text',
+              inputPlaceholder: 'Reason for cancellation (optional)',
+              showCancelButton: true,
+              confirmButtonColor: '#ef4444',
+              background: '#0f172a',
+              color: '#ffffff',
+            });
+            try {
+              const res = await cancelOrder(d.id, reason || 'Cancelled by Admin');
+              if (res?.error) {
+                toast?.error?.(res.error);
+              } else {
+                toast?.success?.(`Order #${d.orderNumber || d.id} cancelled successfully!`);
+                refetch?.();
+              }
+            } catch (err) {
+              toast?.error?.(err.message || 'Failed to cancel order');
+            }
+          } else if (result.isDenied) {
+            const { value: reason } = await Swal.fire({
+              title: `Confirm Full Refund (₹${grandTotal.toLocaleString('en-IN')})`,
+              input: 'text',
+              inputPlaceholder: 'Reason for refund (optional)',
+              showCancelButton: true,
+              confirmButtonColor: '#d946ef',
+              background: '#0f172a',
+              color: '#ffffff',
+            });
+            try {
+              const res = await processRefund(d.id, grandTotal, reason || 'Admin Cancel & Full Refund');
+              if (res?.error) {
+                toast?.error?.(res.error);
+              } else {
+                toast?.success?.(`Order #${d.orderNumber || d.id} cancelled & ₹${grandTotal} refunded!`);
+                refetch?.();
+              }
+            } catch (err) {
+              toast?.error?.(err.message || 'Failed to cancel and refund order');
+            }
+          }
         } else if (e.target.closest('.style-btn-delete')) {
           Swal.fire({
             title: 'Delete Order?',

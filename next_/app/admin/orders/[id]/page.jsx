@@ -8,6 +8,7 @@ import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
 import { useToast } from '@/context/ToastContext';
 import Link from 'next/link';
+import Swal from 'sweetalert2';
 
 const statusColors = {
   pending:    { bg: '#fef3c7', color: '#92400e' },
@@ -71,6 +72,101 @@ const OrderDetailPage = () => {
   const [refundAmount, setRefundAmount] = useState('');
   const [refundReason, setRefundReason] = useState('');
   const [processingRefund, setProcessingRefund] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
+
+  const handleCancelOrderInternal = async () => {
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: `Cancel Order #${order?.orderNumber || orderId}?`,
+      text: 'This will cancel the order in database, restock inventory, and restore customer points WITHOUT sending to Shiprocket.',
+      icon: 'warning',
+      input: 'text',
+      inputPlaceholder: 'Reason for cancellation (optional)',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Yes, Cancel Order',
+      background: '#0f172a',
+      color: '#ffffff',
+    });
+
+    if (isConfirmed) {
+      setCancellingOrder(true);
+      try {
+        const res = await orderService.cancelOrder(orderId, reason || 'Cancelled by Admin');
+        if (res?.error) {
+          toast?.error?.(res.error);
+        } else {
+          toast?.success?.(`Order #${order?.orderNumber || orderId} cancelled successfully!`);
+          fetchOrder();
+        }
+      } catch (err) {
+        toast?.error?.(err?.message || 'Failed to cancel order');
+      } finally {
+        setCancellingOrder(false);
+      }
+    }
+  };
+
+  const handleCancelAndFullRefund = async () => {
+    const grandTotal = Math.round(Number(order?.grandTotal || order?.total || 0));
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: `Cancel & Full Refund (₹${grandTotal.toLocaleString('en-IN')})?`,
+      html: `<div style="font-size:13px;color:#cbd5e1;text-align:left;line-height:1.5">
+        <p style="margin-bottom:8px">This action will:</p>
+        <ul style="margin:0;padding-left:20px;color:#94a3b8">
+          <li>Cancel order in database & restock inventory</li>
+          <li>Trigger full payment refund via Gateway (Razorpay/Online)</li>
+          <li>Update payment status to <strong>REFUNDED</strong></li>
+          <li>Restore customer loyalty points</li>
+        </ul>
+      </div>`,
+      icon: 'warning',
+      input: 'text',
+      inputPlaceholder: 'Reason for refund (optional)',
+      showCancelButton: true,
+      confirmButtonColor: '#d946ef',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: `Yes, Cancel & Refund ₹${grandTotal.toLocaleString('en-IN')}`,
+      background: '#0f172a',
+      color: '#ffffff',
+    });
+
+    if (isConfirmed) {
+      setProcessingRefund(true);
+      try {
+        const res = await orderService.processOrderRefund(orderId, {
+          amount: grandTotal,
+          reason: reason || 'Admin Cancel & Full Refund',
+        });
+        const resData = res?.data || res;
+        if (res?.error || resData?.success === false) {
+          toast?.error?.(res?.error || resData?.message || 'Failed to process refund');
+        } else {
+          toast?.success?.(resData?.message || `Order #${order?.orderNumber || orderId} cancelled & ₹${grandTotal} refunded!`);
+          fetchOrder();
+        }
+      } catch (err) {
+        toast?.error?.(err?.message || 'Failed to cancel and refund order');
+      } finally {
+        setProcessingRefund(false);
+      }
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!refundAmount || isNaN(refundAmount) || Number(refundAmount) <= 0) return toast?.error?.('Invalid refund amount');
+    setProcessingRefund(true);
+    const res = await orderService.processOrderRefund(orderId, { amount: Number(refundAmount), reason: refundReason });
+    setProcessingRefund(false);
+    if (res?.error || res?.success === false) {
+      toast?.error?.(res?.error || 'Failed to process refund');
+    } else {
+      toast?.success?.(res?.message || 'Refund processed successfully!');
+      setRefundAmount('');
+      setRefundReason('');
+      fetchOrder();
+    }
+  };
 
   const fetchOrder = useCallback(async () => {
     setLoading(true);
@@ -503,6 +599,70 @@ const OrderDetailPage = () => {
                     }}
                   >
                     {sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Dispatching...</> : <><i className="fas fa-paper-plane"></i> Share to Shiprocket Dashboard</>}
+                  </button>
+                </div>
+
+                {/* Option 3: Cancel Order (Internal Only) */}
+                <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="fas fa-ban"></i> Option 3: Cancel Order (Internal Only)
+                  </div>
+                  <p style={{ fontSize: 11, color: '#fca5a5', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                    Cancels order in DB & restocks inventory without sending to Shiprocket or generating AWB.
+                  </p>
+                  <button
+                    onClick={handleCancelOrderInternal}
+                    disabled={isCancelledOrRefunded || cancellingOrder}
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      borderRadius: 9,
+                      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      border: 'none',
+                      cursor: isCancelledOrRefunded ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                    }}
+                  >
+                    {cancellingOrder ? <><i className="fas fa-spinner fa-spin"></i> Cancelling...</> : <><i className="fas fa-ban"></i> Cancel Order (Internal)</>}
+                  </button>
+                </div>
+
+                {/* Option 4: Cancel & Initiate Full Refund */}
+                <div style={{ background: 'rgba(217, 70, 239, 0.08)', border: '1px solid rgba(217, 70, 239, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#f0abfc', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="fas fa-hand-holding-usd"></i> Option 4: Cancel & Initiate Full Refund
+                  </div>
+                  <p style={{ fontSize: 11, color: '#f5d0fe', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                    Cancels order, triggers full payment refund (Razorpay/Online), restocks stock & restores points.
+                  </p>
+                  <button
+                    onClick={handleCancelAndFullRefund}
+                    disabled={isCancelledOrRefunded || processingRefund}
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      borderRadius: 9,
+                      background: 'linear-gradient(135deg, #d946ef 0%, #c026d3 100%)',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      border: 'none',
+                      cursor: isCancelledOrRefunded ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      boxShadow: '0 4px 12px rgba(217, 70, 239, 0.3)',
+                    }}
+                  >
+                    {processingRefund ? <><i className="fas fa-spinner fa-spin"></i> Refunding...</> : <><i className="fas fa-undo-alt"></i> Cancel & Initiate Full Refund</>}
                   </button>
                 </div>
 

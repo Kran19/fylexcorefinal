@@ -165,9 +165,10 @@ export const deleteCategory = (id) => del(`/categories/${id}`);
 
 // ─── Orders ───────────────────────────────────────────────────
 export const getOrders = () => get('/orders');
-export const getOrder = (id) => get(`/orders/${id}`);
-export const updateOrderStatus = (id, status) => put(`/orders/${id}/status`, { status });
+export const updateOrderStatus = (id, status, notes) => put(`/orders/${id}/status`, { status, notes });
+export const cancelOrder = (id, reason) => put(`/orders/${id}/status`, { status: 'cancelled', notes: reason || 'Cancelled by Admin' });
 export const updateOrderPaymentStatus = (id, payment_status) => put(`/orders/${id}/payment-status`, { payment_status });
+export const processRefund = (id, amount, reason) => post(`/orders/${id}/refund`, { amount, reason });
 export const deleteOrder = (id) => del(`/orders/${id}`);
 
 // ─── Customers / Users ────────────────────────────────────────
