@@ -845,10 +845,11 @@ const Home = () => {
         }
         .hero-subtitle {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: clamp(2.5rem, 8vw, 6rem) !important;
+          font-size: clamp(1.1rem, 2.8vw, 1.9rem) !important;
           font-weight: 400; color: #ededed !important;
-          margin-bottom: 2.5rem; line-height: 1;
-          text-shadow: 0 2px 15px rgba(0,0,0,0.3);
+          margin-bottom: 1.5rem !important; line-height: 1.2;
+          letter-spacing: 0.22em !important;
+          text-shadow: 0 2px 15px rgba(0,0,0,0.5);
         }
         .cta-button {
           background: #1a1a1a;
@@ -1210,12 +1211,12 @@ const Home = () => {
                 </div>
                 <div className="hero-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                   {/* Line 1: Stylized FYLEX Brand Wordmark Logo Image */}
-                  <div style={{ textAlign: 'center', margin: '0 0 16px 0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <div style={{ textAlign: 'center', margin: '0 0 10px 0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     <img 
                       src="/fylex_logo_name.png" 
                       alt="FYLEX" 
                       style={{ 
-                        height: 'clamp(2.5rem, 7vw, 4.8rem)', 
+                        height: 'clamp(1.2rem, 3.2vw, 2.2rem)', 
                         width: 'auto', 
                         objectFit: 'contain',
                         filter: 'drop-shadow(0 2px 15px rgba(0,0,0,0.6))',
@@ -1225,7 +1226,7 @@ const Home = () => {
                   </div>
 
                   {/* Line 2: WEAR YOUR CHOICE Subtitle */}
-                  <p className="hero-subtitle" style={{ color: '#ededed', textAlign: 'center', width: '100%', margin: '0 0 32px 0', textShadow: '0 2px 15px rgba(0,0,0,0.4)', display: 'block', textTransform: 'uppercase' }}>
+                  <p className="hero-subtitle" style={{ color: '#ededed', textAlign: 'center', width: '100%', margin: '0 0 24px 0', textShadow: '0 2px 15px rgba(0,0,0,0.4)', display: 'block', textTransform: 'uppercase' }}>
                     WEAR YOUR CHOICE
                   </p>
                   <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
