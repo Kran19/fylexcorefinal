@@ -1208,10 +1208,10 @@ const Home = () => {
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 </div>
-                <div className="hero-center">
-                  <h1 className="hero-title" style={{ color: '#ededed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', textShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
-                    <img src="/fylex_logo_name.png" alt="FYLEX" style={{ height: '0.85em', display: 'inline-block', filter: 'brightness(0) invert(1)' }} />
-                    <span style={{ color: '#ededed', letterSpacing: '0.15em', fontWeight: 300 }}>
+                <div className="hero-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* Line 1: FYLEX Title */}
+                  <h1 className="hero-title" style={{ color: '#ededed', textAlign: 'center', width: '100%', marginBottom: '16px', textShadow: '0 2px 12px rgba(0,0,0,0.3)', display: 'block' }}>
+                    <span style={{ color: '#ededed', letterSpacing: '0.2em', fontWeight: 300 }}>
                       {(() => {
                         const titleRaw = videoSettings.home_hero_video_title;
                         if (!titleRaw) return 'FYLEX';
@@ -1220,7 +1220,11 @@ const Home = () => {
                       })()}
                     </span>
                   </h1>
-                  <p className="hero-subtitle">{videoSettings.home_hero_video_subtitle || "Wear Your Choice."}</p>
+
+                  {/* Line 2: WEAR YOUR CHOICE Subtitle */}
+                  <p className="hero-subtitle" style={{ color: '#ededed', textAlign: 'center', width: '100%', marginBottom: '32px', textShadow: '0 2px 15px rgba(0,0,0,0.3)', display: 'block' }}>
+                    {videoSettings.home_hero_video_subtitle || "Wear Your Choice."}
+                  </p>
                   <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
                     <Link href="/products">
                       <button className="cta-button">Explore</button>
