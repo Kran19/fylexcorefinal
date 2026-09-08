@@ -178,6 +178,36 @@ export class AuthService {
         });
       }
 
+      // Check if Early Bird registrant mobile -> Grant 500 free Fylex Credits automatically
+      if (customer.mobile && isEarlyBirdMobile(customer.mobile)) {
+        try {
+          const program = await this.prisma.loyaltyProgram.findFirst({ where: { status: 1 } });
+          if (program) {
+            const loyalty = await this.prisma.customerLoyalty.create({
+              data: {
+                customerId: customer.id,
+                loyaltyProgramId: program.id,
+                availablePoints: 500,
+                totalPoints: 500,
+                usedPoints: 0,
+              }
+            });
+            await this.prisma.loyaltyTransaction.create({
+              data: {
+                customerLoyaltyId: loyalty.id,
+                customerId: customer.id,
+                type: 'earning',
+                points: 500,
+                balance: 500,
+                notes: 'Early Bird Welcome Bonus - 500 Free Fylex Credits',
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Failed to grant Early Bird 500 credits on registration:', e?.message || e);
+        }
+      }
+
       return this.sanitizeUser(customer, 'customer');
     } catch (error) {
       throw new BadRequestException('Failed to register customer: ' + error.message);
