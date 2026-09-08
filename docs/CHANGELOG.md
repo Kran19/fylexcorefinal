@@ -1410,4 +1410,20 @@
 - **Rollback Strategy:** Revert `nest_/src/modules/order/order.service.ts`.
 - **Status:** Complete
 
+## Task 95: Fix PostgreSQL Int32 Overflow Exception in trackOrder and Webhook Query
+- **Task Number:** 95
+- **Task Name:** Fix PostgreSQL Int32 Overflow Exception in trackOrder and Webhook Query
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+- **Reason:** In `trackOrder` and `handleShiprocketWebhook`, passing 13-digit timestamp order numbers (e.g. `1788716539288`) to `{ id: Number(orderNumber) }` caused PostgreSQL integer overflow (`out of range for type integer`, max 2,147,483,647), triggering 500 Internal Server Errors. Added `isValidInt32Id` check (`numId > 0 && numId <= 2147483647`) before passing numeric ID to Prisma query filter.
+- **Risk:** Low
+- **API Impact:** Prevents HTTP 500 errors on `/api/orders/track` when querying 13-digit timestamp order numbers.
+- **Database Impact:** None.
+- **Frontend Impact:** Order tracking API reliably returns 200 OK responses with tracking details.
+- **Backend Impact:** Safe integer bounds validation in `orderService.trackOrder()`.
+- **Testing Completed:** Verified Int32 range check and clean JSON response.
+- **Rollback Strategy:** Revert `nest_/src/modules/order/order.service.ts`.
+- **Status:** Complete
+
+
 

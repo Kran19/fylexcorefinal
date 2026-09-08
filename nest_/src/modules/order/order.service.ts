@@ -552,11 +552,14 @@ export class OrderService {
       return { success: false, message: 'Order ID missing' };
     }
 
+    const numSrId = Number(orderNumber);
+    const isValidSrInt32Id = !isNaN(numSrId) && numSrId > 0 && numSrId <= 2147483647;
+
     const order = await this.prisma.order.findFirst({
       where: {
         OR: [
           { orderNumber: orderNumber.toString() },
-          { id: !isNaN(Number(orderNumber)) ? Number(orderNumber) : -1 }
+          { id: isValidSrInt32Id ? numSrId : -1 }
         ]
       },
       include: { shipments: true, addresses: true }
@@ -677,6 +680,9 @@ export class OrderService {
       };
     }
 
+    const numOrderId = Number(strippedOrderId);
+    const isValidInt32Id = !isNaN(numOrderId) && numOrderId > 0 && numOrderId <= 2147483647;
+
     const order = await this.prisma.order.findFirst({
       where: {
         AND: [
@@ -688,7 +694,7 @@ export class OrderService {
               { orderNumber: `#${strippedOrderId}` },
               { orderNumber: `#ORD-${strippedOrderId}` },
               { orderNumber: { contains: strippedOrderId } },
-              { id: !isNaN(Number(strippedOrderId)) ? Number(strippedOrderId) : -1 }
+              { id: isValidInt32Id ? numOrderId : -1 }
             ]
           },
           {
