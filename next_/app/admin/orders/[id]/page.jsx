@@ -523,22 +523,22 @@ const OrderDetailPage = () => {
               {/* Dual Action Options */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
                 
-                {/* Option 1: Confirm Order & Auto-Fulfill to Shiprocket */}
-                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <i className="fas fa-bolt"></i> Option 1: Confirm & Auto-Fulfill
+                {/* Option 1: Share to Shiprocket Dashboard */}
+                <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="fas fa-share-square"></i> Option 1: Share to Shiprocket Dashboard
                   </div>
-                  <p style={{ fontSize: 11, color: '#a7f3d0', margin: '0 0 10px 0', lineHeight: 1.4 }}>
-                    Confirms order status & automatically registers shipment with Shiprocket in one click.
+                  <p style={{ fontSize: 11, color: '#c7d2fe', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                    Directly pushes order payload to Shiprocket merchant portal.
                   </p>
                   <button
-                    onClick={handleConfirmAndFulfillOrder}
-                    disabled={isCancelledOrRefunded || updatingStatus || sendingToShiprocket}
+                    onClick={handleSendToShiprocket}
+                    disabled={isCancelledOrRefunded || sendingToShiprocket}
                     style={{
                       width: '100%',
                       padding: '11px 14px',
                       borderRadius: 9,
-                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                       color: '#ffffff',
                       fontWeight: 700,
                       fontSize: 12,
@@ -548,10 +548,10 @@ const OrderDetailPage = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 6,
-                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
                     }}
                   >
-                    {updatingStatus && sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Processing...</> : <><i className="fas fa-check-double"></i> Confirm & Fulfill to Shiprocket</>}
+                    {sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Dispatching...</> : <><i className="fas fa-paper-plane"></i> Share to Shiprocket Dashboard</>}
                   </button>
                 </div>
 
