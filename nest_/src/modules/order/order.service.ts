@@ -1123,8 +1123,9 @@ export class OrderService {
 
     if (isOnlinePaid) {
       try {
-        const customerMobile = order.customer?.mobile || order.addresses?.find((a: any) => a.mobile)?.mobile || (order as any).shipping_address?.mobile || (order as any).shippingAddress?.mobile;
-        const customerName = order.customer?.name || order.addresses?.find((a: any) => a.name)?.name || 'Valued Customer';
+        const ordAny = order as any;
+        const customerMobile = ordAny.customer?.mobile || ordAny.addresses?.find((a: any) => a.mobile)?.mobile || ordAny.shipping_address?.mobile || ordAny.shippingAddress?.mobile;
+        const customerName = ordAny.customer?.name || ordAny.addresses?.find((a: any) => a.name)?.name || 'Valued Customer';
         const orderNum = order.orderNumber || `ORD-${order.id}`;
         const refundAmt = Number(order.grandTotal || 0);
 
@@ -1618,8 +1619,9 @@ export class OrderService {
 
     // Dispatch WhatsApp "Refund Initiated" template message (Template ID: 259509717888702541912126)
     try {
-      const customerMobile = order.customer?.mobile || order.addresses?.find((a: any) => a.mobile)?.mobile || (order as any).shipping_address?.mobile || (order as any).shippingAddress?.mobile;
-      const customerName = order.customer?.name || order.addresses?.find((a: any) => a.name)?.name || 'Valued Customer';
+      const ordAny = order as any;
+      const customerMobile = ordAny.customer?.mobile || ordAny.addresses?.find((a: any) => a.mobile)?.mobile || ordAny.shipping_address?.mobile || ordAny.shippingAddress?.mobile;
+      const customerName = ordAny.customer?.name || ordAny.addresses?.find((a: any) => a.name)?.name || 'Valued Customer';
       const orderNum = order.orderNumber || `ORD-${order.id}`;
 
       if (customerMobile) {
