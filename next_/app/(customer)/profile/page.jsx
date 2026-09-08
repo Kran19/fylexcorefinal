@@ -448,13 +448,22 @@ const Profile = () => {
                   ref={pillsRef}
                   className="order-pills-scroll lenis-prevent"
                   data-lenis-prevent="true"
+                  style={{
+                    display: 'flex',
+                    gap: '10px',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
+                    touchAction: 'pan-x',
+                    overscrollBehaviorX: 'contain',
+                    paddingBottom: '8px',
+                    marginBottom: '24px',
+                    maxWidth: '100%',
+                    width: '100%',
+                  }}
                   onMouseDown={handlePillsMouseDown}
                   onMouseMove={handlePillsMouseMove}
                   onMouseUp={handlePillsMouseUpOrLeave}
                   onMouseLeave={handlePillsMouseUpOrLeave}
-                  onTouchStart={handlePillsTouchStart}
-                  onTouchMove={handlePillsTouchMove}
-                  onTouchEnd={handlePillsMouseUpOrLeave}
                 >
                   {trackingOrders.map(order => {
                     const isSelected = String(selectedTrackingOrderId) === String(order.orderId) || String(selectedTrackingOrderId) === String(order.orderNumber);
