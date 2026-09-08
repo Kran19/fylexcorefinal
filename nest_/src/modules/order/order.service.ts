@@ -563,11 +563,13 @@ export class OrderService {
 
   async handleShiprocketWebhook(payload: any) {
     this.logger.log(`Shiprocket Webhook received: ${JSON.stringify(payload)}`);
-    if (!payload) return { success: false, message: 'Empty payload' };
+    if (!payload || Object.keys(payload).length === 0) {
+      return { success: true, message: 'Shiprocket Webhook test ping successful' };
+    }
 
     const orderNumber = payload.order_id || payload.channel_order_id;
     if (!orderNumber) {
-      return { success: false, message: 'Order ID missing' };
+      return { success: true, message: 'Webhook endpoint active (Test Ping Received)' };
     }
 
     const numSrId = Number(orderNumber);
@@ -585,7 +587,7 @@ export class OrderService {
 
     if (!order) {
       this.logger.warn(`Shiprocket Webhook: Order not found for order_id ${orderNumber}`);
-      return { success: false, message: 'Order not found' };
+      return { success: true, message: `Webhook test acknowledged; order ${orderNumber} not in DB` };
     }
 
     // Never allow a webhook to resurrect a cancelled or refunded order
