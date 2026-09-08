@@ -1209,18 +1209,24 @@ const Home = () => {
                   />
                 </div>
                 <div className="hero-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  {/* Line 1: FYLEX Title Text */}
-                  <h1 className="hero-title" style={{ color: '#ededed', textAlign: 'center', margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: '0.2em', fontWeight: 300 }}>
-                    {(typeof videoSettings.home_hero_video_title === 'string' && videoSettings.home_hero_video_title.trim().length > 0) 
-                      ? videoSettings.home_hero_video_title.trim() 
-                      : "FYLEX"}
-                  </h1>
+                  {/* Line 1: Stylized FYLEX Brand Wordmark Logo Image */}
+                  <div style={{ textAlign: 'center', margin: '0 0 16px 0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                    <img 
+                      src="/fylex_logo_name.png" 
+                      alt="FYLEX" 
+                      style={{ 
+                        height: 'clamp(2.5rem, 7vw, 4.8rem)', 
+                        width: 'auto', 
+                        objectFit: 'contain',
+                        filter: 'drop-shadow(0 2px 15px rgba(0,0,0,0.6))',
+                        display: 'block'
+                      }} 
+                    />
+                  </div>
 
                   {/* Line 2: WEAR YOUR CHOICE Subtitle */}
                   <p className="hero-subtitle" style={{ color: '#ededed', textAlign: 'center', width: '100%', margin: '0 0 32px 0', textShadow: '0 2px 15px rgba(0,0,0,0.4)', display: 'block', textTransform: 'uppercase' }}>
-                    {(typeof videoSettings.home_hero_video_subtitle === 'string' && videoSettings.home_hero_video_subtitle.trim().length > 0) 
-                      ? videoSettings.home_hero_video_subtitle.trim() 
-                      : "WEAR YOUR CHOICE"}
+                    WEAR YOUR CHOICE
                   </p>
                   <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
                     <Link href="/products">
