@@ -5,6 +5,44 @@ import { Logger } from '@nestjs/common';
 const prisma = new PrismaClient();
 const logger = new Logger('FixOldOrderShipments');
 
+function extractShiprocketTracking(res: any) {
+  if (!res) return { awb: null, courier: null, trackStatus: null };
+  let payload = res;
+  if (res.tracking_data) {
+    payload = res.tracking_data;
+  } else if (res.data?.tracking_data) {
+    payload = res.data.tracking_data;
+  } else if (typeof res === 'object') {
+    for (const key of Object.keys(res)) {
+      if (res[key]?.tracking_data) {
+        payload = res[key].tracking_data;
+        break;
+      }
+    }
+  }
+
+  const shipTrack = Array.isArray(payload?.shipment_track)
+    ? payload.shipment_track[0]
+    : (payload?.shipment_track || {});
+
+  const rawAwb = payload?.awb_code || payload?.awb || shipTrack?.awb_code || res?.awb_code || null;
+  const rawCourier = payload?.courier_name || payload?.courier || shipTrack?.courier_name || res?.courier_name || null;
+  const trackStatus = payload?.track_status || payload?.shipment_status || res?.track_status || null;
+
+  const awbStr = rawAwb ? String(rawAwb).trim() : null;
+  const isOrderOrShipmentPrefix = awbStr && (awbStr.startsWith('ORD-') || awbStr.startsWith('SHP-'));
+  const finalAwb = (awbStr && !isOrderOrShipmentPrefix) ? awbStr : null;
+
+  const courierStr = rawCourier ? String(rawCourier).trim() : null;
+  const finalCourier = (courierStr && courierStr !== 'Standard Luxury Courier') ? courierStr : null;
+
+  return {
+    awb: finalAwb,
+    courier: finalCourier,
+    trackStatus,
+  };
+}
+
 async function main() {
   console.log('Starting cleanup and sync for old order shipments in production database...');
 
@@ -25,44 +63,48 @@ async function main() {
     const rawAwb = shipment.trackingNumber?.trim() || '';
     const rawCarrier = shipment.carrier?.trim() || '';
 
-    const isNumericAwb = /^\d{8,12}$/.test(rawAwb);
+    const isNumericShipmentId = /^\d{8,12}$/.test(rawAwb) && rawAwb.startsWith('15');
     const isPlaceholderCarrier = rawCarrier === 'Standard Luxury Courier';
 
-    if (isNumericAwb || isPlaceholderCarrier || rawAwb.startsWith('ORD-') || rawAwb.startsWith('SHP-')) {
-      console.log(`Processing Order #${shipment.order.orderNumber || shipment.orderId} (Current AWB: "${rawAwb}", Carrier: "${rawCarrier}")`);
+    console.log(`Processing Order #${shipment.order.orderNumber || shipment.orderId} (Current AWB: "${rawAwb}", Carrier: "${rawCarrier}")`);
 
-      // Try fetching live tracking from Shiprocket using Order ID or Shipment ID
-      let trackingData: any = null;
-      if (shipment.order.orderNumber || shipment.orderId) {
-        trackingData = await shiprocketService.getTrackingByOrderId(shipment.order.orderNumber || shipment.orderId);
+    // Try fetching live tracking from Shiprocket using Order ID or Shipment ID
+    let trackingRes: any = null;
+    if (shipment.order.orderNumber || shipment.orderId) {
+      trackingRes = await shiprocketService.getTrackingByOrderId(shipment.order.orderNumber || shipment.orderId);
+    }
+
+    if ((!trackingRes || Object.keys(trackingRes || {}).length === 0) && rawAwb && !isNumericShipmentId) {
+      trackingRes = await shiprocketService.getTracking(rawAwb);
+    }
+
+    if ((!trackingRes || Object.keys(trackingRes || {}).length === 0) && isNumericShipmentId) {
+      trackingRes = await shiprocketService.getTrackingByShipmentId(rawAwb);
+    }
+
+    console.log(`Shiprocket Raw Tracking Response for Order #${shipment.order.orderNumber || shipment.orderId}:`, JSON.stringify(trackingRes, null, 2));
+
+    const { awb: realAwb, courier: realCourier } = extractShiprocketTracking(trackingRes);
+
+    // If candidate AWB is equal to the numeric shipment ID fallback, reject it as a real AWB
+    const finalAwb = (realAwb && realAwb !== rawAwb) || (!isNumericShipmentId && realAwb) ? realAwb : null;
+    const finalCourier = realCourier || (isPlaceholderCarrier ? null : rawCarrier);
+
+    await prisma.orderShipment.update({
+      where: { id: shipment.id },
+      data: {
+        trackingNumber: finalAwb,
+        carrier: finalCourier,
+        trackingUrl: finalAwb ? `https://shiprocket.co/tracking/${finalAwb}` : null,
       }
+    });
 
-      if ((!trackingData || !trackingData.tracking_data) && isNumericAwb) {
-        trackingData = await shiprocketService.getTrackingByShipmentId(rawAwb);
-      }
-
-      const realAwbCandidate = trackingData?.awb_code || trackingData?.tracking_data?.awb_code || trackingData?.data?.awb_code || trackingData?.tracking_data?.shipment_track?.[0]?.awb_code || null;
-      const realCourierCandidate = trackingData?.courier_name || trackingData?.tracking_data?.courier_name || trackingData?.data?.courier_name || trackingData?.tracking_data?.shipment_track?.[0]?.courier_name || null;
-
-      const finalAwb = (realAwbCandidate && !/^\d{8,12}$/.test(realAwbCandidate) && !realAwbCandidate.startsWith('ORD-')) ? realAwbCandidate : null;
-      const finalCourier = (realCourierCandidate && realCourierCandidate !== 'Standard Luxury Courier') ? realCourierCandidate : null;
-
-      await prisma.orderShipment.update({
-        where: { id: shipment.id },
-        data: {
-          trackingNumber: finalAwb,
-          carrier: finalCourier,
-          trackingUrl: finalAwb ? `https://shiprocket.co/tracking/${finalAwb}` : null,
-        }
-      });
-
-      if (finalAwb || finalCourier) {
-        console.log(`Updated Order #${shipment.order.orderNumber || shipment.orderId} with REAL Shiprocket data -> AWB: ${finalAwb}, Courier: ${finalCourier}`);
-        updatedCount++;
-      } else {
-        console.log(`Cleared placeholder shipment data for Order #${shipment.order.orderNumber || shipment.orderId} (Set AWB to null, Carrier to null until generated).`);
-        clearedPlaceholderCount++;
-      }
+    if (finalAwb || finalCourier) {
+      console.log(`Updated Order #${shipment.order.orderNumber || shipment.orderId} with REAL Shiprocket data -> AWB: ${finalAwb}, Courier: ${finalCourier}`);
+      updatedCount++;
+    } else {
+      console.log(`Cleared placeholder shipment data for Order #${shipment.order.orderNumber || shipment.orderId} (Set AWB to null, Carrier to null until generated).`);
+      clearedPlaceholderCount++;
     }
   }
 
