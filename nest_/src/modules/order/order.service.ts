@@ -1120,6 +1120,23 @@ export class OrderService {
       this.logger.warn(`Shiprocket cancellation notice skipped: ${e.message}`);
     });
 
+    if (isOnlinePaid) {
+      try {
+        const customerMobile = order.customer?.mobile || order.addresses?.find((a: any) => a.mobile)?.mobile || (order as any).shipping_address?.mobile || (order as any).shippingAddress?.mobile;
+        const customerName = order.customer?.name || order.addresses?.find((a: any) => a.name)?.name || 'Valued Customer';
+        const orderNum = order.orderNumber || `ORD-${order.id}`;
+        const refundAmt = Number(order.grandTotal || 0);
+
+        if (customerMobile) {
+          this.whatsappService.sendRefundInitiated(customerMobile, customerName, orderNum, refundAmt).catch(err => {
+            this.logger.error(`Failed to send Refund Initiated WhatsApp notification for cancelled order #${order.id}:`, err?.message || err);
+          });
+        }
+      } catch (wsErr: any) {
+        this.logger.warn(`Could not prepare Refund Initiated WhatsApp notification on cancellation: ${wsErr.message}`);
+      }
+    }
+
     return updated;
   }
 
@@ -1596,6 +1613,21 @@ export class OrderService {
       this.shiprocketService.cancelOrder(order.orderNumber || order.id).catch(e => {
         this.logger.warn(`Shiprocket cancellation notice skipped: ${e.message}`);
       });
+    }
+
+    // Dispatch WhatsApp "Refund Initiated" template message (Template ID: 259509717888702541912126)
+    try {
+      const customerMobile = order.customer?.mobile || order.addresses?.find((a: any) => a.mobile)?.mobile || (order as any).shipping_address?.mobile || (order as any).shippingAddress?.mobile;
+      const customerName = order.customer?.name || order.addresses?.find((a: any) => a.name)?.name || 'Valued Customer';
+      const orderNum = order.orderNumber || `ORD-${order.id}`;
+
+      if (customerMobile) {
+        this.whatsappService.sendRefundInitiated(customerMobile, customerName, orderNum, refundAmt).catch(err => {
+          this.logger.error(`Failed to send Refund Initiated WhatsApp notification for order #${order.id}:`, err?.message || err);
+        });
+      }
+    } catch (wsErr: any) {
+      this.logger.warn(`Could not prepare Refund Initiated WhatsApp notification: ${wsErr.message}`);
     }
 
     return result;

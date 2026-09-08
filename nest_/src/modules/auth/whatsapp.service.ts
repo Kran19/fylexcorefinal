@@ -23,6 +23,7 @@ export class WhatsappService {
   private readonly orderReceivedTemplateId = process.env.ZAPLE_ORDER_RECEIVED_TEMPLATE_ID || '360563217879352591067015';
   private readonly outForDeliveryTemplateId = process.env.ZAPLE_OUT_FOR_DELIVERY_TEMPLATE_ID || '136925717879433254081719';
   private readonly deliveredTemplateId = process.env.ZAPLE_DELIVERED_TEMPLATE_ID || '292200417879435134514663';
+  private readonly refundInitiatedTemplateId = process.env.ZAPLE_REFUND_INITIATED_TEMPLATE_ID || '259509717888702541912126';
 
   /**
    * Generates a 6-digit OTP, stores it with 10-minute validity, and sends it via Zaple.ai WhatsApp API.
@@ -180,6 +181,40 @@ export class WhatsappService {
       return { success: true, message: 'Delivered notification sent successfully via WhatsApp' };
     } catch (error) {
       this.logger.error(`Zaple Delivered WhatsApp error for ${cleanMobile}: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+  }
+
+  /**
+   * Sends "Refund Initiated" WhatsApp confirmation template when an order refund is processed.
+   * Template ID: 259509717888702541912126
+   * Variable 1 (template_argument1): Customer Name (e.g. John Doe)
+   * Variable 2 (template_argument2): Order Number (e.g. ORD-1787835086413)
+   * Variable 3 (template_argument3): Refund Amount (e.g. 1299)
+   */
+  async sendRefundInitiated(mobile: string, name: string, orderNumber: string, amount: number | string): Promise<{ success: boolean; message: string }> {
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    if (cleanMobile.length !== 10) {
+      this.logger.warn(`Cannot send Refund Initiated WhatsApp message: invalid mobile ${mobile}`);
+      return { success: false, message: 'Invalid mobile number' };
+    }
+
+    const customerName = (name || 'Valued Customer').trim();
+    const cleanOrderNumber = (orderNumber || 'ORD-REFUND').replace(/^#+/, '');
+    const formattedAmount = String(amount || 0);
+
+    this.logger.log(`Sending Refund Initiated WhatsApp [${this.refundInitiatedTemplateId}] to ${cleanMobile} (Name: ${customerName}, Order: ${cleanOrderNumber}, Amount: ₹${formattedAmount})`);
+
+    try {
+      const apiResult = await this.dispatchZapleTemplate(
+        cleanMobile,
+        this.refundInitiatedTemplateId,
+        [customerName, cleanOrderNumber, formattedAmount]
+      );
+      this.logger.log(`Zaple Refund Initiated WhatsApp response for ${cleanMobile}: ${JSON.stringify(apiResult)}`);
+      return { success: true, message: 'Refund Initiated notification sent successfully via WhatsApp' };
+    } catch (error) {
+      this.logger.error(`Zaple Refund Initiated WhatsApp error for ${cleanMobile}: ${error.message}`);
       return { success: false, message: error.message };
     }
   }
