@@ -555,42 +555,10 @@ const OrderDetailPage = () => {
                   </button>
                 </div>
 
-                {/* Option 2: Share / Push to Shiprocket Dashboard */}
-                <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <i className="fas fa-share-square"></i> Option 2: Share to Shiprocket Dashboard
-                  </div>
-                  <p style={{ fontSize: 11, color: '#c7d2fe', margin: '0 0 10px 0', lineHeight: 1.4 }}>
-                    Directly pushes order payload to Shiprocket merchant portal without altering current status.
-                  </p>
-                  <button
-                    onClick={handleSendToShiprocket}
-                    disabled={isCancelledOrRefunded || sendingToShiprocket}
-                    style={{
-                      width: '100%',
-                      padding: '11px 14px',
-                      borderRadius: 9,
-                      background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                      color: '#ffffff',
-                      fontWeight: 700,
-                      fontSize: 12,
-                      border: 'none',
-                      cursor: isCancelledOrRefunded ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
-                    }}
-                  >
-                    {sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Dispatching...</> : <><i className="fas fa-paper-plane"></i> Share to Shiprocket Dashboard</>}
-                  </button>
-                </div>
-
-                {/* Option 3: Cancel Order (Internal Only) */}
+                {/* Option 2: Cancel Order (Internal Only) */}
                 <div style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#f87171', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <i className="fas fa-ban"></i> Option 3: Cancel Order (Internal Only)
+                    <i className="fas fa-ban"></i> Option 2: Cancel Order (Internal Only)
                   </div>
                   <p style={{ fontSize: 11, color: '#fca5a5', margin: '0 0 10px 0', lineHeight: 1.4 }}>
                     Cancels order in DB & restocks inventory without sending to Shiprocket or generating AWB.
@@ -619,10 +587,10 @@ const OrderDetailPage = () => {
                   </button>
                 </div>
 
-                {/* Option 4: Cancel & Initiate Full Refund */}
+                {/* Option 3: Cancel & Initiate Full Refund */}
                 <div style={{ background: 'rgba(217, 70, 239, 0.08)', border: '1px solid rgba(217, 70, 239, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#f0abfc', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <i className="fas fa-hand-holding-usd"></i> Option 4: Cancel & Initiate Full Refund
+                    <i className="fas fa-hand-holding-usd"></i> Option 3: Cancel & Initiate Full Refund
                   </div>
                   <p style={{ fontSize: 11, color: '#f5d0fe', margin: '0 0 10px 0', lineHeight: 1.4 }}>
                     Cancels order, triggers full payment refund (Razorpay/Online), restocks stock & restores points.
