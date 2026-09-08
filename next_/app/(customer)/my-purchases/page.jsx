@@ -294,7 +294,6 @@ export default function MyPurchases() {
           <div className="purchases-empty">
             <h2>No purchases made yet.</h2>
             <Link href="/products" className="empty-cta">Browse Collection</Link>
-            <Link href="#" className="get-help-btn">Get Help</Link>
           </div>
         ) : (
           <div className="purchases-grid">
