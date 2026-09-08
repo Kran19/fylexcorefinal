@@ -39,9 +39,7 @@ export class OrderController {
     return this.orderService.calculateOrderTotal(customerId, pincode, couponCode);
   }
 
-  @Post('shiprocket-webhook')
-  @Post('tracking-update')
-  @Post('webhook-listener')
+  @Post(['shiprocket-webhook', 'tracking-update', 'webhook-listener', 'status-update'])
   async handleShiprocketWebhook(@Body() payload: any) {
     return this.orderService.handleShiprocketWebhook(payload);
   }
