@@ -839,14 +839,16 @@ const Home = () => {
         .hero-title {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
           font-size: clamp(2rem, 5vw, 3rem) !important;
-          font-weight: 300; color: #2D2D2D;
+          font-weight: 300; color: #ededed !important;
           margin-bottom: 0.5rem; letter-spacing: 0.1em;
+          text-shadow: 0 2px 12px rgba(0,0,0,0.3);
         }
         .hero-subtitle {
           font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
           font-size: clamp(2.5rem, 8vw, 6rem) !important;
-          font-weight: 400; color: #1A1A1A;
+          font-weight: 400; color: #ededed !important;
           margin-bottom: 2.5rem; line-height: 1;
+          text-shadow: 0 2px 15px rgba(0,0,0,0.3);
         }
         .cta-button {
           background: #1a1a1a;
