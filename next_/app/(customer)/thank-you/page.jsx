@@ -167,7 +167,7 @@ const ThankYouPage = () => {
 
           {/* Tertiary CTA: Browse More Timepieces */}
           <Link 
-            href="/discover" 
+            href="/" 
             className="thank-you-btn thank-you-btn-tertiary"
             style={{
               display: 'flex',
