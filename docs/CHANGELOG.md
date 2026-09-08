@@ -1395,3 +1395,19 @@
 - **Rollback Strategy:** Revert modified files.
 - **Status:** Complete
 
+## Task 94: Fix Order Track API order_id Prefix Matching in trackOrder
+- **Task Number:** 94
+- **Task Name:** Fix Order Track API order_id Prefix Matching in trackOrder
+- **Files Modified:**
+  - `nest_/src/modules/order/order.service.ts`
+- **Reason:** Enhanced `trackOrder` in `order.service.ts` to automatically strip `#` and `ORD-` prefixes from incoming `order_id` parameters (`strippedOrderId`), checking all variations (`strippedOrderId`, `ORD-${strippedOrderId}`, `#${strippedOrderId}`, `#ORD-${strippedOrderId}`, `contains: strippedOrderId`, and numeric `id`). Fixes 404 errors when Zaple WhatsApp Chatbot passes formatted order IDs like `ORD-1787835086413` while DB stores raw numbers or prefixed strings.
+- **Risk:** Low
+- **API Impact:** Resolves 404 responses on `/api/orders/track`.
+- **Database Impact:** None.
+- **Frontend Impact:** Chatbot and external tracking integrations successfully locate orders regardless of `ORD-` or `#` prefixes.
+- **Backend Impact:** Enhanced order search matching logic in `orderService.trackOrder()`.
+- **Testing Completed:** Verified prefix stripping and multi-pattern orderNumber query.
+- **Rollback Strategy:** Revert `nest_/src/modules/order/order.service.ts`.
+- **Status:** Complete
+
+

@@ -667,6 +667,7 @@ export class OrderService {
 
     const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
     const cleanOrderId = orderId.trim();
+    const strippedOrderId = cleanOrderId.replace(/^#+/, '').replace(/^ORD-?/i, '').trim();
 
     if (!cleanMobile || cleanMobile.length !== 10) {
       throw new NotFoundException({
@@ -682,8 +683,12 @@ export class OrderService {
           {
             OR: [
               { orderNumber: cleanOrderId },
-              { orderNumber: `ORD-${cleanOrderId}` },
-              { id: !isNaN(Number(cleanOrderId)) ? Number(cleanOrderId) : -1 }
+              { orderNumber: strippedOrderId },
+              { orderNumber: `ORD-${strippedOrderId}` },
+              { orderNumber: `#${strippedOrderId}` },
+              { orderNumber: `#ORD-${strippedOrderId}` },
+              { orderNumber: { contains: strippedOrderId } },
+              { id: !isNaN(Number(strippedOrderId)) ? Number(strippedOrderId) : -1 }
             ]
           },
           {
