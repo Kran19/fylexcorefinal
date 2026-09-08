@@ -16,8 +16,13 @@ export function getFileUrl(path) {
   let cleanPath = path.trim();
   if (!cleanPath) return null;
 
+  // Strip legacy /preload/ if present
+  if (cleanPath.startsWith('/preload/')) {
+    cleanPath = cleanPath.slice(8);
+  }
+
   // Normalize internal host uploads (e.g. http://187.127.131.26/uploads/..., http://127.0.0.1:3001/uploads/..., http://localhost:5000/api/uploads/...)
-  if (cleanPath.includes('/uploads/') && !cleanPath.startsWith('/preload/')) {
+  if (cleanPath.includes('/uploads/')) {
     const uploadIndex = cleanPath.indexOf('/uploads/');
     cleanPath = cleanPath.slice(uploadIndex + 1); // "uploads/..."
   } else if (cleanPath.includes('/api/uploads/')) {
@@ -38,13 +43,13 @@ export function getFileUrl(path) {
 
   if (isFrontendStatic && !cleanPath.includes('uploads/')) {
     const assetPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
-    return `/preload${assetPath}`;
+    return assetPath;
   }
 
   // 3. Fallback for static watch PNG filenames (e.g. Olive-green-dial.png, white-gold.png)
   const basename = cleanPath.split('/').pop().split('\\').pop();
   if (basename.match(/^(36mm|40mm|Chocolate-dial|Diamond-paved|Diamondpavedial|Flutted|Olive-green-dial|brilliant-diamond-set|chocolate|everose-gold|goldwatch|left-side|metorite|metoritedial|olive-green|only-dial|premium|right-side|white-gold)\.png$/i)) {
-    return `/preload/assets/fylex-watch-v2/${basename}`;
+    return `/assets/fylex-watch-v2/${basename}`;
   }
 
   // 4. Dynamic Backend API Uploads (NestJS server with /api prefix)

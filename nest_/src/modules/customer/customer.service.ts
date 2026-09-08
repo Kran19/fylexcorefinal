@@ -61,7 +61,7 @@ export class CustomerService {
       normalized.includes('/assets/')
     ) {
       const assetPath = normalized.startsWith('/') ? normalized : `/${normalized}`;
-      return `/preload${assetPath}`;
+      return assetPath;
     }
 
     if (normalized.startsWith('uploads/')) {

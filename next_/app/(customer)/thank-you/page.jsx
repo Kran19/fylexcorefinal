@@ -39,7 +39,7 @@ const ThankYouPage = () => {
       >
         <div className="icon-wrapper" style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
           <img 
-            src="/preload/fylex_logo.png" 
+            src="/fylex_logo.png" 
             alt="Fylex" 
             className="logo-icon" 
             style={{ height: '52px', width: 'auto', objectFit: 'contain' }}
