@@ -41,6 +41,7 @@ async function main() {
         name: 'Fylex Early Bird Member',
         email: `member_${targetMobile}@fylex.com`,
         mobile: targetMobile,
+        password: '',
         status: 1,
         isBlock: false,
         createdAt: new Date(),
