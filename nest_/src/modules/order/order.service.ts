@@ -483,11 +483,19 @@ export class OrderService {
     if (!order) throw new NotFoundException('Order not found');
 
     const awb = order.shipments?.[0]?.trackingNumber;
+    const isNumericAwb = awb && /^\d{8,12}$/.test(awb.trim());
     let trackingData: any = null;
-    if (awb && !awb.startsWith('ORD-') && !awb.startsWith('SHP-') && awb.length >= 8) {
+
+    if (awb && !isNumericAwb && !awb.startsWith('ORD-') && !awb.startsWith('SHP-') && awb.length >= 8) {
       trackingData = await this.shiprocketService.getTracking(awb);
-    } else {
+    }
+    
+    if (!trackingData || !trackingData.tracking_data) {
       trackingData = await this.shiprocketService.getTrackingByOrderId(order.orderNumber || order.id);
+    }
+
+    if ((!trackingData || !trackingData.tracking_data) && isNumericAwb) {
+      trackingData = await this.shiprocketService.getTrackingByShipmentId(awb.trim());
     }
 
     if (order.status === 'cancelled' || order.status === 'refunded') {
@@ -498,6 +506,12 @@ export class OrderService {
       };
     }
 
+    const rawCourier = trackingData?.courier_name || trackingData?.tracking_data?.courier_name || trackingData?.data?.courier_name || trackingData?.tracking_data?.shipment_track?.[0]?.courier_name || null;
+    const srCourier = (rawCourier && rawCourier !== 'Standard Luxury Courier') ? rawCourier : null;
+
+    const rawAwb = trackingData?.awb_code || trackingData?.tracking_data?.awb_code || trackingData?.data?.awb_code || trackingData?.tracking_data?.shipment_track?.[0]?.awb_code || null;
+    const srAwb = (rawAwb && !/^\d{8,12}$/.test(rawAwb) && !rawAwb.startsWith('ORD-')) ? rawAwb : null;
+
     if (trackingData?.tracking_data?.track_status) {
       const statusStr = (trackingData.tracking_data.track_status || '').toUpperCase();
       let newOrderStatus = order.status;
@@ -507,7 +521,7 @@ export class OrderService {
         newOrderStatus = 'delivered';
         newShippingStatus = 'delivered';
         if (order.shippingStatus !== 'delivered') {
-          const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+          const recipientMobile = (order as any).customerMobile || (order as any).addresses?.[0]?.phone;
           if (recipientMobile) {
             this.whatsappService.sendDelivered(recipientMobile)
               .catch(err => this.logger.error(`Failed to dispatch Delivered WhatsApp: ${err.message}`));
@@ -517,7 +531,7 @@ export class OrderService {
         newOrderStatus = 'shipped';
         newShippingStatus = 'out_for_delivery';
         if (order.shippingStatus !== 'out_for_delivery') {
-          const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+          const recipientMobile = (order as any).customerMobile || (order as any).addresses?.[0]?.phone;
           if (recipientMobile) {
             this.whatsappService.sendOutForDelivery(recipientMobile)
               .catch(err => this.logger.error(`Failed to dispatch Out For Delivery WhatsApp: ${err.message}`));
@@ -536,24 +550,21 @@ export class OrderService {
           updatedAt: new Date(),
         }
       });
+    }
 
-      const srCourier = trackingData?.courier_name || trackingData?.tracking_data?.courier_name || trackingData?.data?.courier_name || trackingData?.tracking_data?.shipment_track?.[0]?.courier_name || null;
-      const srAwb = trackingData?.awb_code || trackingData?.tracking_data?.awb_code || trackingData?.data?.awb_code || trackingData?.tracking_data?.shipment_track?.[0]?.awb_code || null;
+    const existingShipment = order.shipments?.[0];
+    if (existingShipment) {
+      const cleanAwb = srAwb || (isNumericAwb ? null : (existingShipment.trackingNumber && /^\d{8,12}$/.test(existingShipment.trackingNumber) ? null : existingShipment.trackingNumber));
+      const cleanCarrier = srCourier || (existingShipment.carrier === 'Standard Luxury Courier' ? null : existingShipment.carrier);
 
-      if (srAwb || srCourier) {
-        const existingShipment = order.shipments?.[0];
-        if (existingShipment) {
-          await this.prisma.orderShipment.update({
-            where: { id: existingShipment.id },
-            data: {
-              trackingNumber: (srAwb && !srAwb.startsWith('ORD-')) ? srAwb : existingShipment.trackingNumber,
-              carrier: srCourier || existingShipment.carrier,
-              status: newShippingStatus,
-              trackingUrl: (srAwb && !srAwb.startsWith('ORD-')) ? `https://shiprocket.co/tracking/${srAwb}` : existingShipment.trackingUrl,
-            }
-          });
+      await this.prisma.orderShipment.update({
+        where: { id: existingShipment.id },
+        data: {
+          trackingNumber: cleanAwb,
+          carrier: cleanCarrier,
+          trackingUrl: cleanAwb ? `https://shiprocket.co/tracking/${cleanAwb}` : null,
         }
-      }
+      });
     }
 
     return {

@@ -88,6 +88,15 @@ export class ShiprocketService {
     }
   }
 
+  async getTrackingByShipmentId(shipmentId: string | number) {
+    try {
+      return await this.apiRequest('get', `/courier/track/shipment/${shipmentId}`);
+    } catch (error: any) {
+      this.logger.error(`Shiprocket tracking by shipment failed for ${shipmentId}:`, error.response?.data || error.message);
+      return null;
+    }
+  }
+
   async createOrder(orderData: any) {
     try {
       this.logger.log(`Dispatching adhoc order to Shiprocket: ${orderData.order_id}`);
