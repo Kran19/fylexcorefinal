@@ -300,7 +300,7 @@ export class WhatsappService {
 
     this.logger.log(`Dispatching Admin Order Notification WhatsApp [${this.adminOrderTemplateId}] to ${this.adminMobiles.length} owners (${this.adminMobiles.join(', ')})`);
 
-    const results = [];
+    const results: any[] = [];
     for (const mobile of this.adminMobiles) {
       const cleanMobile = mobile.replace(/\D/g, '');
       try {
