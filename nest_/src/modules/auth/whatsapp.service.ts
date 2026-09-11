@@ -21,9 +21,14 @@ export class WhatsappService {
   private readonly otpTemplateId = process.env.ZAPLE_OTP_TEMPLATE_ID || process.env.ZAPLE_TEMPLATE_ID || '424883717876429003545862';
   private readonly welcomeTemplateId = process.env.ZAPLE_WELCOME_TEMPLATE_ID || '398859617877513932611736';
   private readonly orderReceivedTemplateId = process.env.ZAPLE_ORDER_RECEIVED_TEMPLATE_ID || '360563217879352591067015';
+  private readonly adminOrderTemplateId = process.env.ZAPLE_ADMIN_ORDER_TEMPLATE_ID || '35245521788956392740297';
   private readonly outForDeliveryTemplateId = process.env.ZAPLE_OUT_FOR_DELIVERY_TEMPLATE_ID || '136925717879433254081719';
   private readonly deliveredTemplateId = process.env.ZAPLE_DELIVERED_TEMPLATE_ID || '292200417879435134514663';
   private readonly refundInitiatedTemplateId = process.env.ZAPLE_REFUND_INITIATED_TEMPLATE_ID || '259509717888702541912126';
+
+  private readonly adminMobiles = (process.env.ZAPLE_ADMIN_MOBILES
+    ? process.env.ZAPLE_ADMIN_MOBILES.split(',')
+    : ['917069211020', '918511113623']).map(m => m.trim());
 
   /**
    * Generates a 6-digit OTP, stores it with 10-minute validity, and sends it via Zaple.ai WhatsApp API.
@@ -217,6 +222,72 @@ export class WhatsappService {
       this.logger.error(`Zaple Refund Initiated WhatsApp error for ${cleanMobile}: ${error.message}`);
       return { success: false, message: error.message };
     }
+  }
+
+  /**
+   * Sends "New Order Received" WhatsApp template notification to owner/admin mobile numbers.
+   * Template ID: 35245521788956392740297
+   * Variable 1 (template_argument1): Order ID (e.g. ORD-1787835086413)
+   * Variable 2 (template_argument2): Customer Name (e.g. John Doe)
+   * Variable 3 (template_argument3): Customer Phone (e.g. 919876543210)
+   * Variable 4 (template_argument4): Product / Items Summary
+   * Variable 5 (template_argument5): Total Quantity
+   * Variable 6 (template_argument6): Order Value
+   * Variable 7 (template_argument7): Delivery Address
+   */
+  async sendAdminOrderNotification(orderData: {
+    orderNumber: string;
+    customerName: string;
+    customerPhone: string;
+    productSummary: string;
+    totalQuantity: number | string;
+    orderValue: number | string;
+    address: string;
+  }): Promise<{ success: boolean; results: any[] }> {
+    const {
+      orderNumber,
+      customerName,
+      customerPhone,
+      productSummary,
+      totalQuantity,
+      orderValue,
+      address,
+    } = orderData;
+
+    const cleanOrderNumber = (orderNumber || 'ORD-NEW').replace(/^#+/, '');
+    const cleanCustomerName = (customerName || 'Customer').trim();
+    const cleanCustomerPhone = (customerPhone || 'N/A').trim();
+    const cleanProductSummary = (productSummary || 'Fylex Timepiece').trim();
+    const formattedQty = String(totalQuantity || 1);
+    const formattedValue = String(orderValue).startsWith('₹') ? String(orderValue) : `₹${orderValue}`;
+    const cleanAddress = (address || 'N/A').trim();
+
+    const args = [
+      cleanOrderNumber,
+      cleanCustomerName,
+      cleanCustomerPhone,
+      cleanProductSummary,
+      formattedQty,
+      formattedValue,
+      cleanAddress,
+    ];
+
+    this.logger.log(`Dispatching Admin Order Notification WhatsApp [${this.adminOrderTemplateId}] to ${this.adminMobiles.length} owners (${this.adminMobiles.join(', ')})`);
+
+    const results = [];
+    for (const mobile of this.adminMobiles) {
+      const cleanMobile = mobile.replace(/\D/g, '');
+      try {
+        const apiResult = await this.dispatchZapleTemplate(cleanMobile, this.adminOrderTemplateId, args);
+        this.logger.log(`Zaple Admin Order WhatsApp response for ${cleanMobile}: ${JSON.stringify(apiResult)}`);
+        results.push({ mobile: cleanMobile, success: true, apiResult });
+      } catch (error: any) {
+        this.logger.error(`Zaple Admin Order WhatsApp error for ${cleanMobile}: ${error.message}`);
+        results.push({ mobile: cleanMobile, success: false, error: error.message });
+      }
+    }
+
+    return { success: true, results };
   }
 
   /**

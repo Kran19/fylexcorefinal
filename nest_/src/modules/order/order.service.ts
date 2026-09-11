@@ -309,6 +309,7 @@ export class OrderService {
       return tx.order.findUnique({
         where: { id: order.id },
         include: {
+          addresses: true,
           items: {
             include: {
               product: true,
@@ -336,7 +337,7 @@ export class OrderService {
       });
     });
 
-    // 7. Dispatch WhatsApp Order Received confirmation
+    // 7. Dispatch WhatsApp Order Received confirmation & Owner Notifications
     try {
       if (createdOrder) {
         const recipientMobile = createdOrder.customerMobile || (createdOrder as any)?.addresses?.[0]?.phone;
@@ -344,12 +345,77 @@ export class OrderService {
           this.whatsappService.sendOrderReceived(recipientMobile, createdOrder.orderNumber || `ORD-${createdOrder.id}`)
             .catch(err => this.logger.error(`Failed to dispatch Order Received WhatsApp: ${err.message}`));
         }
+
+        // Notify 2 Owners / Admins via Zaple WhatsApp API
+        this.notifyAdminsNewOrder(createdOrder)
+          .catch(err => this.logger.error(`Failed to dispatch Owner Order WhatsApp notification: ${err.message}`));
       }
     } catch (e: any) {
       this.logger.error(`Error initiating Order Received WhatsApp: ${e.message}`);
     }
 
     return createdOrder;
+  }
+
+  private async notifyAdminsNewOrder(order: any) {
+    if (!order) return;
+
+    try {
+      const orderNumber = order.orderNumber || `ORD-${order.id}`;
+
+      // Customer Name & Phone
+      const shippingAddr = (order.addresses && Array.isArray(order.addresses))
+        ? (order.addresses.find((a: any) => a.type === 'shipping') || order.addresses[0])
+        : null;
+
+      const firstName = order.customerFirstName || shippingAddr?.firstName || '';
+      const lastName = order.customerLastName || shippingAddr?.lastName || '';
+      const customerName = `${firstName} ${lastName}`.trim() || 'Valued Customer';
+      const customerPhone = order.customerMobile || shippingAddr?.phone || 'N/A';
+
+      // Items summary & quantity
+      const itemsList: string[] = [];
+      let totalQty = 0;
+
+      if (Array.isArray(order.items) && order.items.length > 0) {
+        order.items.forEach((item: any) => {
+          const qty = Number(item.quantity || 1);
+          totalQty += qty;
+          const name = item.productName || item.productVariant?.product?.name || item.product?.name || 'Fylex Item';
+          itemsList.push(`${qty}x ${name}`);
+        });
+      }
+
+      const productSummary = itemsList.length > 0 ? itemsList.join(', ') : 'Fylex Timepiece';
+
+      // Formatted Address
+      let formattedAddress = 'N/A';
+      if (shippingAddr) {
+        const parts = [
+          shippingAddr.address1 || shippingAddr.address,
+          shippingAddr.city,
+          shippingAddr.state,
+          shippingAddr.postcode || shippingAddr.pincode
+        ].filter(Boolean);
+        formattedAddress = parts.join(', ');
+      }
+
+      const orderValue = Math.round(Number(order.grandTotal || 0));
+
+      this.logger.log(`Dispatching Owner WhatsApp notification for ${orderNumber} to owners...`);
+
+      await this.whatsappService.sendAdminOrderNotification({
+        orderNumber,
+        customerName,
+        customerPhone,
+        productSummary,
+        totalQuantity: totalQty || 1,
+        orderValue,
+        address: formattedAddress,
+      });
+    } catch (err: any) {
+      this.logger.error(`Error in notifyAdminsNewOrder: ${err.message}`);
+    }
   }
 
   /**
