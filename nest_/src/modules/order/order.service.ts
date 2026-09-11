@@ -606,9 +606,17 @@ export class OrderService {
               .catch(err => this.logger.error(`Failed to dispatch Out For Delivery WhatsApp: ${err.message}`));
           }
         }
-      } else if (statusStr.includes('IN TRANSIT') || statusStr.includes('SHIPPED')) {
+      } else if (statusStr.includes('IN TRANSIT') || statusStr.includes('SHIPPED') || statusStr.includes('PICKED UP') || statusStr.includes('DISPATCHED')) {
         newOrderStatus = 'shipped';
         newShippingStatus = 'shipped';
+        if (order.shippingStatus !== 'shipped') {
+          const recipientMobile = (order as any).customerMobile || (order as any).addresses?.[0]?.phone;
+          const awbNumber = srAwb || (order as any).shipments?.[0]?.trackingNumber || order.orderNumber || `ORD-${order.id}`;
+          if (recipientMobile) {
+            this.whatsappService.sendOrderShipped(recipientMobile, awbNumber)
+              .catch(err => this.logger.error(`Failed to dispatch Order Shipped WhatsApp: ${err.message}`));
+          }
+        }
       }
 
       await this.prisma.order.update({
@@ -693,10 +701,18 @@ export class OrderService {
       newShippingStatus = 'processing';
       newOrderStatus = 'processing';
       if (!order.processingAt) updateData.processingAt = now;
-    } else if (shiprocketStatus.includes('IN TRANSIT') || shiprocketStatus.includes('SHIPPED') || shiprocketStatus.includes('DISPATCHED')) {
+    } else if (shiprocketStatus.includes('IN TRANSIT') || shiprocketStatus.includes('SHIPPED') || shiprocketStatus.includes('DISPATCHED') || shiprocketStatus.includes('PICKED UP')) {
       newShippingStatus = 'shipped';
       newOrderStatus = 'shipped';
       if (!order.shippedAt) updateData.shippedAt = now;
+      if (order.shippingStatus !== 'shipped') {
+        const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+        const awbNumber = awb || order.shipments?.[0]?.trackingNumber || order.orderNumber || `ORD-${order.id}`;
+        if (recipientMobile) {
+          this.whatsappService.sendOrderShipped(recipientMobile, awbNumber)
+            .catch(err => this.logger.error(`Failed to dispatch Order Shipped WhatsApp: ${err.message}`));
+        }
+      }
     } else if (shiprocketStatus.includes('OUT FOR DELIVERY')) {
       newShippingStatus = 'out_for_delivery';
       newOrderStatus = 'shipped';
@@ -965,6 +981,14 @@ export class OrderService {
     } else if (cleanStatus === 'shipped') {
       if (!order.shippedAt) updateData.shippedAt = now;
       updateData.shippingStatus = 'shipped';
+      if (order.shippingStatus !== 'shipped') {
+        const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;
+        const awbNumber = order.shipments?.[0]?.trackingNumber || order.orderNumber || `ORD-${order.id}`;
+        if (recipientMobile) {
+          this.whatsappService.sendOrderShipped(recipientMobile, awbNumber)
+            .catch(err => this.logger.error(`Failed to dispatch Order Shipped WhatsApp: ${err.message}`));
+        }
+      }
     } else if (cleanStatus === 'out_for_delivery') {
       if (order.shippingStatus !== 'out_for_delivery') {
         const recipientMobile = order.customerMobile || order.addresses?.[0]?.phone;

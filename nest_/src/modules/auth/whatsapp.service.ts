@@ -21,6 +21,7 @@ export class WhatsappService {
   private readonly otpTemplateId = process.env.ZAPLE_OTP_TEMPLATE_ID || process.env.ZAPLE_TEMPLATE_ID || '424883717876429003545862';
   private readonly welcomeTemplateId = process.env.ZAPLE_WELCOME_TEMPLATE_ID || '398859617877513932611736';
   private readonly orderReceivedTemplateId = process.env.ZAPLE_ORDER_RECEIVED_TEMPLATE_ID || '360563217879352591067015';
+  private readonly orderShippedTemplateId = process.env.ZAPLE_ORDER_SHIPPED_TEMPLATE_ID || '137399217888707333061507';
   private readonly adminOrderTemplateId = process.env.ZAPLE_ADMIN_ORDER_TEMPLATE_ID || '35245521788956392740297';
   private readonly outForDeliveryTemplateId = process.env.ZAPLE_OUT_FOR_DELIVERY_TEMPLATE_ID || '136925717879433254081719';
   private readonly deliveredTemplateId = process.env.ZAPLE_DELIVERED_TEMPLATE_ID || '292200417879435134514663';
@@ -138,6 +139,31 @@ export class WhatsappService {
       return { success: true, message: 'Order Received notification sent successfully via WhatsApp' };
     } catch (error) {
       this.logger.error(`Zaple Order Received WhatsApp error for ${cleanMobile}: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+  }
+
+  /**
+   * Sends "Order Shipped" WhatsApp template message when courier picks up parcel / order is shipped.
+   * Template ID: 137399217888707333061507
+   * Variable 1 (template_argument1): AWB Number (e.g. 143256789012)
+   */
+  async sendOrderShipped(mobile: string, awbNumber: string): Promise<{ success: boolean; message: string }> {
+    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    if (cleanMobile.length !== 10) {
+      this.logger.warn(`Cannot send Order Shipped WhatsApp message: invalid mobile ${mobile}`);
+      return { success: false, message: 'Invalid mobile number' };
+    }
+
+    const cleanAwb = (awbNumber || 'N/A').trim();
+    this.logger.log(`Sending Order Shipped WhatsApp [${this.orderShippedTemplateId}] to ${cleanMobile} (AWB: ${cleanAwb})`);
+
+    try {
+      const apiResult = await this.dispatchZapleTemplate(cleanMobile, this.orderShippedTemplateId, [cleanAwb]);
+      this.logger.log(`Zaple Order Shipped WhatsApp response for ${cleanMobile}: ${JSON.stringify(apiResult)}`);
+      return { success: true, message: 'Order Shipped notification sent successfully via WhatsApp' };
+    } catch (error: any) {
+      this.logger.error(`Zaple Order Shipped WhatsApp error for ${cleanMobile}: ${error.message}`);
       return { success: false, message: error.message };
     }
   }
