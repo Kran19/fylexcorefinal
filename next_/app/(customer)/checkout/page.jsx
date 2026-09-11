@@ -226,7 +226,9 @@ const Checkout = () => {
 
       if (!addrRes.success) throw new Error(addrRes.error);
 
-      if (formData.paymentMethod === 'razorpay') {
+      if (totals.total <= 0) {
+        await finalizeOrder(addrRes.data.id, 'online', 'free_coupon');
+      } else if (formData.paymentMethod === 'razorpay') {
         await handleRazorpayPayment(addrRes.data.id);
       } else {
         await handleCODOrder(addrRes.data.id);
@@ -238,7 +240,7 @@ const Checkout = () => {
   };
 
   const handleRazorpayPayment = async (addressId) => {
-    const activeCoupon = (!couponErrorMsg && formData.couponCode === couponInput.trim()) ? formData.couponCode : '';
+    const activeCoupon = (!couponErrorMsg && formData.couponCode) ? formData.couponCode : '';
     const payRes = await initiatePaymentApi(currentUserId, formData.postalCode, `rcpt_${Date.now()}`, activeCoupon, useCredits);
     if (!payRes.success) throw new Error(payRes.error);
 
@@ -276,13 +278,14 @@ const Checkout = () => {
 
   const finalizeOrder = async (addressId, method, paymentId = null) => {
     const appliedPoints = (useCredits && (totals.appliedCredits || totals.creditDiscount)) ? (totals.appliedCredits || totals.creditDiscount) : 0;
+    const activeCoupon = (!couponErrorMsg && formData.couponCode) ? formData.couponCode : '';
     const orderRes = await addOrder({
       customerId: String(currentUserId),
       shippingAddressId: String(addressId),
       billingAddressId: String(addressId),
       paymentMethod: method,
       paymentId: paymentId,
-      couponCode: (!couponErrorMsg && formData.couponCode === couponInput.trim()) ? formData.couponCode : '',
+      couponCode: activeCoupon,
       redeemPoints: Number(appliedPoints || 0),
       items: items.map(i => ({ variantId: i.variantId, quantity: i.qty })),
     });
@@ -538,11 +541,11 @@ const Checkout = () => {
                 ) : (
                   <button
                     key={`step-${activeStep}`}
-                    className={`primary-btn ${isCalculating || (isServiceable === false) || totals.total <= 0 ? 'disabled' : ''}`}
+                    className={`primary-btn ${isCalculating || (isServiceable === false) || items.length === 0 ? 'disabled' : ''}`}
                     onClick={(e) => handleNext(e)}
-                    disabled={isCalculating || (isServiceable === false) || totals.total <= 0}
+                    disabled={isCalculating || (isServiceable === false) || items.length === 0}
                   >
-                    {activeStep === 3 ? 'Place Order' : 'Continue'}
+                    {activeStep === 3 ? (totals.total <= 0 ? 'Complete Order (Free)' : 'Place Order') : 'Continue'}
                   </button>
                 )}
               </div>

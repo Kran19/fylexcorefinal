@@ -14,10 +14,12 @@ export class MarketingService {
     // Add 14-hour buffer to now for startsAt check to handle timezone offsets (e.g. local timezone is ahead of UTC)
     const startsAtLimit = new Date(now.getTime() + 14 * 60 * 60 * 1000);
 
+    const cleanCode = code ? code.trim() : '';
+
     // 1. Fetch active coupon (Offer)
     const offer = await this.prisma.offer.findFirst({
       where: {
-        code: code,
+        code: { equals: cleanCode, mode: 'insensitive' },
         status: 1, // Active
         startsAt: { lte: startsAtLimit },
         OR: [
