@@ -73,6 +73,44 @@ const OrderDetailPage = () => {
   const [refundReason, setRefundReason] = useState('');
   const [processingRefund, setProcessingRefund] = useState(false);
   const [cancellingOrder, setCancellingOrder] = useState(false);
+  const [markingLocalDelivery, setMarkingLocalDelivery] = useState(false);
+
+  const handleMarkLocalDelivery = async () => {
+    const { value: notes, isConfirmed } = await Swal.fire({
+      title: 'Mark as Delivered (Local Courier)',
+      text: 'Mark this order as delivered via local courier partner / in-city rider.',
+      input: 'text',
+      inputPlaceholder: 'Enter courier/rider details (e.g. Porter / Dunzo / Rider Ramesh)',
+      showCancelButton: true,
+      confirmButtonText: 'Mark Delivered',
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#64748b',
+      background: '#0f172a',
+      color: '#ffffff',
+    });
+
+    if (!isConfirmed) return;
+
+    setMarkingLocalDelivery(true);
+    try {
+      const deliveryNotes = notes?.trim() 
+        ? `Delivered via Local Courier (${notes.trim()})` 
+        : 'Delivered via local courier partner (In-City Same-Day Delivery)';
+
+      const { error: err } = await orderService.updateOrderStatus(orderId, 'delivered', deliveryNotes);
+      if (err) {
+        toast?.error?.(err);
+      } else {
+        toast?.success?.('Order marked as Delivered via Local Courier!');
+        setOrder(prev => ({ ...prev, status: 'delivered', shippingStatus: 'delivered' }));
+        fetchOrder();
+      }
+    } catch (e) {
+      toast?.error?.(e?.message || 'Failed to update delivery status');
+    } finally {
+      setMarkingLocalDelivery(false);
+    }
+  };
 
   const handleCancelOrderInternal = async () => {
     const { value: reason, isConfirmed } = await Swal.fire({
@@ -552,6 +590,44 @@ const OrderDetailPage = () => {
                     }}
                   >
                     {sendingToShiprocket ? <><i className="fas fa-spinner fa-spin"></i> Dispatching...</> : <><i className="fas fa-paper-plane"></i> Share to Shiprocket Dashboard</>}
+                  </button>
+                </div>
+
+                {/* Option 4: Mark as Delivered (Local Courier / Same-City) */}
+                <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 12, padding: 14, opacity: isCancelledOrRefunded ? 0.6 : 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <i className="fas fa-truck-ramp-box"></i> Option 4: Mark as Delivered (Local Courier / In-City)
+                  </div>
+                  <p style={{ fontSize: 11, color: '#a7f3d0', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                    Marks order delivered for local/in-city courier (Porter, Dunzo, rider) without Shiprocket.
+                  </p>
+                  <button
+                    onClick={handleMarkLocalDelivery}
+                    disabled={isCancelledOrRefunded || markingLocalDelivery || (order.status || '').toLowerCase() === 'delivered'}
+                    style={{
+                      width: '100%',
+                      padding: '11px 14px',
+                      borderRadius: 9,
+                      background: (order.status || '').toLowerCase() === 'delivered' ? 'rgba(16, 185, 129, 0.3)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: 12,
+                      border: 'none',
+                      cursor: isCancelledOrRefunded || (order.status || '').toLowerCase() === 'delivered' ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                    }}
+                  >
+                    {markingLocalDelivery ? (
+                      <><i className="fas fa-spinner fa-spin"></i> Updating...</>
+                    ) : (order.status || '').toLowerCase() === 'delivered' ? (
+                      <><i className="fas fa-check-circle"></i> Already Delivered</>
+                    ) : (
+                      <><i className="fas fa-check-circle"></i> Mark as Delivered (Local Courier)</>
+                    )}
                   </button>
                 </div>
 
