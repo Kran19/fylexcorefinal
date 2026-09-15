@@ -10,6 +10,11 @@ const geistMono = { variable: "--font-geist-mono" };
 export const metadata: Metadata = {
   title: "FYLEX Premium Watches",
   description: "Built On Experience, Designed Around Choice.",
+  icons: {
+    icon: "/fylex_logo_name.png",
+    shortcut: "/fylex_logo_name.png",
+    apple: "/fylex_logo_name.png",
+  },
 };
 
 export default function RootLayout({
@@ -23,6 +28,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
+        <link rel="icon" type="image/png" href="/fylex_logo_name.png" />
+        <link rel="shortcut icon" href="/fylex_logo_name.png" />
+        <link rel="apple-touch-icon" href="/fylex_logo_name.png" />
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
