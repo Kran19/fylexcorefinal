@@ -793,6 +793,31 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
         }
 
+        .cfg-hero-cta-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 10px 24px;
+          background: #111111;
+          color: #ffffff;
+          text-decoration: none;
+          font-weight: 700;
+          font-size: 11px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          border-radius: 999px;
+          transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+          border: 1px solid #111111;
+          cursor: pointer;
+        }
+        .cfg-hero-cta-btn:hover {
+          background: #333333;
+          color: #ffffff;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
         .cfg-book-btn {
           display: inline-flex;
           align-items: center;
@@ -2181,15 +2206,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
 
       `}</style>
 
-      {!hasConfig && (
-        <div className={`cfg-top-right-cta ${scrollDir === 'down' && isScrolled ? 'hidden' : ''}`}>
-          {product.productType === 'simple' ? (
-            <button onClick={handleBookNow} className="cfg-cta-pill">Book Now</button>
-          ) : (
-            <Link href={`/configure?watch=${product.id}`} className="cfg-cta-pill">Configure</Link>
-          )}
-        </div>
-      )}
+      {/* Top right CTA removed - now placed below price in hero section */}
 
       <div className="cfg-page-pagination">
         {['hero', 'description', 'specs', 'heritage'].map((id) => (
@@ -2270,6 +2287,16 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 <div className="cfg-details-price" style={product?.heroBgImage ? { color: '#ffffff' } : { color: activeTextColor || product?.textColor || '#111111' }}>
                   {product?.formattedPrice || (typeof product?.price === 'number' ? `₹ ${product.price.toLocaleString()}` : product?.price) || '₹ 25,000'}
                 </div>
+
+                {!hasConfig && (
+                  <div style={{ marginTop: '12px', marginBottom: '8px' }}>
+                    {product?.productType === 'simple' ? (
+                      <button onClick={handleBookNow} className="cfg-hero-cta-btn">Book Now</button>
+                    ) : (
+                      <Link href={`/configure?watch=${product?.id}`} className="cfg-hero-cta-btn">CONFIGURE</Link>
+                    )}
+                  </div>
+                )}
 
                 <div className="cfg-actions-group" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   {hasConfig && (
