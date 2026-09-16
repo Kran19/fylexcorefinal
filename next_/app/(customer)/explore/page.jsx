@@ -2293,7 +2293,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     {product?.productType === 'simple' ? (
                       <button onClick={handleBookNow} className="cfg-hero-cta-btn">Book Now</button>
                     ) : (
-                      <Link href={`/configure?watch=${product?.id}`} className="cfg-hero-cta-btn">CONFIGURE</Link>
+                      <Link href={`/configure?watch=${product?.id}`} className="cfg-hero-cta-btn">BUILD YOUR WATCH</Link>
                     )}
                   </div>
                 )}

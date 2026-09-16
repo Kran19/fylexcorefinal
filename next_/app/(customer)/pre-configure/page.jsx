@@ -819,7 +819,7 @@ const PreConfigure = () => {
                       </div>
                       <div className="btn-container mt-3" style={{ width: '100%' }}>
                         <Link href={`/configure?watch=${product.id}`} className="btn-configure">
-                          CONFIGURE
+                          BUILD YOUR WATCH
                         </Link>
                       </div>
                     </div>

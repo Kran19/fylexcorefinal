@@ -73,7 +73,7 @@ function DiscoverPageContent() {
                       Explore
                     </Link>
                     <Link href={`/configure?watch=${prod.id}`} style={{ flex: 1, padding: '12px', borderRadius: '999px', background: '#c4a35a', color: '#000000', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', textAlign: 'center', textDecoration: 'none', letterSpacing: '0.08em' }}>
-                      Configure
+                      Build Your Watch
                     </Link>
                   </div>
                 </div>

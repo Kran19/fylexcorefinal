@@ -1040,7 +1040,7 @@ const Products = () => {
 
       {/* ═══ NAVIGATION ═══ */}
       <nav className={`products-top-nav ${scrollDir === 'down' && isScrolled ? 'hidden' : ''}`} style={{ justifyContent: 'flex-end' }}>
-        <Link href="/pre-configure" className="btn-config-pill">Configure</Link>
+        <Link href="/pre-configure" className="btn-config-pill">Build Your Watch</Link>
       </nav>
 
       {/* ═══ HERO ═══ */}
@@ -1135,7 +1135,7 @@ const Products = () => {
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                     </Link>
                     <Link href={`/configure?watch=${col.id}`} className="p-link-luxury">
-                      <span>Configure</span>
+                      <span>Build Your Watch</span>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                     </Link>
                   </div>
