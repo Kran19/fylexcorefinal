@@ -1031,7 +1031,18 @@ const Products = () => {
            .p-inventory-status { font-size: 0.8rem; margin: 0; display: inline-flex; align-items: center; }
            .p-link-luxury { font-size: 0.65rem; padding: 5px 10px; }
            .p-link-luxury svg { width: 12px; height: 12px; }
-           .p-actions-row { gap: 6px !important; justify-content: flex-start; width: 100%; margin-top: 6px; }
+            .p-actions-row { 
+              display: flex !important;
+              flex-direction: column !important;
+              align-items: flex-start !important;
+              gap: 8px !important; 
+              justify-content: flex-start; 
+              width: 100%; 
+              margin-top: 6px; 
+            }
+            .p-actions-row .p-link-luxury {
+              white-space: nowrap !important;
+            }
            
            .p-diffusion-glow { display: block !important; scale: 0.7; opacity: 0.4; }
            .p-soft-shadow { display: block !important; scale: 0.8; bottom: -20px; }
