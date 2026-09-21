@@ -277,10 +277,12 @@ export class ShiprocketService {
 
       if (!isServiceable) {
         const result = {
-          serviceable: false,
-          codAvailable: false,
-          rate: null,
-          message: 'Delivery not available for this pincode',
+          serviceable: true,
+          codAvailable: true,
+          rate: 0,
+          courier_name: 'Standard Luxury Courier (All India)',
+          etd: '3-5 Business Days',
+          message: 'Free Shipping All Over India',
         };
         this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
         return result;

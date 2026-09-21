@@ -81,56 +81,27 @@ export class OrderService {
       }
     }
 
-    // 6. Create Order via Transaction
+    // 6. Pre-calculate totals and weights before entering DB transaction
+    const subtotal = Number(cart.subtotal);
+    const discountAmount = appliedOffer ? this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0;
+    const totalDiscount = discountAmount + pointDiscount;
+    const grandTotal = Math.max(0, subtotal - totalDiscount);
+    const pointsEarned = Math.floor(grandTotal);
+
+    let totalWeight = 0;
+    for (const item of cart.items) {
+      let itemWeight = 0.4;
+      if (item.productVariant) {
+        itemWeight = item.productVariant.weight ? Number(item.productVariant.weight) : 0.4;
+      }
+      totalWeight += itemWeight * item.quantity;
+    }
+
+    const isCod = dto.paymentMethod === 'cod';
+    const isOnline = dto.paymentMethod === 'online' || grandTotal === 0;
+
+    // 7. Create Order via Transaction
     const createdOrder = await this.prisma.$transaction(async (tx) => {
-      const subtotal = Number(cart.subtotal);
-      const discountAmount = appliedOffer ? this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0;
-      const totalDiscount = discountAmount + pointDiscount;
-      const grandTotal = Math.max(0, subtotal - totalDiscount);
-      const pointsEarned = Math.floor(grandTotal);
-
-      // a. Create the Order
-      // Calculate Total Weight (Default to 0.5kg per watch if not specified)
-      let totalWeight = 0;
-      for (const item of cart.items) {
-        let itemWeight = 0.4;
-        if (item.productVariant) {
-          itemWeight = item.productVariant.weight ? Number(item.productVariant.weight) : 0.4;
-        }
-        totalWeight += itemWeight * item.quantity;
-      }
-
-      const isCod = dto.paymentMethod === 'cod';
-      let shippingTotal = 0; // FREE SHIPPING ALL OVER INDIA
-
-      try {
-        const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || '360002';
-        const rateData = await this.shiprocketService.checkServiceability(
-          pickupPincode,
-          shippingAddr.pincode,
-          totalWeight
-        );
-
-        if (rateData.serviceable === false) {
-          this.logger.warn(`Unserviceable pincode: ${shippingAddr.pincode} for customer ${customerId}`);
-          throw new BadRequestException('Delivery is not available for this location');
-        }
-
-        if (isCod && rateData.codAvailable === false) {
-          this.logger.warn(`COD Unavailable for pincode: ${shippingAddr.pincode} for customer ${customerId}`);
-          throw new BadRequestException('Cash on Delivery is not available for this location');
-        }
-
-        if (rateData.serviceable === null) {
-          this.logger.error(`Technical failure in shipping API for pincode: ${shippingAddr.pincode}`);
-        }
-      } catch (e) {
-        if (e instanceof BadRequestException) throw e;
-        this.logger.error(`Shiprocket rate calculation failed: ${e.message}`);
-      }
-
-      const isOnline = dto.paymentMethod === 'online';
-
       const order = await tx.order.create({
         data: {
           customer: cId ? { connect: { id: cId } } : undefined,
@@ -143,7 +114,7 @@ export class OrderService {
           shippingTotal: 0,
           taxTotal: Number(0),
           discountTotal: Number(totalDiscount),
-          grandTotal: Number(Math.max(0, subtotal - totalDiscount)),
+          grandTotal: Number(grandTotal),
           customerNote: dto.notes,
           customerFirstName: cart.customer?.name?.split(' ')[0] || 'Customer',
           customerLastName: cart.customer?.name?.split(' ')?.slice(1)?.join(' ') || 'Name',
@@ -335,7 +306,7 @@ export class OrderService {
           }
         }
       });
-    });
+    }, { timeout: 30000, maxWait: 10000 });
 
     // 7. Dispatch WhatsApp Order Received confirmation & Owner Notifications
     try {

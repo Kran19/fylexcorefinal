@@ -106,11 +106,19 @@ const AdminProductVariants = () => {
       });
       t.on("tableBuilt", () => {
         setTable(t);
-        setTimeout(() => t.redraw(true), 100);
+        setTimeout(() => {
+          try {
+            if (tableRef.current) t.redraw(true);
+          } catch (err) {}
+        }, 100);
       });
     }
     return () => {
-      if (t) t.destroy();
+      if (t) {
+        try {
+          t.destroy();
+        } catch (err) {}
+      }
     };
   }, []);
 

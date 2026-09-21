@@ -2258,9 +2258,13 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           <div className="cfg-hero-main-visual" style={{ zIndex: 10 }}>
             <div className="cfg-hero-visual-box">
               <img
-                src={displayHeroImg}
+                src={displayHeroImg || '/assets/fylex-watch-v2/premium.png'}
                 alt={product.title}
                 className="cfg-hero-product-img"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                }}
               />
             </div>
           </div>
@@ -2380,7 +2384,15 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   </div>
                   {effectiveImageCount >= 2 && !isConfiguredMode && (
                     <div className="cfg-desc-img-wrap" style={{ position: 'relative', zIndex: 2 }}>
-                      <img src={displayStoryImg} alt={product?.title || 'Timepiece'} className="cfg-desc-img" />
+                      <img 
+                        src={displayStoryImg || '/assets/fylex-watch-v2/premium.png'} 
+                        alt={product?.title || 'Timepiece'} 
+                        className="cfg-desc-img" 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                        }}
+                      />
                     </div>
                   )}
                 </section>
@@ -2400,7 +2412,15 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   </div>
                   {effectiveImageCount >= 2 && !isConfiguredMode && (
                     <div className="cfg-desc-img-wrap">
-                      <img src={displayStoryImg} alt={product.title} className="cfg-desc-img" />
+                      <img 
+                        src={displayStoryImg || '/assets/fylex-watch-v2/premium.png'} 
+                        alt={product.title} 
+                        className="cfg-desc-img" 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                        }}
+                      />
                     </div>
                   )}
                 </section>
@@ -2433,7 +2453,15 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                   <div className="cfg-specs-grid" style={ (effectiveImageCount < 3 || isConfiguredMode) ? { gridTemplateColumns: '1fr' } : {} }>
                     {effectiveImageCount >= 3 && !isConfiguredMode && (
                       <div className="cfg-specs-img-wrap">
-                        <img src={displaySpecsImg} alt={product.title} className="cfg-specs-img" />
+                        <img 
+                          src={displaySpecsImg || '/assets/fylex-watch-v2/premium.png'} 
+                          alt={product.title} 
+                          className="cfg-specs-img" 
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                          }}
+                        />
                       </div>
                     )}
 
@@ -2749,7 +2777,14 @@ export function DiscoverContent({ isConfiguredMode = false }) {
               activeModalData.combinations.map((combo) => (
                 <div key={combo.id} className="cfg-combo-item" onClick={() => handleComboClick(combo)}>
                   <div className="cfg-combo-img-wrap">
-                    <img src={combo.img} alt={`Combo ${combo.id}`} />
+                    <img 
+                      src={combo.img || '/assets/fylex-watch-v2/premium.png'} 
+                      alt={`Combo ${combo.id}`} 
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                      }}
+                    />
                   </div>
                   <div className="cfg-combo-details">
                     <span className="cfg-combo-name">{combo.name}</span>

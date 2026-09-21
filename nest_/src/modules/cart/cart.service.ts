@@ -368,7 +368,7 @@ export class CartService {
     let discount = 0;
 
     if (cart.offerId && cart.offer) {
-       discount = this.marketingService.calculateDiscount(cart.offer, subtotal);
+       discount = this.marketingService.calculateDiscount(cart.offer, subtotal, cart.items);
     }
 
     await this.prisma.cart.update({

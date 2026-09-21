@@ -20,6 +20,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    */
   async syncAllSequences() {
     try {
+      // Auto-ensure required columns exist
+      await this.$executeRawUnsafe(`ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "sort_order" INTEGER DEFAULT 0;`).catch(() => {});
+      await this.$executeRawUnsafe(`ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "video_url" TEXT;`).catch(() => {});
+      await this.$executeRawUnsafe(`ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "theme" VARCHAR(255);`).catch(() => {});
+      await this.$executeRawUnsafe(`ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "discover_hero_bg_image" TEXT;`).catch(() => {});
+
       const sql = `
         DO $$
         DECLARE
@@ -37,7 +43,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         END $$;
       `;
       await this.$executeRawUnsafe(sql);
-      this.logger.log('PostgreSQL auto-increment sequences synchronized successfully.');
+      this.logger.log('PostgreSQL auto-increment sequences and schema columns synchronized successfully.');
     } catch (error) {
       this.logger.warn(`Failed to auto-sync database sequences: ${error?.message || error}`);
     }

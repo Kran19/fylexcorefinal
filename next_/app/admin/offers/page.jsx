@@ -59,23 +59,34 @@ const OffersPage = () => {
       formatter: (cell) => `<span style="font-weight:600;color:#94a3b8">#${cell.getValue()}</span>`,
     },
     {
-      title: 'OFFER / CODE', field: 'name', minWidth: 240,
+      title: 'OFFER / CODE', field: 'name', minWidth: 260,
       formatter: (cell) => {
         const d = cell.getRow().getData();
-        const badgeBg = d.couponType === 'one_time' ? '#fef3c7' : (d.couponType === 'user_specific' ? '#dbeafe' : '#f1f5f9');
-        const badgeText = d.couponType === 'one_time' ? '#92400e' : (d.couponType === 'user_specific' ? '#1e40af' : '#475569');
-        const badgeLabel = (d.couponType || 'public').replace('_', ' ').toUpperCase();
+        const typeColors = {
+          new_user: { bg: '#dcfce7', text: '#15803d', label: 'NEW USERS ONLY' },
+          friends: { bg: '#f3e8ff', text: '#7e22ce', label: 'FRIENDS & VIP' },
+          one_time: { bg: '#fef3c7', text: '#92400e', label: 'ONE-TIME' },
+          user_specific: { bg: '#e0e7ff', text: '#3730a3', label: 'PRIVATE' },
+          public: { bg: '#f1f5f9', text: '#475569', label: 'ALL USERS' }
+        };
+        const badge = typeColors[d.couponType] || typeColors.public;
         
         return `<div style="padding:4px 0">
           <div style="font-weight:800;color:#1e293b;font-size:14px">${d.name || '—'}</div>
-          <div style="font-family:'SF Mono',monospace;font-size:11px;font-weight:700;color:#6366f1;margin-top:2px">${d.code || 'NO CODE'} <span style="margin-left:6px;padding:2px 6px;border-radius:4px;background:${badgeBg};color:${badgeText};font-size:9px;">${badgeLabel}</span></div>
+          <div style="font-family:'SF Mono',monospace;font-size:11px;font-weight:700;color:#6366f1;margin-top:2px">${d.code || 'NO CODE'} <span style="margin-left:6px;padding:2px 6px;border-radius:4px;background:${badge.bg};color:${badge.text};font-size:9px;font-weight:700">${badge.label}</span></div>
         </div>`;
       },
     },
     {
-      title: 'DISCOUNT', field: 'discountValue', width: 140, hozAlign: 'center',
+      title: 'DISCOUNT RULE', field: 'discountValue', width: 170, hozAlign: 'center',
       formatter: (cell) => {
         const d = cell.getRow().getData();
+        if (d.offerType === 'single_item_100' || d.offerType === 'single_watch_free' || d.couponType === 'single_item_free') {
+          return `<div style="text-align:center"><div style="font-weight:800;color:#8b5cf6;font-size:13px;background:#f5f3ff;padding:3px 8px;border-radius:6px;border:1px solid #ddd6fe">HIGHEST WATCH FREE</div><div style="font-size:9px;color:#6d28d9;font-weight:700;margin-top:2px">₹0 FOR MAX VALUE ITEM</div></div>`;
+        }
+        if (d.offerType === 'entire_cart_100' || d.offerType === 'all_items_free' || (d.offerType === 'percentage' && Number(d.discountValue) === 100)) {
+          return `<div style="text-align:center"><div style="font-weight:800;color:#059669;font-size:13px;background:#ecfdf5;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0">100% CART FREE</div><div style="font-size:9px;color:#047857;font-weight:700;margin-top:2px">ALL ITEMS ₹0</div></div>`;
+        }
         const isPerc = d.offerType === 'percentage';
         return `<div style="text-align:center"><div style="font-weight:800;color:#10b981;font-size:15px">${!isPerc ? '₹' : ''}${cell.getValue()}${isPerc ? '%' : ''}</div><div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase">${d.offerType}</div></div>`;
       },
@@ -139,7 +150,7 @@ const OffersPage = () => {
             code: d.code || '',
             offerType: d.offerType || 'percentage',
             couponType: d.couponType || 'public',
-            discountValue: d.discountValue?.toString() || '',
+            discountValue: d.discountValue?.toString() || (d.offerType === 'single_item_100' || d.offerType === 'entire_cart_100' ? '100' : ''),
             startsAt: d.startsAt ? new Date(d.startsAt).toISOString().split('T')[0] : '',
             endsAt: d.endsAt ? new Date(d.endsAt).toISOString().split('T')[0] : '',
             description: d.description || '',
@@ -157,6 +168,16 @@ const OffersPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Auto-fill discountValue for 100% rules
+    if (name === 'offerType') {
+      if (value === 'single_item_100' || value === 'entire_cart_100') {
+        setForm(prev => ({ ...prev, offerType: value, discountValue: '100' }));
+        if (formErrors.discountValue) setFormErrors(prev => ({ ...prev, discountValue: null }));
+        return;
+      }
+    }
+
     // Special validation for discountValue if percentage
     if (name === 'discountValue' && form.offerType === 'percentage') {
       if (value !== '' && (!/^\d+$/.test(value) || parseInt(value) > 100)) return;
@@ -179,7 +200,10 @@ const OffersPage = () => {
     const errs = {};
     if (!form.name.trim()) errs.name = 'Offer name is required';
     if (!form.code.trim()) errs.code = 'Coupon code is required';
-    if (!form.discountValue || isNaN(form.discountValue)) errs.discountValue = 'Valid discount value is required';
+    const isFreeType = form.offerType === 'single_item_100' || form.offerType === 'entire_cart_100';
+    if (!isFreeType && (!form.discountValue || isNaN(form.discountValue))) {
+      errs.discountValue = 'Valid discount value is required';
+    }
     return errs;
   };
 
@@ -189,9 +213,10 @@ const OffersPage = () => {
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
 
     setSubmitting(true);
+    const isFreeType = form.offerType === 'single_item_100' || form.offerType === 'entire_cart_100';
     const payload = {
       ...form,
-      discountValue: parseFloat(form.discountValue || 0),
+      discountValue: isFreeType ? 100 : parseFloat(form.discountValue || 0),
       maxUses: form.maxUses ? parseInt(form.maxUses) : null,
       status: form.isActive ? 1 : 0
     };
@@ -242,8 +267,8 @@ const OffersPage = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader
-        title="Promotional Offers"
-        subtitle="Manage discounts, coupons and campaign validity."
+        title="Promotional Offers & Coupons"
+        subtitle="Manage discount codes, Free Watch campaigns, and customer targeting rules."
         action={{ label: 'Add New Offer', icon: 'fas fa-plus', onClick: () => setShowForm(true) }}
       />
 
@@ -295,11 +320,11 @@ const OffersPage = () => {
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             <div style={{ gridColumn: '1 / -1' }}>
-              <FormField label="Campaign/Offer Name" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Festive Flash Sale" required error={formErrors.name} />
+              <FormField label="Campaign/Offer Name" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Free Watch Offer / Festive Sale" required error={formErrors.name} />
             </div>
 
             <div>
-              <FormField label="Coupon Code" name="code" value={form.code} onChange={handleChange} placeholder="e.g. FLASH30" required error={formErrors.code} />
+              <FormField label="Coupon Code" name="code" value={form.code} onChange={handleChange} placeholder="e.g. FREEWATCH, FYLEX100" required error={formErrors.code} />
               <button
                 type="button"
                 onClick={generateCode}
@@ -319,38 +344,57 @@ const OffersPage = () => {
             />
 
             <FormField
-              label="Discount Type"
+              label="Discount / Offer Rule"
               name="offerType"
               type="select"
               value={form.offerType}
               onChange={handleChange}
-              options={[{ value: 'percentage', label: 'Percentage (%)' }, { value: 'fixed', label: 'Fixed Amount (₹)' }]}
+              options={[
+                { value: 'single_item_100', label: '🌟 Single Highest Watch Free (₹0 Highest Item)' },
+                { value: 'entire_cart_100', label: '🎁 Entire Cart 100% Free (Total Cart ₹0)' },
+                { value: 'percentage', label: '📊 Percentage Discount (%)' },
+                { value: 'fixed', label: '💵 Fixed Amount Discount (₹)' }
+              ]}
             />
             
             <FormField
-              label="Coupon Type"
+              label="Target Audience / Visibility"
               name="couponType"
               type="select"
               value={form.couponType}
               onChange={handleChange}
               options={[
-                { value: 'public', label: 'Public Coupon (Multi-use)' }, 
-                { value: 'one_time', label: 'One-Time Coupon (Single use total)' },
-                { value: 'user_specific', label: 'User-Specific Coupon' }
+                { value: 'public', label: '🌐 All Customers (Public / Live)' }, 
+                { value: 'new_user', label: '👤 New Customers Only (1st Order)' },
+                { value: 'friends', label: '🤝 Friends & Family / VIP Special' },
+                { value: 'one_time', label: '⚡ One-Time Use (Single Use Total)' },
+                { value: 'user_specific', label: '🔒 Private / Hidden (Code Only)' }
               ]}
             />
 
-            <FormField
-              label={form.offerType === 'percentage' ? 'Discount Percentage (%)' : 'Fixed Amount (₹)'}
-              name="discountValue"
-              type="text"
-              value={form.discountValue}
-              onChange={handleChange}
-              placeholder={form.offerType === 'percentage' ? 'Max 99' : 'e.g. 1000'}
-              hint={form.offerType === 'percentage' ? "Max 2 digits (e.g., 30)" : ""}
-              required
-              error={formErrors.discountValue}
-            />
+            {form.offerType === 'single_item_100' ? (
+              <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-purple-900 text-xs flex flex-col justify-center">
+                <span className="font-bold mb-1">Highest Value Watch Free (₹0)</span>
+                <span>The highest priced watch in customer's cart will be 100% free. Customer only pays for remaining watches.</span>
+              </div>
+            ) : form.offerType === 'entire_cart_100' ? (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-xs flex flex-col justify-center">
+                <span className="font-bold mb-1">Entire Cart 100% Off (₹0)</span>
+                <span>Customer cart total becomes ₹0 regardless of how many watches are added.</span>
+              </div>
+            ) : (
+              <FormField
+                label={form.offerType === 'percentage' ? 'Discount Percentage (%)' : 'Fixed Amount (₹)'}
+                name="discountValue"
+                type="text"
+                value={form.discountValue}
+                onChange={handleChange}
+                placeholder={form.offerType === 'percentage' ? 'e.g. 20' : 'e.g. 1000'}
+                hint={form.offerType === 'percentage' ? "Percentage from 1 to 100" : "Amount in ₹"}
+                required
+                error={formErrors.discountValue}
+              />
+            )}
 
             <FormField label="Usage Limit (Expires after X uses)" name="maxUses" type="number" value={form.maxUses} onChange={handleChange} placeholder="Unlimited if empty" />
 

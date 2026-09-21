@@ -1156,7 +1156,15 @@ const Products = () => {
                 <Link href={`/explore?watch=${col.id}`} className="p-watch-wrap">
                   <div className="p-watch-canvas">
                     <div className="p-diffusion-glow"></div>
-                    <img src={col.image} alt={col.title} className="p-watch-image" />
+                    <img 
+                      src={col.image || '/assets/fylex-watch-v2/premium.png'} 
+                      alt={col.title} 
+                      className="p-watch-image" 
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                      }}
+                    />
                     <div className="p-soft-shadow"></div>
                   </div>
                 </Link>
@@ -1224,7 +1232,15 @@ const Products = () => {
                     }
                   }}>
                     <div style={{ width: '56px', height: '56px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <img src={combo.img || activeModalData.heroImage || activeModalData.image} alt={combo.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                      <img 
+                        src={combo.img || activeModalData.heroImage || activeModalData.image || '/assets/fylex-watch-v2/premium.png'} 
+                        alt={combo.name} 
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                        }}
+                      />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#fff' }}>{combo.name}</span>

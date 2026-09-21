@@ -62,7 +62,15 @@ export default function DataTable({
     if (!tableRef.current || loading) return;
 
     isBuiltRef.current = false;
-    tabulatorRef.current?.destroy();
+    if (tabulatorRef.current) {
+      try {
+        tabulatorRef.current.destroy();
+      } catch (err) {}
+      tabulatorRef.current = null;
+    }
+    if (tableRef.current) {
+      tableRef.current.innerHTML = '';
+    }
 
     const instance = new Tabulator(tableRef.current, {
       data: filteredData,
@@ -92,8 +100,10 @@ export default function DataTable({
 
     instance.on("tableBuilt", () => {
       isBuiltRef.current = true;
-      if (tabulatorRef.current) {
-        tabulatorRef.current.redraw(true);
+      if (tabulatorRef.current && tableRef.current && tableRef.current.offsetWidth) {
+        try {
+          tabulatorRef.current.redraw(true);
+        } catch (err) {}
       }
     });
 
@@ -101,7 +111,9 @@ export default function DataTable({
 
     return () => {
       isBuiltRef.current = false;
-      instance.destroy();
+      try {
+        instance.destroy();
+      } catch (err) {}
       tabulatorRef.current = null;
     };
   }, [loading]);

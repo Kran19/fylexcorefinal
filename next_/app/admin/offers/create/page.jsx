@@ -39,7 +39,10 @@ const CreateOffer = () => {
     const errs = {};
     if (!form.name.trim()) errs.name = 'Offer name is required';
     if (!form.code.trim()) errs.code = 'Coupon code is required';
-    if (!form.value || isNaN(form.value) || Number(form.value) <= 0) errs.value = 'Enter a valid discount value';
+    const isFree = form.type === 'single_item_100' || form.type === 'entire_cart_100';
+    if (!isFree && (!form.value || isNaN(form.value) || Number(form.value) <= 0)) {
+      errs.value = 'Enter a valid discount value';
+    }
     if (form.maxUses && (isNaN(form.maxUses) || Number(form.maxUses) < 1)) errs.maxUses = 'Max uses must be at least 1';
     return errs;
   };
@@ -133,42 +136,66 @@ const CreateOffer = () => {
                   </div>
 
                   <FormField
-                    label="Discount Type"
+                    label="Discount / Offer Rule"
                     name="type"
                     type="select"
                     value={form.type}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm(prev => ({
+                        ...prev,
+                        type: val,
+                        value: (val === 'single_item_100' || val === 'entire_cart_100') ? '100' : prev.value
+                      }));
+                      if (errors.value) setErrors(prev => ({ ...prev, value: null }));
+                    }}
                     options={[
-                      { value: 'percentage', label: 'Percentage (%)' },
-                      { value: 'fixed', label: 'Fixed Amount (₹)' }
+                      { value: 'single_item_100', label: '🌟 Single Highest Watch Free (₹0 Highest Item)' },
+                      { value: 'entire_cart_100', label: '🎁 Entire Cart 100% Free (Total Cart ₹0)' },
+                      { value: 'percentage', label: '📊 Percentage Discount (%)' },
+                      { value: 'fixed', label: '💵 Fixed Amount Discount (₹)' }
                     ]}
                   />
                   
                   <FormField
-                    label="Coupon Type"
+                    label="Target Audience / Visibility"
                     name="couponType"
                     type="select"
                     value={form.couponType}
                     onChange={handleChange}
                     options={[
-                      { value: 'public', label: 'Public Coupon (Multi-use)' }, 
-                      { value: 'one_time', label: 'One-Time Coupon (Single use total)' },
-                      { value: 'user_specific', label: 'User-Specific Coupon' }
+                      { value: 'public', label: '🌐 All Customers (Public / Live)' }, 
+                      { value: 'new_user', label: '👤 New Customers Only (1st Order)' },
+                      { value: 'friends', label: '🤝 Friends & Family / VIP Special' },
+                      { value: 'one_time', label: '⚡ One-Time Use (Single Use Total)' },
+                      { value: 'user_specific', label: '🔒 Private / Hidden (Code Only)' }
                     ]}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-                  <FormField
-                    label={form.type === 'percentage' ? 'Discount %' : 'Discount Value (₹)'}
-                    name="value"
-                    type="number"
-                    value={form.value}
-                    onChange={handleChange}
-                    placeholder="e.g. 20"
-                    required
-                    error={errors.value}
-                  />
+                  {form.type === 'single_item_100' ? (
+                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-purple-900 text-xs flex flex-col justify-center">
+                      <span className="font-bold mb-1">Highest Value Watch Free (₹0)</span>
+                      <span>The highest priced watch in cart becomes 100% free. Customer only pays for other items.</span>
+                    </div>
+                  ) : form.type === 'entire_cart_100' ? (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-xs flex flex-col justify-center">
+                      <span className="font-bold mb-1">Entire Cart 100% Off (₹0)</span>
+                      <span>Total cart amount becomes ₹0 regardless of how many watches are added.</span>
+                    </div>
+                  ) : (
+                    <FormField
+                      label={form.type === 'percentage' ? 'Discount %' : 'Discount Value (₹)'}
+                      name="value"
+                      type="number"
+                      value={form.value}
+                      onChange={handleChange}
+                      placeholder="e.g. 20"
+                      required
+                      error={errors.value}
+                    />
+                  )}
 
                   <FormField
                     label="Max Uses (Optional)"

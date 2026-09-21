@@ -56,9 +56,18 @@ export class MarketingService {
       }
     }
 
-    // 5. One-Time Coupon check
+    // 5. Target Audience & One-Time Coupon check
     if (offer.couponType === 'one_time' && offer.usedCount >= 1) {
       throw new BadRequestException('This one-time coupon has already been used');
+    }
+
+    if (offer.couponType === 'new_user' && cId) {
+      const orderCount = await this.prisma.order.count({
+        where: { customerId: cId },
+      });
+      if (orderCount > 0) {
+        throw new BadRequestException('This coupon code is valid for new customers on their first purchase only');
+      }
     }
 
     return {
@@ -264,29 +273,51 @@ export class MarketingService {
   // Calculate discount for an offer
   calculateDiscount(offer: any, cartAmount: number, items: any[] = []): number {
     let discount = 0;
-    const amount = Number(cartAmount);
+    const amount = Number(cartAmount || 0);
     const discountVal = Number(offer.discountValue || 0);
+    const offerType = offer.offerType || offer.type || 'percentage';
+    const couponType = offer.couponType || 'public';
 
-    // 100% Watch / Single Item Free Rule:
-    // If offer discount is 100% (or single item free offer), discount equals 100% of the HIGHEST priced item in the cart
-    if (discountVal === 100 || offer.offerType === 'single_item_100' || offer.couponType === '100_percent') {
+    // Option 1: Single Highest-Priced Watch / Item Free (₹0 for highest item)
+    if (offerType === 'single_item_100' || offerType === 'single_watch_free' || couponType === 'single_item_free') {
       if (Array.isArray(items) && items.length > 0) {
-        const itemPrices = items.map(item => Number(item.price || item.unitPrice || item.sellingPrice || item.productVariant?.price || 0));
-        const highestPrice = Math.max(...itemPrices, 0);
+        const unitPrices: number[] = [];
+        for (const item of items) {
+          const price = Number(
+            item.unitPrice ??
+            item.price ??
+            item.sellingPrice ??
+            item.productVariant?.price ??
+            (item.total && item.quantity ? item.total / item.quantity : 0)
+          );
+          const qty = Math.max(1, Number(item.quantity || 1));
+          for (let i = 0; i < qty; i++) {
+            unitPrices.push(price);
+          }
+        }
+        const highestPrice = unitPrices.length > 0 ? Math.max(...unitPrices, 0) : 0;
         discount = highestPrice > 0 ? highestPrice : amount;
       } else {
         discount = amount;
       }
-    } else if (offer.offerType === 'percentage') {
+    }
+    // Option 2: Entire Cart 100% Free (Cart Total becomes ₹0 for all watches)
+    else if (offerType === 'entire_cart_100' || offerType === 'all_items_free' || (offerType === 'percentage' && discountVal === 100)) {
+      discount = amount;
+    }
+    // Option 3: Standard Percentage Discount (e.g. 10%, 20%, 50%)
+    else if (offerType === 'percentage') {
       discount = (amount * discountVal) / 100;
       if (offer.maxDiscount) {
         discount = Math.min(discount, Number(offer.maxDiscount));
       }
-    } else if (offer.offerType === 'fixed') {
+    }
+    // Option 4: Fixed Amount Discount (e.g. ₹500 off)
+    else if (offerType === 'fixed') {
       discount = discountVal;
     }
 
-    return Math.min(discount, amount);
+    return Math.max(0, Math.min(discount, amount));
   }
 
   // Track coupon usage

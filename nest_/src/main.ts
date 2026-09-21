@@ -76,12 +76,29 @@ async function bootstrap() {
     next();
   });
   
-  // Serve static uploads under both /uploads/ and /api/uploads/
+  // Serve static uploads under both /uploads/ and /api/uploads/ with automatic fallback
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/api/uploads/',
+  });
+
+  // Fallback for missing local upload files
+  app.use(['/uploads', '/api/uploads'], (req: any, res: any, next: any) => {
+    const rawPath = req.path.replace(/^\/+/, '');
+    const cleanFileName = rawPath.replace(/^(api\/)?uploads\//, '');
+    const localFilePath = join(process.cwd(), 'uploads', cleanFileName);
+
+    if (fs.existsSync(localFilePath) && fs.statSync(localFilePath).isFile()) {
+      return res.sendFile(localFilePath);
+    }
+
+    const fallbackPath = join(process.cwd(), 'uploads/premium.png');
+    if (fs.existsSync(fallbackPath)) {
+      return res.sendFile(fallbackPath);
+    }
+    next();
   });
   
   // Enable CORS
