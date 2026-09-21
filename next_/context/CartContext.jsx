@@ -70,9 +70,11 @@ export function CartProvider({ children }) {
     }).filter(Boolean);
 
     setItems(mapped);
+    const subtotalFromItems = mapped.reduce((sum, item) => sum + (Number(item.total) || (Number(item.unitPrice) * Number(item.qty || 1))), 0);
+    const calculatedSubtotal = Number(data?.subtotal) > 0 ? Number(data.subtotal) : subtotalFromItems;
     setTotals({
-        subtotal: Number(data?.subtotal || 0),
-        grandTotal: Number(data?.grandTotal || 0)
+        subtotal: calculatedSubtotal,
+        grandTotal: Number(data?.grandTotal) > 0 ? Number(data.grandTotal) : calculatedSubtotal
     });
   };
 

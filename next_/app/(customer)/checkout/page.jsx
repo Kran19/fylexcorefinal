@@ -20,12 +20,13 @@ const Checkout = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   
   // SERVER-SIDE TRUTH
+  const initialItemsSubtotal = items.reduce((s, i) => s + (Number(i.total) || (Number(i.unitPrice) * Number(i.qty || 1))), 0);
   const [totals, setTotals] = useState({
-      subtotal: cartTotals.subtotal || 0,
+      subtotal: cartTotals.subtotal || initialItemsSubtotal || 0,
       shipping: 0,
       tax: 0,
       discount: 0,
-      total: cartTotals.subtotal || 0
+      total: cartTotals.subtotal || initialItemsSubtotal || 0
   });
   const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState(null);
@@ -136,7 +137,9 @@ const Checkout = () => {
         // Call API even with incomplete pincode to get latest subtotal/tax/discount
         const res = await calculateTotalApi(currentUserId, formData.postalCode.length === 6 ? formData.postalCode : null, formData.couponCode, useCredits);
         
-        if (res.success) {
+        const fallbackSubtotal = items.reduce((s, i) => s + (Number(i.total) || (Number(i.unitPrice) * Number(i.qty || 1))), 0);
+
+        if (res.success && res.data && res.data.subtotal > 0) {
             setTotals(res.data);
             setIsServiceable(res.data.serviceable !== false);
             setIsCodAvailable(res.data.codAvailable !== false);
@@ -152,12 +155,16 @@ const Checkout = () => {
                 setFormData(prev => ({ ...prev, paymentMethod: 'razorpay' }));
             }
         } else {
-            // Fallback to cart totals if API fails
+            // Accurate fallback to item total sum
             setTotals(prev => ({
                 ...prev,
-                subtotal: cartTotals.subtotal,
+                subtotal: fallbackSubtotal,
                 shipping: 0,
-                total: cartTotals.subtotal
+                tax: 0,
+                discount: 0,
+                couponDiscount: 0,
+                creditDiscount: 0,
+                total: fallbackSubtotal
             }));
         }
         setIsCalculating(false);
@@ -626,41 +633,89 @@ const Checkout = () => {
                 </div>
               )}
 
-              <div className="coupon-section" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                 <div style={{ display: 'flex', gap: '8px' }}>
-                   <input 
-                     type="text" 
-                     value={couponInput} 
-                     onChange={(e) => {
-                         setCouponInput(e.target.value);
-                         if (e.target.value.trim() === '') {
-                             setFormData(prev => ({ ...prev, couponCode: '' }));
-                         }
-                     }} 
-                     placeholder="Gift card or discount code" 
-                     style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid #333', background: '#000', color: '#fff', fontSize: '13px' }}
-                   />
-                   <button 
-                     type="button" 
-                     style={{ padding: '0 20px', borderRadius: '8px', background: formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0 ? '#ef4444' : '#333', color: 'white', fontWeight: 600, fontSize: '12px', cursor: 'pointer', border: 'none', transition: 'background 0.3s' }}
-                     onClick={() => {
-                         const isValidAndApplied = formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0;
-                         if (isValidAndApplied) {
-                             setCouponInput('');
-                             setFormData(prev => ({ ...prev, couponCode: '' }));
-                         } else {
-                             setFormData(prev => ({ ...prev, couponCode: couponInput.trim() }));
-                         }
-                     }}
-                   >
-                     {isCalculating ? 'Wait...' : (formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0 ? 'Remove' : 'Apply')}
-                   </button>
-                 </div>
-                 {couponErrorMsg && (
-                   <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 500, paddingLeft: '4px' }}>
-                     {couponErrorMsg}
-                   </span>
-                 )}
+              {/* Luxury Coupon & Promo Section */}
+              <div className="coupon-container">
+                <div className={`coupon-input-bar ${formData.couponCode && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0 ? 'is-active' : ''}`}>
+                  <div className="coupon-input-left">
+                    <i className="fas fa-tag coupon-bar-icon"></i>
+                    <input 
+                      type="text" 
+                      value={couponInput} 
+                      onChange={(e) => {
+                          const val = e.target.value.toUpperCase();
+                          setCouponInput(val);
+                          if (val.trim() === '') {
+                              setFormData(prev => ({ ...prev, couponCode: '' }));
+                          }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          const isValidAndApplied = formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0;
+                          if (!isValidAndApplied && couponInput.trim()) {
+                            setFormData(prev => ({ ...prev, couponCode: couponInput.trim() }));
+                          }
+                        }
+                      }}
+                      placeholder="GIFT CARD OR PROMO CODE" 
+                      className="coupon-field"
+                    />
+                  </div>
+                  <button 
+                    type="button" 
+                    className={`coupon-btn ${formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0 ? 'coupon-btn-remove' : 'coupon-btn-apply'}`}
+                    disabled={isCalculating || (!formData.couponCode && !couponInput.trim())}
+                    onClick={() => {
+                        const isValidAndApplied = formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0;
+                        if (isValidAndApplied) {
+                            setCouponInput('');
+                            setFormData(prev => ({ ...prev, couponCode: '' }));
+                        } else if (couponInput.trim()) {
+                            setFormData(prev => ({ ...prev, couponCode: couponInput.trim() }));
+                        }
+                    }}
+                  >
+                    {isCalculating ? (
+                      <i className="fas fa-spinner fa-spin"></i>
+                    ) : (formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0) ? (
+                      <>
+                        <i className="fas fa-times"></i>
+                        <span>Remove</span>
+                      </>
+                    ) : (
+                      <span>Apply</span>
+                    )}
+                  </button>
+                </div>
+
+                {couponErrorMsg && (
+                  <div className="coupon-error-banner">
+                    <i className="fas fa-exclamation-circle"></i>
+                    <span>{couponErrorMsg}</span>
+                  </div>
+                )}
+
+                {/* Sleek Applied Coupon Card */}
+                {Boolean(formData.couponCode && formData.couponCode === couponInput.trim() && !couponErrorMsg && (totals.couponDiscount || totals.discount) > 0) && (
+                  <div className="applied-coupon-card">
+                    <div className="applied-coupon-content">
+                      <div className="applied-coupon-header">
+                        <span className="coupon-badge-pill">
+                          <i className="fas fa-tag"></i> {formData.couponCode}
+                        </span>
+                        <span className="coupon-saving-badge">
+                          SAVED ₹{Math.round(totals.couponDiscount || totals.discount).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="applied-coupon-desc">
+                        {totals.offerDescription || 'Special promotional discount applied to your order.'}
+                      </div>
+                    </div>
+                    <div className="applied-coupon-val">
+                      -₹{Math.round(totals.couponDiscount || totals.discount).toLocaleString()}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="summary-lines">
@@ -681,33 +736,13 @@ const Checkout = () => {
                   </div>
                 )}
                 {totals.creditDiscount > 0 && (
-                  <div style={{ padding: '10px 14px', background: 'rgba(212, 175, 55, 0.1)', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)', marginTop: '8px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#d4af37', fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="applied-credits-card">
+                    <span className="credits-label">
                       ✨ FYLEX Credits Applied
                     </span>
-                    <span style={{ color: '#d4af37', fontWeight: 700, fontSize: '13px' }}>
+                    <span className="credits-val">
                       -₹{Math.round(totals.creditDiscount).toLocaleString()}
                     </span>
-                  </div>
-                )}
-                {(totals.couponDiscount || (totals.discount && !totals.creditDiscount)) > 0 && (
-                  <div style={{ padding: '12px', background: '#ecfdf5', borderRadius: '8px', border: '1px dashed #10b981', marginTop: '12px', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                      <span style={{ color: '#047857', fontWeight: 600, fontSize: '13px' }}>
-                        <i className="fas fa-tag mr-2"></i> Coupon Applied: {formData.couponCode}
-                      </span>
-                      <span style={{ color: '#047857', fontWeight: 700, fontSize: '14px' }}>
-                        -₹{Math.round(totals.couponDiscount || totals.discount).toLocaleString()}
-                      </span>
-                    </div>
-                    <div style={{ color: '#059669', fontSize: '11px', fontWeight: 500 }}>
-                      You Saved ₹{Math.round(totals.couponDiscount || totals.discount).toLocaleString()}!
-                    </div>
-                    {totals.offerDescription && (
-                      <div style={{ color: '#047857', fontSize: '11px', marginTop: '6px', fontStyle: 'italic', borderTop: '1px solid rgba(16, 185, 129, 0.2)', paddingTop: '4px' }}>
-                        {totals.offerDescription}
-                      </div>
-                    )}
                   </div>
                 )}
                 <div className="summary-line total">
@@ -879,6 +914,105 @@ const Checkout = () => {
         .summary-line { display: flex; justify-content: space-between; font-size: 13px; color: #ffffff; margin-bottom: 12px; }
         .summary-line.total { font-weight: 700; font-size: 16px; color: #ffffff; margin-top: 8px; }
         .free-tag { color: #ffffff; font-weight: 700; }
+
+        /* Luxury Coupon & Promo Bar Styling */
+        .coupon-container {
+          margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;
+        }
+        .coupon-input-bar {
+          display: flex; align-items: center; justify-content: space-between;
+          background: #000000; border: 1px solid #2e2e2e; border-radius: 12px;
+          padding: 4px 5px 4px 14px; transition: all 0.25s ease; gap: 8px;
+        }
+        .coupon-input-bar:focus-within {
+          border-color: #ffffff; box-shadow: 0 0 0 1px #ffffff;
+        }
+        .coupon-input-bar.is-active {
+          border-color: rgba(16, 185, 129, 0.4);
+        }
+        .coupon-input-left {
+          display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+        }
+        .coupon-bar-icon {
+          color: #71717a; font-size: 13px; flex-shrink: 0;
+        }
+        .coupon-field {
+          width: 100%; background: transparent; border: none; outline: none;
+          color: #ffffff; font-size: 12px; font-weight: 600;
+          letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 0;
+        }
+        .coupon-field::placeholder {
+          color: #52525b; font-weight: 500; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase;
+        }
+        .coupon-btn {
+          border: none; border-radius: 8px; font-size: 11px; font-weight: 700;
+          text-transform: uppercase; letter-spacing: 0.08em; padding: 9px 16px;
+          cursor: pointer; transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+          flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+        }
+        .coupon-btn-apply {
+          background: #ffffff; color: #000000;
+        }
+        .coupon-btn-apply:hover:not(:disabled) {
+          background: #e4e4e7; transform: translateY(-1px);
+        }
+        .coupon-btn-apply:disabled {
+          background: #1f1f23; color: #52525b; cursor: not-allowed;
+        }
+        .coupon-btn-remove {
+          background: rgba(239, 68, 68, 0.12); color: #f87171;
+          border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+        .coupon-btn-remove:hover {
+          background: rgba(239, 68, 68, 0.25); color: #ffffff; border-color: #ef4444;
+          transform: translateY(-1px);
+        }
+        .coupon-error-banner {
+          display: flex; align-items: center; gap: 6px; color: #f87171;
+          font-size: 11px; font-weight: 500; padding: 2px 6px; animation: fadeIn 0.3s ease;
+        }
+        .applied-coupon-card {
+          background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.04) 100%);
+          border: 1px solid rgba(16, 185, 129, 0.28); border-radius: 12px;
+          padding: 12px 14px; display: flex; justify-content: space-between;
+          align-items: center; margin-top: 4px; animation: fadeIn 0.3s ease;
+        }
+        .applied-coupon-content {
+          display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1;
+        }
+        .applied-coupon-header {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .coupon-badge-pill {
+          display: inline-flex; align-items: center; gap: 6px;
+          background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 11px;
+          font-weight: 700; font-family: 'SF Mono', monospace; padding: 3px 8px;
+          border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .coupon-saving-badge {
+          font-size: 10px; font-weight: 700; color: #6ee7b7;
+          text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .applied-coupon-desc {
+          font-size: 11px; color: #a7f3d0; font-style: italic;
+          line-height: 1.3; margin-top: 2px;
+        }
+        .applied-coupon-val {
+          font-size: 14px; font-weight: 800; color: #34d399;
+          white-space: nowrap; margin-left: 12px;
+        }
+        .applied-credits-card {
+          padding: 10px 14px; background: rgba(212, 175, 55, 0.08);
+          border-radius: 10px; border: 1px solid rgba(212, 175, 55, 0.25);
+          margin: 8px 0; display: flex; justify-content: space-between; align-items: center;
+        }
+        .credits-label {
+          color: #d4af37; font-weight: 600; font-size: 12px;
+          display: flex; align-items: center; gap: 6px;
+        }
+        .credits-val {
+          color: #d4af37; font-weight: 700; font-size: 13px;
+        }
 
         .trust-badge-mini {
           display: flex; align-items: center; justify-content: center; gap: 8px;

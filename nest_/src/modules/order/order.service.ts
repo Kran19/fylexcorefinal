@@ -48,9 +48,11 @@ export class OrderService {
     }
 
     // 2. Validate Coupon
-    let appliedOffer = cart.offer;
-    if (dto.couponCode) {
-      appliedOffer = await this.marketingService.validateCoupon(customerId, dto.couponCode, Number(cart.subtotal));
+    let appliedOffer = null;
+    if (dto.couponCode && dto.couponCode.trim()) {
+      appliedOffer = await this.marketingService.validateCoupon(customerId, dto.couponCode.trim(), Number(cart.subtotal));
+    } else if (cart.offer && cart.offer.isAutoApply) {
+      appliedOffer = cart.offer;
     }
 
     // 3. Handle Loyalty Points Redemption
@@ -1361,19 +1363,65 @@ export class OrderService {
 
   async calculateOrderTotal(customerId: string, pincode?: string, couponCode?: string, useCredits: boolean = true) {
     const customerIdStr = customerId?.toString() || '';
-    const isNumeric = !isNaN(Number(customerIdStr)) && !customerIdStr.includes('usr_') && customerIdStr !== '';
+    const isNumeric = !isNaN(Number(customerIdStr)) && !customerIdStr.includes('usr_') && !customerIdStr.includes('gst_') && customerIdStr !== '';
     const cId = isNumeric ? Number(customerIdStr) : null;
 
-    const cart = await this.prisma.cart.findFirst({
-      where: cId ? { customerId: cId, status: 'active' } : { sessionId: customerIdStr, status: 'active' },
-      include: { items: { include: { productVariant: true } }, offer: true }
+    // Prefer active cart that actually has items
+    let cart = await this.prisma.cart.findFirst({
+      where: {
+        OR: [
+          ...(cId ? [{ customerId: cId }] : []),
+          { sessionId: customerIdStr }
+        ],
+        status: 'active',
+        items: { some: {} }
+      },
+      orderBy: [
+        { updatedAt: 'desc' },
+        { id: 'desc' }
+      ],
+      include: { 
+        items: { 
+          include: { 
+            productVariant: { include: { product: true } },
+            belt: true
+          } 
+        }, 
+        offer: true 
+      }
     });
 
-    if (!cart || cart.items.length === 0) {
-      return { subtotal: 0, shipping: 0, tax: 0, discount: 0, creditDiscount: 0, availableCredits: 0, appliedCredits: 0, total: 0 };
+    if (!cart) {
+      cart = await this.prisma.cart.findFirst({
+        where: {
+          OR: [
+            ...(cId ? [{ customerId: cId }] : []),
+            { sessionId: customerIdStr }
+          ],
+          status: 'active'
+        },
+        orderBy: [
+          { updatedAt: 'desc' },
+          { id: 'desc' }
+        ],
+        include: { 
+          items: { 
+            include: { 
+              productVariant: { include: { product: true } },
+              belt: true
+            } 
+          }, 
+          offer: true 
+        }
+      });
     }
 
-    const subtotal = cart.subtotal ? Number(cart.subtotal) : 0;
+    if (!cart || cart.items.length === 0) {
+      return { subtotal: 0, shipping: 0, tax: 0, discount: 0, couponDiscount: 0, creditDiscount: 0, availableCredits: 0, appliedCredits: 0, total: 0 };
+    }
+
+    // Always compute subtotal directly from cart items
+    const subtotal = cart.items.reduce((sum, item) => sum + (Number(item.total) || (Number(item.unitPrice) * Number(item.quantity)) || 0), 0);
     let shippingTotal = 0; // FREE SHIPPING ALL OVER INDIA
     let message = 'Free Shipping All Over India';
 
@@ -1382,22 +1430,25 @@ export class OrderService {
         const rateData = await this.calculateShipping(customerId, pincode);
         message = rateData.message || 'Free Shipping All Over India';
       } catch (e) {
-        this.logger.error(`Error calculating shipping in total: ${e.message}`);
+        this.logger.warn(`Error calculating shipping in total: ${e.message}`);
       }
     }
 
     let couponDiscount = 0;
-    let appliedOffer = cart.offer;
+    let appliedOffer = null;
     let couponError = null;
 
-    if (couponCode) {
+    // Only apply coupon if explicitly passed by customer, or marked as auto-apply
+    if (couponCode && couponCode.trim()) {
       try {
-        appliedOffer = await this.marketingService.validateCoupon(customerId, couponCode, subtotal);
+        appliedOffer = await this.marketingService.validateCoupon(customerId, couponCode.trim(), subtotal);
       } catch (e) {
-        this.logger.error(`Invalid coupon: ${e.message}`);
-        appliedOffer = null; // Ignore invalid coupon
+        this.logger.warn(`Invalid coupon: ${e.message}`);
+        appliedOffer = null;
         couponError = e.message;
       }
+    } else if (cart.offer && cart.offer.isAutoApply) {
+      appliedOffer = cart.offer;
     }
 
     if (appliedOffer) {
