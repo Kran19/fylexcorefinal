@@ -48,7 +48,7 @@ export class OrderService {
     }
 
     // 2. Validate Coupon
-    let appliedOffer = null;
+    let appliedOffer: any = null;
     if (dto.couponCode && dto.couponCode.trim()) {
       appliedOffer = await this.marketingService.validateCoupon(customerId, dto.couponCode.trim(), Number(cart.subtotal));
     } else if (cart.offer && cart.offer.isAutoApply) {
@@ -1435,7 +1435,7 @@ export class OrderService {
     }
 
     let couponDiscount = 0;
-    let appliedOffer = null;
+    let appliedOffer: any = null;
     let couponError = null;
 
     // Only apply coupon if explicitly passed by customer, or marked as auto-apply
