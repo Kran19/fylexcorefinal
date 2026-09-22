@@ -52,7 +52,7 @@ const Footer = () => {
           color: #888888;
           line-height: 1.5;
           margin: 0;
-          max-width: 320px;
+          max-width: 360px;
         }
 
         .footer-gst-badge {
@@ -195,13 +195,12 @@ const Footer = () => {
             <Link href="/" className="footer-logo-v1">
               <img src="/fylex_logo_name.png" alt="Fylex" />
             </Link>
-            <p className="footer-brand-tagline">Built On Experience, Designed Around Choice.</p>
             <p className="footer-legal-ownership">
-              Fylex Watches is a brand owned and operated by <strong>Radhika Times</strong>.
+              Fylex Watches and Radhika Times is a brand owned and operated by <strong>Rajeshbhai Mohanbhai Limbasiya</strong>.
             </p>
             <div className="footer-gst-badge">
-              <span>Trade Name: <b>Fylex</b></span>
-              <span>Legal Entity: <b>Radhika Times</b></span>
+              <span>Trade Name: <b>Radhika Times</b></span>
+              <span>Legal Name: <b>Rajeshbhai Mohanbhai Limbasiya</b></span>
               <span>GSTIN: <b>24ABBPL7345R1Z6</b></span>
             </div>
           </div>
