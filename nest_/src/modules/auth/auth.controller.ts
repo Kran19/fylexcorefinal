@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
+import { ChangeAdminPasswordDto } from './dto/change-admin-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -92,6 +93,20 @@ export class AuthController {
     const result = await this.authService.validateAdmin(loginDto);
     this.logger.log(`Admin login success for email=${loginDto.email}`);
     return result;
+  }
+
+  @Post('admin/change-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async changeAdminPassword(
+    @Req() req: any,
+    @Body() changePasswordDto: ChangeAdminPasswordDto,
+  ) {
+    if (req.user?.role !== 'admin') {
+      throw new UnauthorizedException('Only administrators can access this setting');
+    }
+    this.logger.log(`Admin password change attempt for adminId=${req.user.userId}`);
+    return await this.authService.changeAdminPassword(Number(req.user.userId), changePasswordDto);
   }
 
   @Get('me')

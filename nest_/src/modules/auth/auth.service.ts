@@ -5,6 +5,7 @@ import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangeAdminPasswordDto } from './dto/change-admin-password.dto';
 import * as crypto from 'crypto';
 import * as nodemailer from 'nodemailer';
 
@@ -350,6 +351,49 @@ export class AuthService {
   async checkMobileExists(mobile: string) {
     const customer = await this.prisma.customer.findUnique({ where: { mobile } });
     return !!customer;
+  }
+
+  async changeAdminPassword(adminId: number, dto: ChangeAdminPasswordDto) {
+    const { currentPassword, newPassword, confirmPassword } = dto;
+
+    if (!currentPassword) {
+      throw new BadRequestException('Current password is required');
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new BadRequestException('New password must be at least 6 characters long');
+    }
+
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('New password and confirm password do not match');
+    }
+
+    const admin = await this.prisma.admin.findUnique({
+      where: { id: Number(adminId) },
+    });
+
+    if (!admin) {
+      throw new UnauthorizedException('Admin account not found');
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, admin.password);
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.prisma.admin.update({
+      where: { id: Number(adminId) },
+      data: {
+        password: hashedPassword,
+        passwordChangedAt: new Date(),
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Admin password updated successfully',
+    };
   }
 }
 

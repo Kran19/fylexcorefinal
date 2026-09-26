@@ -117,6 +117,7 @@ const del = (path) => request('DELETE', path);
 
 // ─── Authentication ───────────────────────────────────────────
 export const adminLogin = (credentials) => post('/auth/admin/login', credentials);
+export const changeAdminPassword = (data) => post('/auth/admin/change-password', data);
 export const adminLogout = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('admin_token');

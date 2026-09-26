@@ -10,18 +10,20 @@ import ErrorBanner from "@/components/admin/ui/ErrorBanner";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
 import { useToast } from "@/context/ToastContext";
 
-const TAB_KEYS = ["general", "branding", "seo", "payment"];
+const TAB_KEYS = ["general", "branding", "seo", "payment", "security"];
 const TAB_LABELS = {
   general: "General & Contact",
   branding: "Branding & Assets",
   seo: "SEO & Analytics",
   payment: "Payments & Shipping",
+  security: "Security & Admin Password",
 };
 const TAB_ICONS = {
   general: "fas fa-store",
   branding: "fas fa-palette",
   seo: "fas fa-search",
   payment: "fas fa-credit-card",
+  security: "fas fa-shield-alt",
 };
 
 const defaultFormState = {
@@ -57,6 +59,81 @@ const SettingsPage = () => {
   const [saveError, setSaveError] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [pickerTarget, setPickerTarget] = useState(null); // "logo" | "favicon"
+
+  // Admin Password state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(null);
+
+  const handlePasswordFormChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    setPasswordError(null);
+    setPasswordSuccess(null);
+  };
+
+  const handlePasswordChange = async (e) => {
+    if (e) e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!passwordForm.currentPassword) {
+      const msg = "Please enter your current password";
+      setPasswordError(msg);
+      toast?.error?.(msg);
+      return;
+    }
+    if (!passwordForm.newPassword || passwordForm.newPassword.length < 6) {
+      const msg = "New password must be at least 6 characters long";
+      setPasswordError(msg);
+      toast?.error?.(msg);
+      return;
+    }
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      const msg = "New password and confirm password do not match";
+      setPasswordError(msg);
+      toast?.error?.(msg);
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const res = await api.changeAdminPassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword,
+      });
+
+      if (res.error || res.success === false) {
+        const msg = res.error || "Failed to update password";
+        setPasswordError(msg);
+        toast?.error?.(msg);
+      } else {
+        const msg = res.message || "Admin password updated successfully!";
+        setPasswordSuccess(msg);
+        toast?.success?.(msg);
+        setPasswordForm({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      }
+    } catch (err) {
+      const msg = err.message || "An unexpected error occurred";
+      setPasswordError(msg);
+      toast?.error?.(msg);
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
 
   const remoteSettings = useMemo(() => {
     if (!data.settings) return {};
@@ -185,16 +262,29 @@ const SettingsPage = () => {
               Unsaved Changes
             </div>
           )}
-          <button
-            type="button"
-            onClick={handleSave}
-            className="btn-primary"
-            disabled={saving}
-            style={{ height: 42, padding: "0 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 8 }}
-          >
-            {saving ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-save" />}
-            {saving ? "Saving..." : "Save Settings"}
-          </button>
+          {activeTab === "security" ? (
+            <button
+              type="button"
+              onClick={handlePasswordChange}
+              className="btn-primary"
+              disabled={updatingPassword}
+              style={{ height: 42, padding: "0 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
+              {updatingPassword ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-key" />}
+              {updatingPassword ? "Updating Password..." : "Update Password"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSave}
+              className="btn-primary"
+              disabled={saving}
+              style={{ height: 42, padding: "0 22px", borderRadius: 10, fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 8 }}
+            >
+              {saving ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-save" />}
+              {saving ? "Saving..." : "Save Settings"}
+            </button>
+          )}
         </div>
       </PageHeader>
 
@@ -436,6 +526,116 @@ const SettingsPage = () => {
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                         <FormField label="Shiprocket Pickup Pincode" name="shiprocketPickupPincode" value={s.shiprocketPickupPincode} onChange={handleChange} placeholder="380001" hint="Warehouse pickup pincode for serviceability checks" />
                         <FormField label="Free Shipping Threshold (₹)" name="freeShippingThreshold" type="number" value={s.freeShippingThreshold} onChange={handleChange} placeholder="5000" hint="Orders above this amount qualify for free shipping" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. Security & Admin Password */}
+                {activeTab === "security" && (
+                  <div className="space-y-6 animate-fade-in">
+                    {passwordError && <ErrorBanner message={passwordError} compact style={{ marginBottom: 16 }} />}
+                    {passwordSuccess && (
+                      <div style={{ padding: "14px 18px", background: "#f0fdf4", color: "#166534", borderRadius: 12, border: "1px solid #bbf7d0", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 10 }}>
+                        <i className="fas fa-check-circle" style={{ fontSize: 16 }} />
+                        {passwordSuccess}
+                      </div>
+                    )}
+
+                    <div style={{ background: "#f8fafc", borderRadius: 12, border: "1px solid #e2e8f0", padding: 24 }}>
+                      <h4 style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
+                        <i className="fas fa-key" style={{ color: "#6366f1" }} /> Update Admin Password
+                      </h4>
+                      <p style={{ margin: "0 0 20px", fontSize: 12, color: "#64748b" }}>
+                        Ensure your admin account uses a strong password to protect your store administration portal.
+                      </p>
+
+                      <div className="space-y-4" style={{ maxWidth: 480 }}>
+                        <div style={{ marginBottom: 16 }}>
+                          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                            Current Password <span style={{ color: "#ef4444" }}>*</span>
+                          </label>
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type={showCurrentPassword ? "text" : "password"}
+                              name="currentPassword"
+                              value={passwordForm.currentPassword}
+                              onChange={handlePasswordFormChange}
+                              placeholder="Enter current password"
+                              style={{ width: "100%", padding: "10px 40px 10px 14px", border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 13, background: "#fff" }}
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", border: "none", background: "none", color: "#64748b", cursor: "pointer", fontSize: 13 }}
+                            >
+                              <i className={showCurrentPassword ? "fas fa-eye-slash" : "fas fa-eye"} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                            New Password <span style={{ color: "#ef4444" }}>*</span>
+                          </label>
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type={showNewPassword ? "text" : "password"}
+                              name="newPassword"
+                              value={passwordForm.newPassword}
+                              onChange={handlePasswordFormChange}
+                              placeholder="Enter new password (min. 6 characters)"
+                              style={{ width: "100%", padding: "10px 40px 10px 14px", border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 13, background: "#fff" }}
+                              required
+                              minLength={6}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", border: "none", background: "none", color: "#64748b", cursor: "pointer", fontSize: 13 }}
+                            >
+                              <i className={showNewPassword ? "fas fa-eye-slash" : "fas fa-eye"} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: 16 }}>
+                          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                            Confirm New Password <span style={{ color: "#ef4444" }}>*</span>
+                          </label>
+                          <div style={{ position: "relative" }}>
+                            <input
+                              type={showConfirmPassword ? "text" : "password"}
+                              name="confirmPassword"
+                              value={passwordForm.confirmPassword}
+                              onChange={handlePasswordFormChange}
+                              placeholder="Confirm new password"
+                              style={{ width: "100%", padding: "10px 40px 10px 14px", border: "1px solid #cbd5e1", borderRadius: 10, fontSize: 13, background: "#fff" }}
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", border: "none", background: "none", color: "#64748b", cursor: "pointer", fontSize: 13 }}
+                            >
+                              <i className={showConfirmPassword ? "fas fa-eye-slash" : "fas fa-eye"} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ paddingTop: 12 }}>
+                          <button
+                            type="button"
+                            onClick={handlePasswordChange}
+                            className="btn-primary"
+                            disabled={updatingPassword}
+                            style={{ height: 42, padding: "0 24px", borderRadius: 10, fontWeight: 700, fontSize: 13, display: "inline-flex", alignItems: "center", gap: 8 }}
+                          >
+                            {updatingPassword ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-lock" />}
+                            {updatingPassword ? "Updating Password..." : "Update Admin Password"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
