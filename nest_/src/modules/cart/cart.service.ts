@@ -112,7 +112,7 @@ export class CartService {
     const cart = await this.getOrCreateCart(customerId);
     
     // 1. Validate the coupon
-    const offer = await this.marketingService.validateCoupon(customerId, code, Number(cart.subtotal));
+    const offer = await this.marketingService.validateCoupon(customerId, code, Number(cart.subtotal), cart.items);
 
     // 2. Associate the offer with the cart
     await this.prisma.cart.update({
@@ -359,7 +359,31 @@ export class CartService {
   private async updateCartTotals(cartId: number) {
     const cart = await this.prisma.cart.findUnique({
       where: { id: cartId },
-      include: { items: true, offer: true },
+      include: {
+        items: {
+          include: {
+            productVariant: {
+              include: {
+                product: {
+                  include: {
+                    categories: true
+                  }
+                }
+              }
+            },
+            Product: {
+              include: {
+                categories: true
+              }
+            }
+          }
+        },
+        offer: {
+          include: {
+            categories: true
+          }
+        }
+      },
     });
 
     if (!cart) return;
@@ -368,7 +392,7 @@ export class CartService {
     let discount = 0;
 
     if (cart.offerId && cart.offer) {
-       discount = this.marketingService.calculateDiscount(cart.offer, subtotal, cart.items);
+       discount = await this.marketingService.calculateDiscount(cart.offer, subtotal, cart.items);
     }
 
     await this.prisma.cart.update({

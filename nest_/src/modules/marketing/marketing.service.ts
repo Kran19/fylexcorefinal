@@ -6,8 +6,70 @@ import { Prisma } from '@prisma/client';
 export class MarketingService {
   constructor(private prisma: PrismaService) {}
 
-  // Validate a coupon based on code, customer and cart amount
-  async validateCoupon(customerId: string, code: string, cartAmount: number) {
+  // Helper to extract category IDs from cart items (including DB lookup fallback)
+  private async getItemCategoryIds(items: any[]): Promise<number[]> {
+    const categoryIds = new Set<number>();
+    if (!Array.isArray(items) || items.length === 0) return [];
+
+    const productIds = new Set<number>();
+    const variantIds = new Set<number>();
+
+    for (const item of items) {
+      const product = item.product || item.productVariant?.product || item.Product;
+      if (product?.mainCategoryId) {
+        categoryIds.add(Number(product.mainCategoryId));
+      }
+      if (product?.categories && Array.isArray(product.categories)) {
+        for (const cat of product.categories) {
+          const catId = cat.categoryId || cat.id || cat.category?.id;
+          if (catId) categoryIds.add(Number(catId));
+        }
+      }
+
+      if (item.productId) productIds.add(Number(item.productId));
+      if (product?.id) productIds.add(Number(product.id));
+      if (item.productVariantId) variantIds.add(Number(item.productVariantId));
+    }
+
+    if (categoryIds.size === 0 && (variantIds.size > 0 || productIds.size > 0)) {
+      try {
+        const variants = await this.prisma.productVariant.findMany({
+          where: {
+            OR: [
+              ...(variantIds.size > 0 ? [{ id: { in: Array.from(variantIds) } }] : []),
+              ...(productIds.size > 0 ? [{ productId: { in: Array.from(productIds) } }] : []),
+            ]
+          },
+          select: {
+            product: {
+              select: {
+                mainCategoryId: true,
+                categories: { select: { categoryId: true } }
+              }
+            }
+          }
+        });
+
+        for (const v of variants) {
+          if (v.product?.mainCategoryId) {
+            categoryIds.add(Number(v.product.mainCategoryId));
+          }
+          if (v.product?.categories) {
+            for (const c of v.product.categories) {
+              if (c.categoryId) categoryIds.add(Number(c.categoryId));
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching item category IDs:', e);
+      }
+    }
+
+    return Array.from(categoryIds);
+  }
+
+  // Validate a coupon based on code, customer, cart amount, and cart items
+  async validateCoupon(customerId: string, code: string, cartAmount: number, items: any[] = []) {
     const now = new Date();
     const cId = Number(customerId);
 
@@ -16,7 +78,7 @@ export class MarketingService {
 
     const cleanCode = code ? code.trim() : '';
 
-    // 1. Fetch active coupon (Offer)
+    // 1. Fetch active coupon (Offer) including categories
     const offer = await this.prisma.offer.findFirst({
       where: {
         code: { equals: cleanCode, mode: 'insensitive' },
@@ -27,10 +89,35 @@ export class MarketingService {
           { endsAt: { gte: now } }
         ]
       },
+      include: {
+        categories: {
+          include: { category: true }
+        }
+      }
     });
 
     if (!offer) {
       throw new NotFoundException('Invalid or expired coupon code');
+    }
+
+    // 1b. Check Category Restrictions if specified on offer
+    if (offer.categories && offer.categories.length > 0) {
+      const allowedCategoryIds = offer.categories.map((oc: any) => Number(oc.categoryId));
+      const allowedCategoryNames = offer.categories
+        .map((oc: any) => oc.category?.name)
+        .filter(Boolean);
+
+      const cartCategoryIds = await this.getItemCategoryIds(items);
+      const hasMatchingCategory = allowedCategoryIds.some((id) => cartCategoryIds.includes(id));
+
+      if (!hasMatchingCategory) {
+        const categoryLabel = allowedCategoryNames.length > 0
+          ? allowedCategoryNames.join(', ')
+          : 'the required category';
+        throw new BadRequestException(
+          `This offer is only applicable to products in: ${categoryLabel}`
+        );
+      }
     }
 
     // 2. Minimum/Maximum Cart Amount check
@@ -271,18 +358,46 @@ export class MarketingService {
   }
 
   // Calculate discount for an offer
-  calculateDiscount(offer: any, cartAmount: number, items: any[] = []): number {
+  async calculateDiscount(offer: any, cartAmount: number, items: any[] = []): Promise<number> {
     let discount = 0;
     const amount = Number(cartAmount || 0);
     const discountVal = Number(offer.discountValue || 0);
     const offerType = offer.offerType || offer.type || 'percentage';
     const couponType = offer.couponType || 'public';
 
+    // Filter eligible items if offer has category restrictions
+    let eligibleItems = items;
+    let eligibleAmount = amount;
+
+    if (offer.categories && offer.categories.length > 0 && Array.isArray(items) && items.length > 0) {
+      const allowedCategoryIds = offer.categories.map((oc: any) => Number(oc.categoryId || oc.id));
+      eligibleItems = [];
+      eligibleAmount = 0;
+
+      for (const item of items) {
+        const itemCatIds = await this.getItemCategoryIds([item]);
+        const isEligible = allowedCategoryIds.some(id => itemCatIds.includes(id));
+        if (isEligible) {
+          eligibleItems.push(item);
+          const itemTotal = Number(
+            item.total ??
+            ((item.unitPrice || item.price || 0) * (item.quantity || 1)) ??
+            0
+          );
+          eligibleAmount += itemTotal;
+        }
+      }
+    }
+
+    if (offer.categories && offer.categories.length > 0 && eligibleAmount === 0) {
+      return 0;
+    }
+
     // Option 1: Single Highest-Priced Watch / Item Free (₹0 for highest item)
     if (offerType === 'single_item_100' || offerType === 'single_watch_free' || couponType === 'single_item_free') {
-      if (Array.isArray(items) && items.length > 0) {
+      if (Array.isArray(eligibleItems) && eligibleItems.length > 0) {
         const unitPrices: number[] = [];
-        for (const item of items) {
+        for (const item of eligibleItems) {
           const price = Number(
             item.unitPrice ??
             item.price ??
@@ -296,25 +411,25 @@ export class MarketingService {
           }
         }
         const highestPrice = unitPrices.length > 0 ? Math.max(...unitPrices, 0) : 0;
-        discount = highestPrice > 0 ? highestPrice : amount;
+        discount = highestPrice > 0 ? highestPrice : eligibleAmount;
       } else {
-        discount = amount;
+        discount = eligibleAmount;
       }
     }
     // Option 2: Entire Cart 100% Free (Cart Total becomes ₹0 for all watches)
     else if (offerType === 'entire_cart_100' || offerType === 'all_items_free' || (offerType === 'percentage' && discountVal === 100)) {
-      discount = amount;
+      discount = eligibleAmount;
     }
     // Option 3: Standard Percentage Discount (e.g. 10%, 20%, 50%)
     else if (offerType === 'percentage') {
-      discount = (amount * discountVal) / 100;
+      discount = (eligibleAmount * discountVal) / 100;
       if (offer.maxDiscount) {
         discount = Math.min(discount, Number(offer.maxDiscount));
       }
     }
-    // Option 4: Fixed Amount Discount (e.g. ₹500 off)
+    // Option 4: Fixed Amount Discount (e.g. ₹500 off, capped at eligible subtotal)
     else if (offerType === 'fixed') {
-      discount = discountVal;
+      discount = Math.min(discountVal, eligibleAmount);
     }
 
     return Math.max(0, Math.min(discount, amount));

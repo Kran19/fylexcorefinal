@@ -34,12 +34,13 @@ export class OrderService {
       include: {
         items: {
           include: {
-            productVariant: { include: { product: true } },
+            productVariant: { include: { product: { include: { categories: true } } } },
+            Product: { include: { categories: true } },
             belt: true
           }
         },
         customer: true,
-        offer: true,
+        offer: { include: { categories: true } },
       },
     });
 
@@ -50,7 +51,7 @@ export class OrderService {
     // 2. Validate Coupon
     let appliedOffer: any = null;
     if (dto.couponCode && dto.couponCode.trim()) {
-      appliedOffer = await this.marketingService.validateCoupon(customerId, dto.couponCode.trim(), Number(cart.subtotal));
+      appliedOffer = await this.marketingService.validateCoupon(customerId, dto.couponCode.trim(), Number(cart.subtotal), cart.items);
     } else if (cart.offer && cart.offer.isAutoApply) {
       appliedOffer = cart.offer;
     }
@@ -85,7 +86,7 @@ export class OrderService {
 
     // 6. Pre-calculate totals and weights before entering DB transaction
     const subtotal = Number(cart.subtotal);
-    const discountAmount = appliedOffer ? this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0;
+    const discountAmount = appliedOffer ? await this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0;
     const totalDiscount = discountAmount + pointDiscount;
     const grandTotal = Math.max(0, subtotal - totalDiscount);
     const pointsEarned = Math.floor(grandTotal);
@@ -1383,11 +1384,12 @@ export class OrderService {
       include: { 
         items: { 
           include: { 
-            productVariant: { include: { product: true } },
+            productVariant: { include: { product: { include: { categories: true } } } },
+            Product: { include: { categories: true } },
             belt: true
           } 
         }, 
-        offer: true 
+        offer: { include: { categories: true } } 
       }
     });
 
@@ -1407,11 +1409,12 @@ export class OrderService {
         include: { 
           items: { 
             include: { 
-              productVariant: { include: { product: true } },
+              productVariant: { include: { product: { include: { categories: true } } } },
+              Product: { include: { categories: true } },
               belt: true
             } 
           }, 
-          offer: true 
+          offer: { include: { categories: true } } 
         }
       });
     }
@@ -1441,7 +1444,7 @@ export class OrderService {
     // Only apply coupon if explicitly passed by customer, or marked as auto-apply
     if (couponCode && couponCode.trim()) {
       try {
-        appliedOffer = await this.marketingService.validateCoupon(customerId, couponCode.trim(), subtotal);
+        appliedOffer = await this.marketingService.validateCoupon(customerId, couponCode.trim(), subtotal, cart.items);
       } catch (e) {
         this.logger.warn(`Invalid coupon: ${e.message}`);
         appliedOffer = null;
@@ -1452,7 +1455,7 @@ export class OrderService {
     }
 
     if (appliedOffer) {
-      couponDiscount = this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items);
+      couponDiscount = await this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items);
     }
 
     // Check Customer FYLEX Loyalty Credits Balance
