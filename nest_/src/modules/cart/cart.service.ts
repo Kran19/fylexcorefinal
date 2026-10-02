@@ -391,8 +391,23 @@ export class CartService {
     const subtotal = cart.items.reduce((sum, item) => sum + (item.total || 0), 0);
     let discount = 0;
 
-    if (cart.offerId && cart.offer) {
-       discount = await this.marketingService.calculateDiscount(cart.offer, subtotal, cart.items);
+    if (cart.offerId && cart.offer && cart.offer.code) {
+      try {
+        const validatedOffer = await this.marketingService.validateCoupon(
+          cart.customerId ? cart.customerId.toString() : (cart.sessionId || ''),
+          cart.offer.code,
+          subtotal,
+          cart.items
+        );
+        discount = await this.marketingService.calculateDiscount(validatedOffer, subtotal, cart.items);
+      } catch (e) {
+        // Offer is no longer valid for this cart (e.g. category item removed) -> clear offerId
+        discount = 0;
+        await this.prisma.cart.update({
+          where: { id: cartId },
+          data: { offerId: null },
+        }).catch(() => {});
+      }
     }
 
     await this.prisma.cart.update({

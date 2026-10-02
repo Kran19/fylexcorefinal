@@ -52,8 +52,13 @@ export class OrderService {
     let appliedOffer: any = null;
     if (dto.couponCode && dto.couponCode.trim()) {
       appliedOffer = await this.marketingService.validateCoupon(customerId, dto.couponCode.trim(), Number(cart.subtotal), cart.items);
-    } else if (cart.offer && cart.offer.isAutoApply) {
-      appliedOffer = cart.offer;
+    } else if (cart.offer && cart.offer.code) {
+      try {
+        appliedOffer = await this.marketingService.validateCoupon(customerId, cart.offer.code, Number(cart.subtotal), cart.items);
+      } catch (e) {
+        this.logger.warn(`Attached cart offer not valid for checkout: ${e.message}`);
+        appliedOffer = null;
+      }
     }
 
     // 3. Handle Loyalty Points Redemption
@@ -1450,8 +1455,13 @@ export class OrderService {
         appliedOffer = null;
         couponError = e.message;
       }
-    } else if (cart.offer && cart.offer.isAutoApply) {
-      appliedOffer = cart.offer;
+    } else if (cart.offer && cart.offer.code) {
+      try {
+        appliedOffer = await this.marketingService.validateCoupon(customerId, cart.offer.code, subtotal, cart.items);
+      } catch (e) {
+        this.logger.warn(`Attached cart offer not valid for calculateTotal: ${e.message}`);
+        appliedOffer = null;
+      }
     }
 
     if (appliedOffer) {
