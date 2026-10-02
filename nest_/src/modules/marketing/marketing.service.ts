@@ -395,8 +395,7 @@ export class MarketingService {
           eligibleItems.push(item);
           const itemTotal = Number(
             item.total ??
-            ((item.unitPrice || item.price || 0) * (item.quantity || 1)) ??
-            0
+            ((item.unitPrice || item.price || 0) * (item.quantity || 1))
           );
           eligibleAmount += itemTotal;
         }
