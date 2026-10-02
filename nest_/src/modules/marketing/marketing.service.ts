@@ -60,6 +60,11 @@ export class MarketingService {
             }
           }
         }
+      } catch (e) {
+        console.error('Error fetching item category IDs:', e);
+      }
+    }
+
     if (categoryIds.size > 0) {
       try {
         const cats = await this.prisma.category.findMany({
