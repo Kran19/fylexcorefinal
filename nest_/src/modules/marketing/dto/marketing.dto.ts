@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsNumber, Min } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsNumber, IsArray, Min } from 'class-validator';
 
 export class ValidateCouponDto {
   @IsNotEmpty()
@@ -9,6 +9,10 @@ export class ValidateCouponDto {
   @IsNumber()
   @Min(0)
   cartAmount: number;
+
+  @IsOptional()
+  @IsArray()
+  items?: any[];
 }
 
 export class ApplyCouponDto {

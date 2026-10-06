@@ -264,6 +264,49 @@ const OffersPage = () => {
     }));
   };
 
+  const applyPreset = (type) => {
+    if (type === 'belt_1100') {
+      const beltCat = categories.find(c => 
+        c.name?.toLowerCase().includes('belt') || 
+        c.slug?.toLowerCase().includes('belt')
+      );
+      const catIds = beltCat ? [beltCat.id.toString()] : form.categoryIds;
+      setForm(prev => ({
+        ...prev,
+        name: 'Special Belt Offer - ₹1100 Off',
+        code: 'BELT1100',
+        offerType: 'fixed',
+        couponType: 'public',
+        discountValue: '1100',
+        isActive: true,
+        categoryIds: catIds
+      }));
+      toast.success(beltCat ? `Applied Belt ₹1,100 Off Preset (Category: ${beltCat.name})` : 'Applied Belt ₹1,100 Off Preset (Please select Belt category below)');
+    } else if (type === 'highest_watch_free') {
+      setForm(prev => ({
+        ...prev,
+        name: 'Single Highest Watch Free',
+        code: 'FREEWATCH',
+        offerType: 'single_item_100',
+        couponType: 'public',
+        discountValue: '100',
+        isActive: true
+      }));
+      toast.success('Applied Free Watch Preset!');
+    } else if (type === 'entire_cart_free') {
+      setForm(prev => ({
+        ...prev,
+        name: 'Entire Cart 100% Free',
+        code: '100OFF',
+        offerType: 'entire_cart_100',
+        couponType: 'public',
+        discountValue: '100',
+        isActive: true
+      }));
+      toast.success('Applied 100% Free Cart Preset!');
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <PageHeader
@@ -319,6 +362,37 @@ const OffersPage = () => {
       <AdminModal isOpen={showForm} onClose={closeModal} title={editingRecord ? "Edit Promotional Offer" : "Create New Offer"} maxWidth={680}>
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            {!editingRecord && (
+              <div style={{ gridColumn: '1 / -1' }} className="p-3 bg-slate-50 border border-slate-200 rounded-xl mb-1">
+                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <i className="fas fa-bolt text-amber-500"></i> Quick Offer Presets
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyPreset('belt_1100')}
+                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <i className="fas fa-gem"></i> 👔 Belt Offer (₹1,100 Off)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset('highest_watch_free')}
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <i className="fas fa-stopwatch"></i> ⌚ Highest Watch Free
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyPreset('entire_cart_free')}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                  >
+                    <i className="fas fa-gift"></i> 🎁 100% Free Cart
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={{ gridColumn: '1 / -1' }}>
               <FormField label="Campaign/Offer Name" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Free Watch Offer / Festive Sale" required error={formErrors.name} />
             </div>

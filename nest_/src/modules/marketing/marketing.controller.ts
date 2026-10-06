@@ -27,7 +27,7 @@ export class MarketingController {
     @GetUser('userId') userId: string,
     @Body() dto: ValidateCouponDto,
   ) {
-    return this.marketingService.validateCoupon(userId, dto.code, dto.cartAmount);
+    return this.marketingService.validateCoupon(userId, dto.code, dto.cartAmount, dto.items || []);
   }
 
   @Get('loyalty/balance')

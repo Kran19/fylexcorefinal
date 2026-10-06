@@ -171,8 +171,11 @@ export class MarketingService {
       }
     }
 
+    const discountAmount = await this.calculateDiscount(offer, cartAmount, items);
+
     return {
       ...offer,
+      discountAmount,
       isActive: offer.status === 1
     };
   }
