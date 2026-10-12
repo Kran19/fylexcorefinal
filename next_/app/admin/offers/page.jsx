@@ -81,6 +81,9 @@ const OffersPage = () => {
       title: 'DISCOUNT RULE', field: 'discountValue', width: 170, hozAlign: 'center',
       formatter: (cell) => {
         const d = cell.getRow().getData();
+        if (d.offerType === 'belt_discount' || (d.code && d.code.toUpperCase().includes('BELT'))) {
+          return `<div style="text-align:center"><div style="font-weight:800;color:#f59e0b;font-size:15px">-₹${cell.getValue() || 1100}</div><div style="font-size:9px;color:#d97706;font-weight:700;text-transform:uppercase">BELTS ONLY</div></div>`;
+        }
         if (d.offerType === 'single_item_100' || d.offerType === 'single_watch_free' || d.couponType === 'single_item_free') {
           return `<div style="text-align:center"><div style="font-weight:800;color:#8b5cf6;font-size:13px;background:#f5f3ff;padding:3px 8px;border-radius:6px;border:1px solid #ddd6fe">HIGHEST WATCH FREE</div><div style="font-size:9px;color:#6d28d9;font-weight:700;margin-top:2px">₹0 FOR MAX VALUE ITEM</div></div>`;
         }
@@ -275,13 +278,13 @@ const OffersPage = () => {
         ...prev,
         name: 'Special Belt Offer - ₹1100 Off',
         code: 'BELT1100',
-        offerType: 'fixed',
+        offerType: 'belt_discount',
         couponType: 'public',
         discountValue: '1100',
         isActive: true,
         categoryIds: catIds
       }));
-      toast.success(beltCat ? `Applied Belt ₹1,100 Off Preset (Category: ${beltCat.name})` : 'Applied Belt ₹1,100 Off Preset (Please select Belt category below)');
+      toast.success('Applied Belt ₹1,100 Off Preset (Applies ONLY when a Belt is in cart)');
     } else if (type === 'highest_watch_free') {
       setForm(prev => ({
         ...prev,
@@ -424,6 +427,7 @@ const OffersPage = () => {
               value={form.offerType}
               onChange={handleChange}
               options={[
+                { value: 'belt_discount', label: '👔 Belt Discount (Applies ONLY if Belt is in Cart)' },
                 { value: 'single_item_100', label: '🌟 Single Highest Watch Free (₹0 Highest Item)' },
                 { value: 'entire_cart_100', label: '🎁 Entire Cart 100% Free (Total Cart ₹0)' },
                 { value: 'percentage', label: '📊 Percentage Discount (%)' },
@@ -446,7 +450,12 @@ const OffersPage = () => {
               ]}
             />
 
-            {form.offerType === 'single_item_100' ? (
+            {form.offerType === 'belt_discount' ? (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs flex flex-col justify-center">
+                <span className="font-bold mb-1">👔 Belt Discount (₹1,100 or Custom Amount Off)</span>
+                <span>Discount strictly applies ONLY to belt items in customer's cart. If no belt is in the cart, the coupon will be rejected!</span>
+              </div>
+            ) : form.offerType === 'single_item_100' ? (
               <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg text-purple-900 text-xs flex flex-col justify-center">
                 <span className="font-bold mb-1">Highest Value Watch Free (₹0)</span>
                 <span>The highest priced watch in customer's cart will be 100% free. Customer only pays for remaining watches.</span>

@@ -6,6 +6,41 @@ import { Prisma } from '@prisma/client';
 export class MarketingService {
   constructor(private prisma: PrismaService) {}
 
+  // Helper to detect if an item in the cart is a belt
+  public isBeltItem(item: any): boolean {
+    if (!item) return false;
+    if (item.beltId != null) return true;
+    if (item.belt != null) return true;
+    if (typeof item.productId === 'string' && item.productId.startsWith('belt-')) return true;
+    if (typeof item.variantId === 'string' && item.variantId.startsWith('belt-')) return true;
+    if (typeof item.productVariantId === 'string' && item.productVariantId.startsWith('belt-')) return true;
+    if (item.subtitle && item.subtitle.toLowerCase().includes('belt')) return true;
+    if (item.title && item.title.toLowerCase().includes('belt')) return true;
+    if (item.name && item.name.toLowerCase().includes('belt')) return true;
+    if (item.product?.name && item.product.name.toLowerCase().includes('belt')) return true;
+    if (item.Product?.name && item.Product.name.toLowerCase().includes('belt')) return true;
+    return false;
+  }
+
+  // Helper to detect if an offer is specifically a Belt offer
+  public isBeltOffer(offer: any): boolean {
+    if (!offer) return false;
+    const type = (offer.offerType || offer.type || '').toLowerCase();
+    if (type === 'belt_discount' || type === 'belt_fixed' || type === 'belt') return true;
+    if ((offer.couponType || '').toLowerCase() === 'belt') return true;
+    const code = (offer.code || '').toUpperCase();
+    if (code.includes('BELT')) return true;
+    const name = (offer.name || '').toLowerCase();
+    if (name.includes('belt')) return true;
+    if (Array.isArray(offer.categories) && offer.categories.some((oc: any) => {
+      const catName = (oc.category?.name || oc.name || '').toLowerCase();
+      return catName.includes('belt');
+    })) {
+      return true;
+    }
+    return false;
+  }
+
   // Helper to extract category IDs from cart items (including DB lookup fallback)
   private async getItemCategoryIds(items: any[]): Promise<number[]> {
     const categoryIds = new Set<number>();
@@ -114,7 +149,17 @@ export class MarketingService {
       throw new NotFoundException('Invalid or expired coupon code');
     }
 
-    // 1b. Check Category Restrictions if specified on offer
+    // 1b. Check Belt-Specific Restrictions
+    if (this.isBeltOffer(offer)) {
+      const beltItems = (items || []).filter(item => this.isBeltItem(item));
+      if (beltItems.length === 0) {
+        throw new BadRequestException(
+          'This offer is only applicable when a Belt is in your cart.'
+        );
+      }
+    }
+
+    // 1c. Check Category Restrictions if specified on offer
     if (offer.categories && offer.categories.length > 0) {
       const allowedCategoryIds = offer.categories.map((oc: any) => Number(oc.categoryId));
       const allowedCategoryNames = offer.categories
@@ -382,6 +427,37 @@ export class MarketingService {
     const offerType = offer.offerType || offer.type || 'percentage';
     const couponType = offer.couponType || 'public';
 
+    // Belt-Specific Offer: strictly apply discount only to Belt items in cart
+    if (this.isBeltOffer(offer)) {
+      const beltItems = (items || []).filter(item => this.isBeltItem(item));
+      if (beltItems.length === 0) {
+        return 0; // Strictly ₹0 discount if no belt in cart
+      }
+      const beltSubtotal = beltItems.reduce((sum, item) => {
+        const itemTotal = Number(
+          item.total ??
+          ((item.unitPrice || item.price || 0) * (item.quantity || 1))
+        );
+        return sum + itemTotal;
+      }, 0);
+
+      if (beltSubtotal <= 0) return 0;
+
+      let beltDiscount = 0;
+      if (offerType === 'percentage') {
+        beltDiscount = (beltSubtotal * discountVal) / 100;
+        if (offer.maxDiscount) {
+          beltDiscount = Math.min(beltDiscount, Number(offer.maxDiscount));
+        }
+      } else {
+        // Fixed amount discount on belts (default 1100 off, capped at belt subtotal)
+        const targetDiscount = discountVal > 0 ? discountVal : 1100;
+        beltDiscount = Math.min(targetDiscount, beltSubtotal);
+      }
+
+      return Math.max(0, Math.min(beltDiscount, beltSubtotal));
+    }
+
     // Filter eligible items if offer has category restrictions
     let eligibleItems = items;
     let eligibleAmount = amount;
@@ -411,9 +487,11 @@ export class MarketingService {
 
     // Option 1: Single Highest-Priced Watch / Item Free (₹0 for highest item)
     if (offerType === 'single_item_100' || offerType === 'single_watch_free' || couponType === 'single_item_free') {
-      if (Array.isArray(eligibleItems) && eligibleItems.length > 0) {
+      const watchItems = eligibleItems.filter(item => !this.isBeltItem(item));
+      const targetItems = watchItems.length > 0 ? watchItems : eligibleItems;
+      if (Array.isArray(targetItems) && targetItems.length > 0) {
         const unitPrices: number[] = [];
-        for (const item of eligibleItems) {
+        for (const item of targetItems) {
           const price = Number(
             item.unitPrice ??
             item.price ??

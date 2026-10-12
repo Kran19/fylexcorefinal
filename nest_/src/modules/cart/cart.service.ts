@@ -375,7 +375,8 @@ export class CartService {
               include: {
                 categories: true
               }
-            }
+            },
+            belt: true
           }
         },
         offer: {
