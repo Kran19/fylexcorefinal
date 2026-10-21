@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useWishlist } from '@/context/WishlistContext';
 import { fetchProducts, fetchProduct } from '../../../lib/api';
 import { useDesignSystem } from '@/context/DesignSystemContext';
-import { getFileUrl, resolveProductImage, getDisplayData, getContrastTextColor, getPageTheme } from '@/lib/utils';
+import { getFileUrl, resolveProductImage, getDisplayData, getContrastTextColor, getPageTheme, cleanConfigName } from '@/lib/utils';
 import cmsService from '@/services/cms.service';
 
 const Products = () => {
@@ -59,7 +59,7 @@ const Products = () => {
               soldCards.push({
                 id: globalIdx++,
                 orderId: item.orderId?.toString(),
-                name: vDisplay.subtitle || vDisplay.name,
+                name: cleanConfigName(vDisplay.subtitle || vDisplay.name, p),
                 img: vDisplay.image,
                 soldAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
                 sku: item.sku
@@ -181,7 +181,7 @@ const Products = () => {
           realOrderCards.push({
             id: `order-${item.id || globalIdx}-${i}`,
             variantId: variant?.id?.toString() || '',
-            name: vDisplay.subtitle || vDisplay.name || fullProduct.name,
+            name: cleanConfigName(vDisplay.subtitle || vDisplay.name || fullProduct.name, fullProduct),
             img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
             soldAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
             isRealOrder: true,
@@ -204,7 +204,7 @@ const Products = () => {
           return {
             id: v.id.toString(),
             variantId: v.id.toString(),
-            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            name: cleanConfigName(vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku, fullProduct),
             img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
             price: vDisplay.price,
             formattedPrice: vDisplay.formattedPrice,
@@ -768,19 +768,26 @@ const Products = () => {
           // min-width: 40px;
         }
         .info-combo-img-wrap {
-          width: 60px;
-          height: 60px;
-          background: #000000;
-          border-radius: 8px;
+          width: 74px;
+          height: 74px;
+          background: rgba(255, 255, 255, 0.025);
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: 3px;
           flex-shrink: 0;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          overflow: hidden;
         }
         .info-combo-img-wrap img {
-          width: 80%;
-          height: 80%;
+          width: 100%;
+          height: 100%;
+          max-width: 100%;
+          max-height: 100%;
           object-fit: contain;
+          transform: scale(1.15);
+          transition: transform 0.3s ease;
         }
         .info-combo-details {
           flex: 1;
@@ -1231,19 +1238,19 @@ const Products = () => {
                       router.push(`/explore?watch=${activeModalData.id}`);
                     }
                   }}>
-                    <div style={{ width: '56px', height: '56px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ width: '74px', height: '74px', background: 'rgba(255,255,255,0.025)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3px', flexShrink: 0, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
                       <img 
                         src={combo.img || activeModalData.heroImage || activeModalData.image || '/assets/fylex-watch-v2/premium.png'} 
                         alt={combo.name} 
-                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                        style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', transform: 'scale(1.15)', transition: 'transform 0.3s ease' }} 
                         onError={(e) => {
                           e.currentTarget.onerror = null;
                           e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
                         }}
                       />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 500, color: '#fff' }}>{combo.name}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <span style={{ fontSize: '0.92rem', fontWeight: 500, color: '#fff', lineHeight: 1.35 }}>{cleanConfigName(combo.name, activeModalData)}</span>
                       <span style={{ fontSize: '0.75rem', color: '#008767', fontWeight: 600 }}>
                         {combo.isRealOrder 
                           ? `Customer Build • Sold ${combo.soldAt || 'Recently'}`

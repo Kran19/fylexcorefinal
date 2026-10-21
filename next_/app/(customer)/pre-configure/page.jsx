@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { fetchProducts, fetchProduct } from '../../../lib/api';
 import { useDesignSystem } from '@/context/DesignSystemContext';
-import { getDisplayData, getPageTheme } from '../../../lib/utils';
+import { getDisplayData, getPageTheme, cleanConfigName } from '../../../lib/utils';
 
 const PreConfigure = () => {
   const [products, setProducts] = useState([]);
@@ -43,7 +43,7 @@ const PreConfigure = () => {
           return {
             id: v.id.toString(),
             variantId: v.id.toString(),
-            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            name: cleanConfigName(vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku, p),
             img: vDisplay.image || p.heroImage || p.image,
             price: vDisplay.price,
             formattedPrice: vDisplay.formattedPrice,
@@ -70,7 +70,7 @@ const PreConfigure = () => {
           realOrderCards.push({
             id: `order-${item.id || globalIdx}-${i}`,
             variantId: variant?.id?.toString() || '',
-            name: vDisplay.subtitle || vDisplay.name || fullProduct.name,
+            name: cleanConfigName(vDisplay.subtitle || vDisplay.name || fullProduct.name, fullProduct),
             img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
             soldAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
             isRealOrder: true,
@@ -93,7 +93,7 @@ const PreConfigure = () => {
           return {
             id: v.id.toString(),
             variantId: v.id.toString(),
-            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            name: cleanConfigName(vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku, fullProduct),
             img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
             price: vDisplay.price,
             formattedPrice: vDisplay.formattedPrice,
@@ -145,7 +145,7 @@ const PreConfigure = () => {
               soldCards.push({
                 id: globalIdx++,
                 orderId: item.orderId?.toString(),
-                name: vDisplay.subtitle || vDisplay.name,
+                name: cleanConfigName(vDisplay.subtitle || vDisplay.name, p),
                 img: vDisplay.image,
                 soldAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently',
                 sku: item.sku
@@ -704,11 +704,11 @@ const PreConfigure = () => {
         
         .info-combo-item { display: flex; align-items: center; gap: 16px; padding: 14px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; border-radius: 8px; }
         .info-combo-item:hover { background: rgba(255,255,255,0.02); }
-        .info-combo-img-wrap { width: 56px; height: 56px; background: rgba(255,255,255,0.02); border-radius: 8px; display: flex; align-items: center; justify-content: center; padding: 6px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.05); }
-        .info-combo-img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .info-combo-details { display: flex; flex-direction: column; gap: 4px; }
-        .info-combo-name { font-size: 0.9rem; font-weight: 500; color: #fff; }
-        .info-combo-status { font-size: 0.75rem; color: #888; }
+        .info-combo-img-wrap { width: 74px; height: 74px; background: rgba(255,255,255,0.025); border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 3px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; }
+        .info-combo-img-wrap img { width: 100%; height: 100%; max-width: 100%; max-height: 100%; object-fit: contain; transform: scale(1.15); transition: transform 0.3s ease; }
+        .info-combo-details { display: flex; flex-direction: column; gap: 5px; }
+        .info-combo-name { font-size: 0.92rem; font-weight: 500; color: #fff; line-height: 1.35; }
+        .info-combo-status { font-size: 0.75rem; color: #008767; font-weight: 600; }
       `}</style>
 
       <div className={`header-wrapper ${expandedIds.size > 0 ? 'header-blurred' : ''}`}>
@@ -859,10 +859,17 @@ const PreConfigure = () => {
                     }
                   }}>
                     <div className="info-combo-img-wrap">
-                      <img src={combo.img || activeModalData.heroImage || activeModalData.image} alt={combo.name} />
+                      <img 
+                        src={combo.img || activeModalData.heroImage || activeModalData.image || '/assets/fylex-watch-v2/premium.png'} 
+                        alt={combo.name} 
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                        }}
+                      />
                     </div>
                     <div className="info-combo-details">
-                      <span className="info-combo-name">{combo.name}</span>
+                      <span className="info-combo-name">{cleanConfigName(combo.name, activeModalData)}</span>
                       <span className="info-combo-status">
                         {combo.isRealOrder 
                           ? `Customer Build • Sold ${combo.soldAt || 'Recently'}`

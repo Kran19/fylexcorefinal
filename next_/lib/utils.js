@@ -90,6 +90,70 @@ function extractMediaPath(item) {
   return m.url || m.filePath || m.path || m.fileName || null;
 }
 
+export function cleanConfigName(name, product = null) {
+  if (!name || typeof name !== 'string') return '';
+
+  let cleaned = name.trim();
+
+  // If name has bullet separators " • " (e.g. "Fy • Gs • 664 • Gunblack • Black • Grey")
+  if (cleaned.includes('•')) {
+    const parts = cleaned.split(/\s*•\s*/).filter(Boolean);
+    if (parts.length > 1) {
+      const kept = [];
+      let skippingPrefix = true;
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i].trim();
+        const isBrand = /^(fy|fylex)$/i.test(p);
+        const isNumericCode = /^\d{2,5}$/.test(p);
+        const isSkuKeyword = /^(sku|var|prod|order)[-_0-9]*/i.test(p);
+        const isProductCode = product?.productCode && p.toLowerCase() === product.productCode.toLowerCase();
+        const isModelAbbr = /^[A-Z]{1,3}$/i.test(p) && !/^(red|tan|blue|gold|rose|grey|gray|pink)$/i.test(p);
+
+        const isSkuPart = isBrand || isNumericCode || isSkuKeyword || isProductCode || (isModelAbbr && (i === 0 || i === 1));
+
+        if (skippingPrefix && isSkuPart) {
+          continue;
+        }
+        skippingPrefix = false;
+        kept.push(p);
+      }
+      if (kept.length > 0) {
+        return kept.join(' • ');
+      }
+    }
+  }
+
+  // If name is raw hyphenated SKU (e.g. "FY-GS-664-GUNBLACK-BLACK-GREY")
+  if (cleaned.includes('-')) {
+    const parts = cleaned.split('-').filter(Boolean);
+    if (parts.length > 1) {
+      const kept = [];
+      let skippingPrefix = true;
+      for (let i = 0; i < parts.length; i++) {
+        const p = parts[i].trim();
+        const isBrand = /^(fy|fylex)$/i.test(p);
+        const isNumericCode = /^\d{2,5}$/.test(p);
+        const isSkuKeyword = /^(sku|var|prod|order)[-_0-9]*/i.test(p);
+        const isProductCode = product?.productCode && p.toLowerCase() === product.productCode.toLowerCase();
+        const isModelAbbr = /^[A-Z]{1,3}$/i.test(p) && !/^(red|tan|blue|gold|rose|grey|gray|pink)$/i.test(p);
+
+        const isSkuPart = isBrand || isNumericCode || isSkuKeyword || isProductCode || (isModelAbbr && (i === 0 || i === 1));
+
+        if (skippingPrefix && isSkuPart) {
+          continue;
+        }
+        skippingPrefix = false;
+        kept.push(p.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' '));
+      }
+      if (kept.length > 0) {
+        return kept.join(' • ');
+      }
+    }
+  }
+
+  return cleaned;
+}
+
 /**
  * UNIFIED DISPLAY MODEL
  * One source of truth for price, image, and configuration across the entire app.
@@ -104,25 +168,29 @@ function formatSubtitle(targetVariant, product, fallbackVariant) {
             .map(va => va.attributeValue?.label || va.attributeValue?.value || va.value)
             .filter(Boolean);
         if (labels.length > 0) {
-            return labels.join(' • ');
+            return cleanConfigName(labels.join(' • '), product);
         }
     }
 
     // 2. Try variant name (e.g., "Black blue, Black, Black")
     if (v?.name && v.name.trim() && !v.name.toUpperCase().startsWith('MERIDIAN-')) {
-        return v.name.split(',').map(s => s.trim()).join(' • ');
+        const formattedName = v.name.split(',').map(s => s.trim()).join(' • ');
+        return cleanConfigName(formattedName, product);
     }
 
-    // 3. Transform raw SKU string like "MERIDIAN-BLACK-BLUE-BLACK-BLACK" into meaningful information
+    // 3. Transform raw SKU string like "MERIDIAN-BLACK-BLUE-BLACK-BLACK" or "FY-GS-664-GUNBLACK-BLACK-GREY" into meaningful information
     const rawSku = v?.sku || product?.sku;
     if (rawSku && typeof rawSku === 'string') {
+        const cleaned = cleanConfigName(rawSku, product);
+        if (cleaned && cleaned !== rawSku) {
+            return cleaned;
+        }
         const parts = rawSku.split('-').filter(Boolean);
         if (parts.length > 1) {
             const formattedParts = parts.map(p => {
                 return p.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
             });
-            // First part is model line name (e.g. MERIDIAN), remaining are variant specifications
-            return formattedParts.join(' • ');
+            return cleanConfigName(formattedParts.join(' • '), product);
         }
     }
 

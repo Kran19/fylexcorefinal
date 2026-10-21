@@ -521,6 +521,15 @@ export class ProductService {
                     include: {
                       media: true
                     }
+                  },
+                  variantAttributes: {
+                    include: {
+                      attributeValue: {
+                        include: {
+                          attribute: true
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -717,6 +726,15 @@ export class ProductService {
                 variantImages: {
                   include: {
                     media: true
+                  }
+                },
+                variantAttributes: {
+                  include: {
+                    attributeValue: {
+                      include: {
+                        attribute: true
+                      }
+                    }
                   }
                 }
               }

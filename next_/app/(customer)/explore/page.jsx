@@ -14,7 +14,7 @@ import { fetchProducts, fetchProduct, fetchBoxes } from '../../../lib/api';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useDesignSystem } from '@/context/DesignSystemContext';
-import { getFileUrl, resolveProductImage, getDisplayData, getPageTheme } from '@/lib/utils';
+import { getFileUrl, resolveProductImage, getDisplayData, getPageTheme, cleanConfigName } from '@/lib/utils';
 import localProductsData from '../../../data/productsData';
 import Footer from '@/components/Footer';
 import { gsap } from 'gsap';
@@ -306,7 +306,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           const vDisplay = getDisplayData(p, v);
           return {
             id: v.id.toString(),
-            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            name: cleanConfigName(vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku, p),
             img: vDisplay.image,
             price: vDisplay.price,
             formattedPrice: vDisplay.formattedPrice,
@@ -349,7 +349,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           const vDisplay = getDisplayData(fullProduct, v);
           return {
             id: v.id.toString(),
-            name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku,
+            name: cleanConfigName(vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label || va.attributeValue?.value).join(' • ') || v.name || v.sku, fullProduct),
             img: vDisplay.image || fullProduct.heroImage || fullProduct.image,
             price: vDisplay.price,
             formattedPrice: vDisplay.formattedPrice,
@@ -2787,7 +2787,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     />
                   </div>
                   <div className="cfg-combo-details">
-                    <span className="cfg-combo-name">{combo.name}</span>
+                    <span className="cfg-combo-name">{cleanConfigName(combo.name, activeModalData)}</span>
                     <span className="cfg-combo-status">Exclusive Build &bull; {(combo.fakeSoldCount && Number(combo.fakeSoldCount) > 0) ? combo.fakeSoldCount : 4} Built</span>
                   </div>
                   <div className="cfg-combo-chevron">&#8250;</div>
