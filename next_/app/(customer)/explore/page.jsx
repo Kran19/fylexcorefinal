@@ -476,6 +476,35 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     window.scrollTo(0, 0);
   }, [watchId]);
 
+  // Synchronize swiper position if activeVariant changes externally or product loads
+  useEffect(() => {
+    const curProduct = productsData.find(p => 
+      p.id === watchId || 
+      p.slug === watchId || 
+      (p.id !== undefined && p.id !== null && watchId !== undefined && watchId !== null && p.id.toString() === watchId.toString())
+    ) || productsData[0];
+    const combos = curProduct?.combinations || [];
+    if (combos.length > 0) {
+      let targetIdx = 0;
+      const vParam = searchParams?.get ? searchParams.get('variant') : null;
+      if (vParam) {
+        const vIdx = combos.findIndex(c => 
+          c.id?.toString() === vParam?.toString() || 
+          c.variantId?.toString() === vParam?.toString()
+        );
+        if (vIdx !== -1) targetIdx = vIdx;
+      }
+      setActiveComboIndex(targetIdx);
+      if (heroSwiperRef.current) {
+        if (heroSwiperRef.current.params?.loop) {
+          heroSwiperRef.current.slideToLoop(targetIdx, 0);
+        } else {
+          heroSwiperRef.current.slideTo(targetIdx, 0);
+        }
+      }
+    }
+  }, [productsData, watchId, searchParams?.get ? searchParams.get('variant') : null]);
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
@@ -605,34 +634,6 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     }
     return 0;
   })();
-
-  // Synchronize swiper position if activeVariant changes externally or product loads
-  useEffect(() => {
-    if (productCombos.length > 0) {
-      let targetIdx = 0;
-      if (variantIdParam) {
-        const vIdx = productCombos.findIndex(c => 
-          c.id?.toString() === variantIdParam?.toString() || 
-          c.variantId?.toString() === variantIdParam?.toString()
-        );
-        if (vIdx !== -1) targetIdx = vIdx;
-      } else if (activeVariant) {
-        const aIdx = productCombos.findIndex(c => 
-          c.id?.toString() === activeVariant.id?.toString() || 
-          c.variantId?.toString() === activeVariant.id?.toString()
-        );
-        if (aIdx !== -1) targetIdx = aIdx;
-      }
-      setActiveComboIndex(targetIdx);
-      if (heroSwiperRef.current) {
-        if (heroSwiperRef.current.params?.loop) {
-          heroSwiperRef.current.slideToLoop(targetIdx, 0);
-        } else {
-          heroSwiperRef.current.slideTo(targetIdx, 0);
-        }
-      }
-    }
-  }, [product?.id, variantIdParam]);
 
   const currentCombo = (productCombos.length > 0 && productCombos[activeComboIndex])
     ? productCombos[activeComboIndex]
