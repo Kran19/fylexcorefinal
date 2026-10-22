@@ -39,8 +39,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { productOverrides } = useDesignSystem();
-  const watchId = searchParams.get('watch');
-  const mode = searchParams.get('mode');
+  const watchId = searchParams?.get ? searchParams.get('watch') : null;
+  const mode = searchParams?.get ? searchParams.get('mode') : null;
   const isGeneralMode = mode === 'all';
 
   const [productsData, setProductsData] = useState([]);
@@ -63,7 +63,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
 
   useEffect(() => {
     setSelectedAngleSrc(null);
-  }, [watchId, searchParams.get('variant'), activeComboIndex]);
+  }, [watchId, searchParams?.get ? searchParams.get('variant') : null, activeComboIndex]);
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -485,7 +485,11 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   }
 
   // Default to first if no watchId is provided or product not found
-  const productIndex = productsData.findIndex(p => p.id === watchId || p.slug === watchId);
+  const productIndex = productsData.findIndex(p => 
+    p.id === watchId || 
+    p.slug === watchId || 
+    (p.id !== undefined && p.id !== null && watchId !== undefined && watchId !== null && p.id.toString() === watchId.toString())
+  );
   const initialIndex = productIndex !== -1 ? productIndex : 0;
   const product = productsData[initialIndex];
 
@@ -511,20 +515,22 @@ export function DiscoverContent({ isConfiguredMode = false }) {
 
   // ── DYNAMIC VARIANT MATCHING & RESOLUTION (Runs BEFORE image assignment) ──
   const selections = {};
-  const variantIdParam = searchParams.get('variant');
+  const variantIdParam = searchParams?.get ? searchParams.get('variant') : null;
 
-  searchParams.forEach((value, key) => {
-    if (key !== 'watch' && key !== 'mode' && key !== 'variant') {
-      selections[normalizeAttrKey(key)] = value;
-    }
-  });
+  if (searchParams && typeof searchParams.forEach === 'function') {
+    searchParams.forEach((value, key) => {
+      if (key !== 'watch' && key !== 'mode' && key !== 'variant') {
+        selections[normalizeAttrKey(key)] = value;
+      }
+    });
+  }
 
   const hasSelections = Object.keys(selections).length > 0;
   let matchingVariant = null;
 
   if (hasSelections || variantIdParam) {
     matchingVariant = (product.variants || []).find(v => {
-      if (variantIdParam && v.id.toString() === variantIdParam) return true;
+      if (variantIdParam && v.id?.toString() === variantIdParam?.toString()) return true;
       const vAttrs = v.variantAttributes || [];
       if (vAttrs.length === 0) return false;
 
@@ -583,11 +589,17 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const initialComboIndex = (() => {
     if (productCombos.length > 0) {
       if (variantIdParam) {
-        const vIdx = productCombos.findIndex(c => c.id === variantIdParam || c.variantId === variantIdParam);
+        const vIdx = productCombos.findIndex(c => 
+          c.id?.toString() === variantIdParam?.toString() || 
+          c.variantId?.toString() === variantIdParam?.toString()
+        );
         if (vIdx !== -1) return vIdx;
       }
       if (activeVariant) {
-        const aIdx = productCombos.findIndex(c => c.id === activeVariant.id.toString() || c.variantId === activeVariant.id.toString());
+        const aIdx = productCombos.findIndex(c => 
+          c.id?.toString() === activeVariant.id?.toString() || 
+          c.variantId?.toString() === activeVariant.id?.toString()
+        );
         if (aIdx !== -1) return aIdx;
       }
     }
@@ -599,10 +611,16 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     if (productCombos.length > 0) {
       let targetIdx = 0;
       if (variantIdParam) {
-        const vIdx = productCombos.findIndex(c => c.id === variantIdParam || c.variantId === variantIdParam);
+        const vIdx = productCombos.findIndex(c => 
+          c.id?.toString() === variantIdParam?.toString() || 
+          c.variantId?.toString() === variantIdParam?.toString()
+        );
         if (vIdx !== -1) targetIdx = vIdx;
       } else if (activeVariant) {
-        const aIdx = productCombos.findIndex(c => c.id === activeVariant.id.toString() || c.variantId === activeVariant.id.toString());
+        const aIdx = productCombos.findIndex(c => 
+          c.id?.toString() === activeVariant.id?.toString() || 
+          c.variantId?.toString() === activeVariant.id?.toString()
+        );
         if (aIdx !== -1) targetIdx = aIdx;
       }
       setActiveComboIndex(targetIdx);
@@ -636,34 +654,47 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const hasDisplayConfig = Boolean(hasConfig || Object.keys(activeDisplaySelections).length > 0);
   const showHeroCarousel = !isConfiguredMode && !hasConfig && productCombos.length > 1;
 
-  // Normalize image paths for angle key matching
+  // Normalize image paths for angle key matching safely without throwing on null
   const normalizeKey = (url) => {
     if (!url) return '';
-    const full = getFileUrl(url);
-    return full.split('?')[0].split('/').pop() || full;
+    try {
+      const str = typeof url === 'string' ? url : (url?.url || url?.path || url?.filePath || url?.fileName || '');
+      if (!str || typeof str !== 'string') return '';
+      const clean = str.split('?')[0].split('#')[0];
+      return clean.split('/').pop().split('\\').pop() || clean;
+    } catch (e) {
+      return '';
+    }
   };
 
   // Build the 3 angle photos list (strictly scoped to active variant / combo / product)
   const activeVarObj = currentCombo?.variant || activeVariant;
-  const rawGallery = (product.galleryImages || []);
-  const basePrimary = currentCombo?.img || product.heroImage;
+  const rawGallery = Array.isArray(product?.galleryImages) ? product.galleryImages : [];
+  const basePrimary = currentCombo?.img || product?.heroImage;
   const seenAngleKeys = new Set();
   const sideList = [];
 
   const comboVarImgs = (activeVarObj?.variantImages || []).map(vi => {
-    const m = vi.media || vi;
-    const p = m?.url || m?.filePath || m?.path || (m?.fileName ? `/uploads/${m.fileName}` : (typeof m === 'string' ? m : ''));
-    return getFileUrl(p);
+    try {
+      const m = vi.media || vi;
+      const p = m?.url || m?.filePath || m?.path || (m?.fileName ? `/uploads/${m.fileName}` : (typeof m === 'string' ? m : ''));
+      return getFileUrl(p);
+    } catch (e) {
+      return null;
+    }
   }).filter(Boolean);
 
   [basePrimary, ...comboVarImgs, ...rawGallery].forEach(img => {
     if (!img) return;
-    const fullUrl = getFileUrl(img);
-    const key = normalizeKey(img);
-    if (key && !seenAngleKeys.has(key)) {
-      seenAngleKeys.add(key);
-      sideList.push(fullUrl);
-    }
+    try {
+      const fullUrl = getFileUrl(img);
+      if (!fullUrl || typeof fullUrl !== 'string') return;
+      const key = normalizeKey(fullUrl || img);
+      if (key && !seenAngleKeys.has(key)) {
+        seenAngleKeys.add(key);
+        sideList.push(fullUrl);
+      }
+    } catch (e) {}
   });
 
   const currentDisplayedWatch = selectedAngleSrc || activeDisplayHeroImg || product?.heroImage;
@@ -2666,7 +2697,11 @@ export function DiscoverContent({ isConfiguredMode = false }) {
             {sideList.length > 1 && (
               <div className="side-thumbnails-bar">
                 {sideList.slice(0, 5).map((imgUrl, idx) => {
-                  const isAngleActive = currentDisplayedWatch && normalizeKey(currentDisplayedWatch) === normalizeKey(imgUrl);
+                  const isAngleActive = Boolean(
+                    currentDisplayedWatch &&
+                    imgUrl &&
+                    normalizeKey(currentDisplayedWatch) === normalizeKey(imgUrl)
+                  );
                   return (
                     <div
                       key={idx}
@@ -2680,6 +2715,9 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                       <img
                         src={imgUrl}
                         alt={`Angle ${idx + 1}`}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
                       />
                     </div>
                   );
