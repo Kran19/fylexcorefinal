@@ -668,9 +668,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     }
   };
 
-  // Build the 3 angle photos list (strictly scoped to active variant / combo / product)
+  // Build the 3 angle photos list (strictly scoped to THIS specific variant only)
   const activeVarObj = currentCombo?.variant || activeVariant;
-  const rawGallery = Array.isArray(product?.galleryImages) ? product.galleryImages : [];
   const basePrimary = currentCombo?.img || product?.heroImage;
   const seenAngleKeys = new Set();
   const sideList = [];
@@ -685,7 +684,10 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     }
   }).filter(Boolean);
 
-  [basePrimary, ...comboVarImgs, ...rawGallery].forEach(img => {
+  // Strictly use ONLY images of this specific variant; never include other variants or generic product gallery
+  const variantOnlyImages = [basePrimary, ...comboVarImgs];
+
+  variantOnlyImages.forEach(img => {
     if (!img) return;
     try {
       const fullUrl = getFileUrl(img);
@@ -2697,7 +2699,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
             {/* ── SIDE ANGLE THUMBNAILS BAR (Final add to cart & hero angle preview) ── */}
             {sideList.length > 1 && (
               <div className="side-thumbnails-bar">
-                {sideList.slice(0, 5).map((imgUrl, idx) => {
+                {sideList.slice(0, 3).map((imgUrl, idx) => {
                   const isAngleActive = Boolean(
                     currentDisplayedWatch &&
                     imgUrl &&
