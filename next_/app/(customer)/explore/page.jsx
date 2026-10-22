@@ -54,11 +54,16 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const [addedBelts, setAddedBelts] = useState({});
   const [previewTheme, setPreviewTheme] = useState(null);
   const [activeComboIndex, setActiveComboIndex] = useState(0);
+  const [selectedAngleSrc, setSelectedAngleSrc] = useState(null);
   const heroSwiperRef = useRef(null);
   const lastScrollY = useRef(0);
   const heroRef = useRef(null);
   const strapsSectionRef = useRef(null);
   const strapsTrackRef = useRef(null);
+
+  useEffect(() => {
+    setSelectedAngleSrc(null);
+  }, [watchId, searchParams.get('variant'), activeComboIndex]);
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -554,18 +559,15 @@ export function DiscoverContent({ isConfiguredMode = false }) {
     product.heroBgImage = vDisplay.heroBgImage;
 
     const vGallery = (activeVariant.variantImages || [])
-      .filter(vi => vi.type === 'GALLERY' || vi.type === 'gallery')
       .map(vi => {
-        const m = vi.media;
-        const p = m?.url || m?.filePath || m?.path || (m?.fileName ? `/uploads/${m.fileName}` : '');
+        const m = vi.media || vi;
+        const p = m?.url || m?.filePath || m?.path || (m?.fileName ? `/uploads/${m.fileName}` : (typeof m === 'string' ? m : ''));
         return getFileUrl(p);
       })
       .filter(Boolean);
 
     if (vGallery.length > 0) {
       product.galleryImages = vGallery;
-    } else {
-      product.galleryImages = [primaryImg, primaryImg, primaryImg];
     }
   }
 
@@ -632,6 +634,39 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const activeDisplaySelections = (currentCombo?.attrMap && Object.keys(currentCombo.attrMap).length > 0) ? currentCombo.attrMap : selections;
   const activeDisplayVariantId = currentCombo?.variantId || currentCombo?.id || activeVariant?.id?.toString();
   const hasDisplayConfig = Boolean(hasConfig || Object.keys(activeDisplaySelections).length > 0);
+  const showHeroCarousel = !isConfiguredMode && !hasConfig && productCombos.length > 1;
+
+  // Normalize image paths for angle key matching
+  const normalizeKey = (url) => {
+    if (!url) return '';
+    const full = getFileUrl(url);
+    return full.split('?')[0].split('/').pop() || full;
+  };
+
+  // Build the 3 angle photos list (strictly scoped to active variant / combo / product)
+  const activeVarObj = currentCombo?.variant || activeVariant;
+  const rawGallery = (product.galleryImages || []);
+  const basePrimary = currentCombo?.img || product.heroImage;
+  const seenAngleKeys = new Set();
+  const sideList = [];
+
+  const comboVarImgs = (activeVarObj?.variantImages || []).map(vi => {
+    const m = vi.media || vi;
+    const p = m?.url || m?.filePath || m?.path || (m?.fileName ? `/uploads/${m.fileName}` : (typeof m === 'string' ? m : ''));
+    return getFileUrl(p);
+  }).filter(Boolean);
+
+  [basePrimary, ...comboVarImgs, ...rawGallery].forEach(img => {
+    if (!img) return;
+    const fullUrl = getFileUrl(img);
+    const key = normalizeKey(img);
+    if (key && !seenAngleKeys.has(key)) {
+      seenAngleKeys.add(key);
+      sideList.push(fullUrl);
+    }
+  });
+
+  const currentDisplayedWatch = selectedAngleSrc || activeDisplayHeroImg || product?.heroImage;
 
   // ── THEME & SHOWCASE IMAGE RESOLUTION (Computed AFTER activeVariant updates product.heroImage) ──
   let parsedTheme = {};
@@ -1129,6 +1164,50 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           background: #ffffff;
         }
 
+        /* ── SIDE ANGLE THUMBNAILS BAR (Final add to cart & hero angle preview) ── */
+        .side-thumbnails-bar {
+          position: absolute;
+          right: 28px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          z-index: 45;
+          pointer-events: auto;
+        }
+        .side-thumb-item {
+          width: 50px;
+          height: 50px;
+          border-radius: 50%;
+          background: #121212;
+          border: 1px solid rgba(255,255,255,0.2);
+          padding: 6px;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          overflow: hidden;
+          box-sizing: border-box;
+        }
+        .side-thumb-item:hover {
+          transform: scale(1.08);
+          border-color: rgba(255,255,255,0.5);
+        }
+        .side-thumb-item.active {
+          border: 2px solid #008767;
+          box-shadow: 0 0 14px rgba(0, 135, 103, 0.5);
+          transform: scale(1.06);
+        }
+        .side-thumb-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          border-radius: 50%;
+        }
+
         .cfg-hero-product-img {
           width: 100%;
           height: auto;
@@ -1379,6 +1458,19 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           .cfg-hero-slide-inner.is-side {
             opacity: 0.32;
             transform: scale(0.78);
+          }
+          .side-thumbnails-bar {
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            gap: 10px;
+            z-index: 45;
+            pointer-events: auto;
+          }
+          .side-thumb-item {
+            width: 42px;
+            height: 42px;
+            padding: 4px;
           }
           .cfg-details-box {
             position: relative;
@@ -2451,7 +2543,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
 
           {/* Focused Visual Carousel / Single Visual Container */}
           <div className="cfg-hero-main-visual" style={{ zIndex: 10 }}>
-            {productCombos.length > 1 ? (
+            {showHeroCarousel ? (
               <div className="cfg-hero-carousel-wrap">
                 <Swiper
                   onSwiper={(swiper) => {
@@ -2468,6 +2560,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     const newIndex = swiper.realIndex;
                     setActiveComboIndex(newIndex);
                     setIsAdded(false);
+                    setSelectedAngleSrc(null);
                     if (productCombos[newIndex]) {
                       const targetCombo = productCombos[newIndex];
                       const targetVarId = targetCombo.variantId || targetCombo.id;
@@ -2500,6 +2593,9 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 >
                   {productCombos.map((combo, idx) => {
                     const isCenter = idx === activeComboIndex;
+                    const slideImg = isCenter && selectedAngleSrc
+                      ? selectedAngleSrc
+                      : (combo.img || activeDisplayHeroImg || '/assets/fylex-watch-v2/premium.png');
                     return (
                       <SwiperSlide key={combo.id || idx} className="cfg-hero-slide">
                         <div
@@ -2520,7 +2616,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                           title={isCenter ? 'Tap to view next configuration' : `View ${cleanConfigName(combo.name, product)}`}
                         >
                           <img
-                            src={combo.img || activeDisplayHeroImg || '/assets/fylex-watch-v2/premium.png'}
+                            src={slideImg}
                             alt={combo.name || product.title}
                             className="cfg-hero-product-img"
                             onError={(e) => {
@@ -2555,7 +2651,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
             ) : (
               <div className="cfg-hero-visual-box">
                 <img
-                  src={activeDisplayHeroImg || '/assets/fylex-watch-v2/premium.png'}
+                  src={currentDisplayedWatch || '/assets/fylex-watch-v2/premium.png'}
                   alt={product.title}
                   className="cfg-hero-product-img"
                   onError={(e) => {
@@ -2563,6 +2659,31 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                     e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
                   }}
                 />
+              </div>
+            )}
+
+            {/* ── SIDE ANGLE THUMBNAILS BAR (Final add to cart & hero angle preview) ── */}
+            {sideList.length > 1 && (
+              <div className="side-thumbnails-bar">
+                {sideList.slice(0, 5).map((imgUrl, idx) => {
+                  const isAngleActive = currentDisplayedWatch && normalizeKey(currentDisplayedWatch) === normalizeKey(imgUrl);
+                  return (
+                    <div
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedAngleSrc(imgUrl);
+                      }}
+                      className={`side-thumb-item ${isAngleActive ? 'active' : ''}`}
+                      title={`Angle ${idx + 1}`}
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Angle ${idx + 1}`}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
