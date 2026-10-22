@@ -24,6 +24,15 @@ if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
+function normalizeAttrKey(k) {
+  if (!k) return '';
+  const clean = k.toLowerCase().trim();
+  if (clean.includes('dial')) return 'dial';
+  if (clean.includes('belt') || clean.includes('strap')) return 'belt';
+  if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
+  return clean;
+}
+
 export function DiscoverContent({ isConfiguredMode = false }) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -44,6 +53,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const [isAdded, setIsAdded] = useState(false);
   const [addedBelts, setAddedBelts] = useState({});
   const [previewTheme, setPreviewTheme] = useState(null);
+  const [activeComboIndex, setActiveComboIndex] = useState(0);
+  const heroSwiperRef = useRef(null);
   const lastScrollY = useRef(0);
   const heroRef = useRef(null);
   const strapsSectionRef = useRef(null);
@@ -176,19 +187,31 @@ export function DiscoverContent({ isConfiguredMode = false }) {
 
                 return vPool.map(v => {
                   const vDisplay = getDisplayData(p, v);
+                  const attrMap = {};
+                  (v.variantAttributes || []).forEach(va => {
+                    const normKey = normalizeAttrKey(va.attributeValue?.attribute?.name);
+                    const val = va.attributeValue?.label || va.attributeValue?.value || '';
+                    if (normKey && val) {
+                      attrMap[normKey] = val;
+                    }
+                  });
+
                   return {
                     id: v.id.toString(),
-                    name: vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label).join(' • ') || v.name || v.sku,
-                    img: vDisplay.image,
+                    variantId: v.id.toString(),
+                    name: cleanConfigName(vDisplay.subtitle || v.variantAttributes?.map(va => va.attributeValue?.label).join(' • ') || v.name || v.sku, p),
+                    img: vDisplay.image || resolveProductImage(p, v),
                     price: vDisplay.price,
                     formattedPrice: vDisplay.formattedPrice,
                     isSoldConfiguration: Boolean(v.isSoldConfiguration === true || v.isSoldConfiguration === 1 || v.isSoldConfiguration === 'true'),
                     fakeSoldCount: Number(v.fakeSoldCount) || 0,
                     inStock: isVInStock(v),
+                    attrMap: attrMap,
                     attributes: v.variantAttributes?.map(va => ({
                       name: va.attributeValue?.attribute?.name?.toLowerCase(),
-                      value: va.attributeValue?.label
-                    })) || []
+                      value: va.attributeValue?.label || va.attributeValue?.value || ''
+                    })) || [],
+                    variant: v
                   };
                 });
               })(),
@@ -376,9 +399,25 @@ export function DiscoverContent({ isConfiguredMode = false }) {
       closeInfoModal();
       return;
     }
+    const pCombos = product?.combinations || [];
+    const targetIdx = pCombos.findIndex(c => c.id === combo.id || c.variantId === combo.id);
+    if (targetIdx !== -1) {
+      setActiveComboIndex(targetIdx);
+      if (heroSwiperRef.current) {
+        if (heroSwiperRef.current.params?.loop) {
+          heroSwiperRef.current.slideToLoop(targetIdx);
+        } else {
+          heroSwiperRef.current.slideTo(targetIdx);
+        }
+      }
+    }
     const params = new URLSearchParams(searchParams.toString());
     if (activeModalData?.id) {
       params.set('watch', activeModalData.id);
+    }
+    const targetVar = combo.variantId || combo.id;
+    if (targetVar) {
+      params.set('variant', targetVar);
     }
     (combo.attributes || []).forEach(attr => {
       if (attr.name && attr.value) {
@@ -392,18 +431,20 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const handleBookNow = () => {
     let targetVariant = null;
     const variants = product?.variants || [];
+    const activeVarId = activeDisplayVariantId || searchParams.get('variant');
 
-    const selectionsLocal = {};
-    const variantIdParam = searchParams.get('variant');
-    searchParams.forEach((value, key) => {
-      if (key !== 'watch' && key !== 'mode' && key !== 'variant') {
-        selectionsLocal[key.toLowerCase()] = value;
-      }
-    });
+    if (activeVarId && variants.length > 0) {
+      targetVariant = variants.find(v => v.id.toString() === activeVarId.toString());
+    }
 
-    if (variants.length > 0) {
+    if (!targetVariant && variants.length > 0) {
+      const selectionsLocal = {};
+      searchParams.forEach((value, key) => {
+        if (key !== 'watch' && key !== 'mode' && key !== 'variant') {
+          selectionsLocal[key.toLowerCase()] = value;
+        }
+      });
       targetVariant = variants.find(v => {
-        if (variantIdParam && v.id.toString() === variantIdParam) return true;
         const vAttrs = v.variantAttributes || [];
         if (vAttrs.length === 0) return false;
         return Object.keys(selectionsLocal).every(key => {
@@ -464,15 +505,6 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   }
 
   // ── DYNAMIC VARIANT MATCHING & RESOLUTION (Runs BEFORE image assignment) ──
-  const normalizeAttrKey = (k) => {
-    if (!k) return '';
-    const clean = k.toLowerCase().trim();
-    if (clean.includes('dial')) return 'dial';
-    if (clean.includes('belt') || clean.includes('strap')) return 'belt';
-    if (clean.includes('case') || clean.includes('bracelet') || clean.includes('model') || clean.includes('color')) return 'case';
-    return clean;
-  };
-
   const selections = {};
   const variantIdParam = searchParams.get('variant');
 
@@ -541,6 +573,65 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   if (!hasConfig) {
     product.heroBgImage = null;
   }
+
+  // ── HERO CONFIGURATION CAROUSEL STATE & LOGIC ──
+  const productCombos = product?.combinations || [];
+
+  // Determine initial combo index based on URL variant or activeVariant
+  const initialComboIndex = (() => {
+    if (productCombos.length > 0) {
+      if (variantIdParam) {
+        const vIdx = productCombos.findIndex(c => c.id === variantIdParam || c.variantId === variantIdParam);
+        if (vIdx !== -1) return vIdx;
+      }
+      if (activeVariant) {
+        const aIdx = productCombos.findIndex(c => c.id === activeVariant.id.toString() || c.variantId === activeVariant.id.toString());
+        if (aIdx !== -1) return aIdx;
+      }
+    }
+    return 0;
+  })();
+
+  // Synchronize swiper position if activeVariant changes externally or product loads
+  useEffect(() => {
+    if (productCombos.length > 0) {
+      let targetIdx = 0;
+      if (variantIdParam) {
+        const vIdx = productCombos.findIndex(c => c.id === variantIdParam || c.variantId === variantIdParam);
+        if (vIdx !== -1) targetIdx = vIdx;
+      } else if (activeVariant) {
+        const aIdx = productCombos.findIndex(c => c.id === activeVariant.id.toString() || c.variantId === activeVariant.id.toString());
+        if (aIdx !== -1) targetIdx = aIdx;
+      }
+      setActiveComboIndex(targetIdx);
+      if (heroSwiperRef.current) {
+        if (heroSwiperRef.current.params?.loop) {
+          heroSwiperRef.current.slideToLoop(targetIdx, 0);
+        } else {
+          heroSwiperRef.current.slideTo(targetIdx, 0);
+        }
+      }
+    }
+  }, [product?.id, variantIdParam]);
+
+  const currentCombo = (productCombos.length > 0 && productCombos[activeComboIndex])
+    ? productCombos[activeComboIndex]
+    : (activeVariant ? {
+        id: activeVariant.id?.toString(),
+        variantId: activeVariant.id?.toString(),
+        name: product?.variantName,
+        img: product?.heroImage,
+        price: product?.price,
+        formattedPrice: product?.formattedPrice,
+        attrMap: selections,
+        variant: activeVariant
+      } : null);
+
+  const activeDisplayHeroImg = currentCombo?.img || product?.heroImage;
+  const activeDisplayPrice = currentCombo?.formattedPrice || product?.formattedPrice || (typeof product?.price === 'number' ? `₹ ${product.price.toLocaleString('en-IN')}` : product?.price) || '₹ 25,000';
+  const activeDisplaySelections = (currentCombo?.attrMap && Object.keys(currentCombo.attrMap).length > 0) ? currentCombo.attrMap : selections;
+  const activeDisplayVariantId = currentCombo?.variantId || currentCombo?.id || activeVariant?.id?.toString();
+  const hasDisplayConfig = Boolean(hasConfig || Object.keys(activeDisplaySelections).length > 0);
 
   // ── THEME & SHOWCASE IMAGE RESOLUTION (Computed AFTER activeVariant updates product.heroImage) ──
   let parsedTheme = {};
@@ -931,15 +1022,111 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           position: relative;
           width: 100%;
           height: 100%;
-          // background: #ffffff;
           border-radius: 4px;
           display: flex;
           align-items: center;
           justify-content: center;
           overflow: visible;
           box-shadow: 0 40px 100px rgba(0,0,0,0.03);
-          // background: 
-          //   radial-gradient(circle at 70% 30%, rgba(255,255,255,1) 0%, rgba(248, 250, 252, 0.8) 100%);
+        }
+
+        .cfg-hero-carousel-wrap {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          overflow: visible;
+        }
+
+        .cfg-hero-swiper {
+          width: 100%;
+          height: 100%;
+          overflow: visible !important;
+          padding: 10px 0;
+        }
+
+        .cfg-hero-swiper .swiper-wrapper {
+          display: flex;
+          align-items: center;
+        }
+
+        .cfg-hero-slide {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+          box-sizing: border-box;
+        }
+
+        .cfg-hero-slide-inner {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: transform 0.55s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.55s ease, filter 0.55s ease;
+          user-select: none;
+          -webkit-user-select: none;
+          touch-action: pan-y;
+        }
+
+        .cfg-hero-slide-inner.is-center {
+          opacity: 1;
+          transform: scale(1.06);
+          filter: drop-shadow(0 30px 60px rgba(0,0,0,0.14));
+          cursor: pointer;
+        }
+
+        .cfg-hero-slide-inner.is-side {
+          opacity: 0.35;
+          transform: scale(0.82);
+          filter: drop-shadow(0 15px 30px rgba(0,0,0,0.06));
+        }
+
+        .cfg-hero-slide-inner.is-side:hover {
+          opacity: 0.65;
+          transform: scale(0.87);
+        }
+
+        .cfg-hero-slide-inner .cfg-hero-product-img {
+          pointer-events: none;
+        }
+
+        .cfg-hero-dots {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 7px;
+          margin-top: 12px;
+          z-index: 15;
+          position: relative;
+        }
+
+        .cfg-hero-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.22);
+          transition: all 0.35s ease;
+          cursor: pointer;
+        }
+
+        .cfg-hero-dot.active {
+          width: 22px;
+          border-radius: 999px;
+          background: #111111;
+        }
+
+        .cfg-page.is-configured .cfg-hero-dot {
+          background: rgba(255, 255, 255, 0.28);
+        }
+
+        .cfg-page.is-configured .cfg-hero-dot.active {
+          background: #ffffff;
         }
 
         .cfg-hero-product-img {
@@ -1172,18 +1359,26 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           .cfg-hero-main-visual {
             position: relative;
             transform: none;
-            margin: 10px 0 15px;
+            margin: 10px 0 10px;
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
+            height: 44vh;
           }
           .cfg-hero-product-img {
             max-height: 38vh;
             width: auto;
             object-fit: contain;
             transform: scale(1);
+          }
+          .cfg-hero-slide-inner.is-center {
+            transform: scale(1.02);
+          }
+          .cfg-hero-slide-inner.is-side {
+            opacity: 0.32;
+            transform: scale(0.78);
           }
           .cfg-details-box {
             position: relative;
@@ -2254,19 +2449,122 @@ export function DiscoverContent({ isConfiguredMode = false }) {
             <div className="cfg-hero-aura"></div>
           )}
 
-          {/* New Focused Visual Container */}
+          {/* Focused Visual Carousel / Single Visual Container */}
           <div className="cfg-hero-main-visual" style={{ zIndex: 10 }}>
-            <div className="cfg-hero-visual-box">
-              <img
-                src={displayHeroImg || '/assets/fylex-watch-v2/premium.png'}
-                alt={product.title}
-                className="cfg-hero-product-img"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
-                }}
-              />
-            </div>
+            {productCombos.length > 1 ? (
+              <div className="cfg-hero-carousel-wrap">
+                <Swiper
+                  onSwiper={(swiper) => {
+                    heroSwiperRef.current = swiper;
+                  }}
+                  centeredSlides={true}
+                  slidesPerView={1.35}
+                  spaceBetween={14}
+                  initialSlide={initialComboIndex}
+                  speed={550}
+                  grabCursor={true}
+                  loop={productCombos.length > 2}
+                  onSlideChange={(swiper) => {
+                    const newIndex = swiper.realIndex;
+                    setActiveComboIndex(newIndex);
+                    setIsAdded(false);
+                    if (productCombos[newIndex]) {
+                      const targetCombo = productCombos[newIndex];
+                      const targetVarId = targetCombo.variantId || targetCombo.id;
+                      if (targetVarId && typeof window !== 'undefined') {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('variant', targetVarId);
+                        window.history.replaceState(null, '', url.toString());
+                      }
+                    }
+                  }}
+                  breakpoints={{
+                    480: {
+                      slidesPerView: 1.45,
+                      spaceBetween: 18,
+                    },
+                    768: {
+                      slidesPerView: 1.6,
+                      spaceBetween: 28,
+                    },
+                    1024: {
+                      slidesPerView: 1.85,
+                      spaceBetween: 36,
+                    },
+                    1280: {
+                      slidesPerView: 2.2,
+                      spaceBetween: 44,
+                    }
+                  }}
+                  className="cfg-hero-swiper"
+                >
+                  {productCombos.map((combo, idx) => {
+                    const isCenter = idx === activeComboIndex;
+                    return (
+                      <SwiperSlide key={combo.id || idx} className="cfg-hero-slide">
+                        <div
+                          className={`cfg-hero-slide-inner ${isCenter ? 'is-center' : 'is-side'}`}
+                          onClick={() => {
+                            if (!heroSwiperRef.current) return;
+                            if (isCenter) {
+                              // User clicked centre option -> scrolls to left & next option showed on right!
+                              heroSwiperRef.current.slideNext();
+                            } else {
+                              if (heroSwiperRef.current.params?.loop) {
+                                heroSwiperRef.current.slideToLoop(idx);
+                              } else {
+                                heroSwiperRef.current.slideTo(idx);
+                              }
+                            }
+                          }}
+                          title={isCenter ? 'Tap to view next configuration' : `View ${cleanConfigName(combo.name, product)}`}
+                        >
+                          <img
+                            src={combo.img || activeDisplayHeroImg || '/assets/fylex-watch-v2/premium.png'}
+                            alt={combo.name || product.title}
+                            className="cfg-hero-product-img"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                            }}
+                          />
+                        </div>
+                      </SwiperSlide>
+                    );
+                  })}
+                </Swiper>
+
+                {productCombos.length > 1 && (
+                  <div className="cfg-hero-dots">
+                    {productCombos.map((_, i) => (
+                      <span
+                        key={i}
+                        className={`cfg-hero-dot ${i === activeComboIndex ? 'active' : ''}`}
+                        onClick={() => {
+                          if (heroSwiperRef.current?.params?.loop) {
+                            heroSwiperRef.current.slideToLoop(i);
+                          } else {
+                            heroSwiperRef.current?.slideTo(i);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="cfg-hero-visual-box">
+                <img
+                  src={activeDisplayHeroImg || '/assets/fylex-watch-v2/premium.png'}
+                  alt={product.title}
+                  className="cfg-hero-product-img"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/assets/fylex-watch-v2/premium.png';
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Bottom Left Details */}
@@ -2274,9 +2572,9 @@ export function DiscoverContent({ isConfiguredMode = false }) {
             <div className="cfg-details-left">
               <h1 className="cfg-details-title" style={product?.heroBgImage ? { color: '#ffffff' } : { color: product?.textColor || '#111111' }}>{product?.title || ''}</h1>
 
-              {hasConfig && (
+              {hasDisplayConfig && (
                 <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {Object.entries(selections).map(([key, val]) => {
+                  {Object.entries(activeDisplaySelections).map(([key, val]) => {
                     const tc = product?.textColor || '#111111';
                     const isLight = !product?.heroBgImage;
                     return (
@@ -2289,10 +2587,10 @@ export function DiscoverContent({ isConfiguredMode = false }) {
               )}
               <div className="cfg-price-add-row">
                 <div className="cfg-details-price" style={product?.heroBgImage ? { color: '#ffffff' } : { color: activeTextColor || product?.textColor || '#111111' }}>
-                  {product?.formattedPrice || (typeof product?.price === 'number' ? `₹ ${product.price.toLocaleString()}` : product?.price) || '₹ 25,000'}
+                  {activeDisplayPrice}
                 </div>
 
-                {!hasConfig && (
+                {!hasDisplayConfig && (
                   <div style={{ marginTop: '12px', marginBottom: '8px' }}>
                     {product?.productType === 'simple' ? (
                       <button onClick={handleBookNow} className="cfg-hero-cta-btn">Book Now</button>
@@ -2303,7 +2601,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 )}
 
                 <div className="cfg-actions-group" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  {hasConfig && (
+                  {hasDisplayConfig && (
                     <button 
                       className={`cfg-add-now-btn cfg-book-btn ${isAdded ? 'btn-added' : ''}`} 
                       onClick={handleBookNow}
@@ -2320,16 +2618,16 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                       Go to Cart →
                     </Link>
                   )}
-                  {hasConfig && (
+                  {hasDisplayConfig && (
                     <div className="cfg-details-right" style={{ color: product?.heroBgImage ? '#ffffff' : (product?.textColor || '#1a1a1a') }}>
                       <div
-                        className={`cfg-fav-inline ${isInWishlist(product?.currentVariantId || product?.variantId) ? 'active' : ''}`}
-                        onClick={() => toggleWishlist({ ...product, variantId: product?.currentVariantId || product?.variantId })}
-                        title={isInWishlist(product?.currentVariantId || product?.variantId) ? 'Remove from Favourite' : 'Add to Favourite'}
+                        className={`cfg-fav-inline ${isInWishlist(activeDisplayVariantId) ? 'active' : ''}`}
+                        onClick={() => toggleWishlist({ ...product, variantId: activeDisplayVariantId, id: product.id })}
+                        title={isInWishlist(activeDisplayVariantId) ? 'Remove from Favourite' : 'Add to Favourite'}
                       >
                         <svg
                           viewBox="0 0 24 24"
-                          fill={isInWishlist(product?.currentVariantId || product?.variantId) ? "currentColor" : "none"}
+                          fill={isInWishlist(activeDisplayVariantId) ? "currentColor" : "none"}
                           stroke="currentColor"
                           strokeWidth="2"
                           strokeLinecap="round"
