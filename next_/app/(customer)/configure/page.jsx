@@ -41,6 +41,36 @@ function ConfigureContent() {
   const configuratorRef = useRef(null);
   const storyRef = useRef(null);
   const parallaxInited = useRef(false);
+  const optionsRowRef = useRef(null);
+
+  const scrollToOption = (el) => {
+    if (!el || !optionsRowRef.current) return;
+    optionsRowRef.current.scrollTo({
+      left: Math.max(0, el.offsetLeft),
+      behavior: 'smooth'
+    });
+  };
+
+  // Auto-scroll options row so that the selected option scrolls towards the left
+  useEffect(() => {
+    if (!optionsRowRef.current) return;
+    const timer = setTimeout(() => {
+      if (!optionsRowRef.current) return;
+      const activeEl = optionsRowRef.current.querySelector('.opt.active');
+      if (activeEl) {
+        optionsRowRef.current.scrollTo({
+          left: Math.max(0, activeEl.offsetLeft),
+          behavior: 'smooth'
+        });
+      } else {
+        optionsRowRef.current.scrollTo({
+          left: 0,
+          behavior: 'smooth'
+        });
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [currentStep, userSelections[stepsData[currentStep]?.id]]);
 
   useEffect(() => {
     const lenis = new Lenis({ lerp: 0.1, smoothWheel: true, syncTouch: true });
@@ -629,14 +659,29 @@ function ConfigureContent() {
           .side-thumbnails-bar { right: 12px; top: 26%; transform: translateY(-50%); gap: 10px; z-index: 45; pointer-events: auto; }
           .side-thumb-item { width: 40px; height: 40px; padding: 4px; }
           .c-selection-controls { padding: 12px 16px 8px; gap: 10px; }
-          .options-row { gap: 12px; font-size: 14px; }
+          .options-row { gap: 14px; font-size: 14px; padding-right: 80px; }
           .c-summary-footer { padding: 16px 20px; flex-direction: column; align-items: flex-start; gap: 12px; }
           .f-add-cart-btn { align-self: flex-end; margin-top: -30px; }
         }
         .c-bottom-panel { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 30; background: transparent; pointer-events: none; }
         .c-selection-controls { padding: 30px; display: flex; flex-direction: column; gap: 20px; pointer-events: auto; }
         .step-title { font-size: 1.125rem; font-weight: 600; }
-        .options-row { display: flex; gap: 30px; font-size: 16px; font-weight: 600; color: #8A8A8A; overflow-x: auto; scrollbar-width: none; }
+        .options-row {
+          display: flex;
+          position: relative;
+          gap: 30px;
+          font-size: 16px;
+          font-weight: 600;
+          color: #8A8A8A;
+          overflow-x: auto;
+          scrollbar-width: none;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          padding-right: 60px;
+        }
+        .options-row::-webkit-scrollbar {
+          display: none;
+        }
         .opt { cursor: pointer; transition: color 0.3s; white-space: nowrap; color: #94a3b8; }
         .opt.active { color: #008767; font-weight: 700; }
         .nav-buttons-row { position: relative; display: flex; align-items: center; justify-content: center; min-height: 50px; margin-top: 15px; }
@@ -752,7 +797,7 @@ function ConfigureContent() {
           {currentStep >= 0 && currentStep < stepsData.length && (
             <div className="c-selection-controls">
               <div className="step-title">{stepsData[currentStep]?.title}</div>
-              <div className="options-row">
+              <div className="options-row" ref={optionsRowRef}>
                 {getCompatibleOptions(stepsData[currentStep]).map((opt, i) => {
                   const stepKey = stepsData[currentStep]?.id;
                   const selectedVal = userSelections[stepKey];
@@ -772,7 +817,10 @@ function ConfigureContent() {
                         whiteSpace: 'nowrap',
                         marginRight: '16px'
                       }}
-                      onClick={() => handleOptClick(opt?.name, opt?.img)}
+                      onClick={(e) => {
+                        handleOptClick(opt?.name, opt?.img);
+                        scrollToOption(e.currentTarget);
+                      }}
                     >
                       {opt?.name || ''}
                     </span>
