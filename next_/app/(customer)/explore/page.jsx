@@ -63,7 +63,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
 
   useEffect(() => {
     setSelectedAngleSrc(null);
-  }, [watchId, searchParams?.get ? searchParams.get('variant') : null, activeComboIndex]);
+  }, [watchId, searchParams ? searchParams.toString() : '', activeComboIndex]);
 
   useEffect(() => {
     const handleMessage = (event) => {
@@ -493,6 +493,22 @@ export function DiscoverContent({ isConfiguredMode = false }) {
           c.variantId?.toString() === vParam?.toString()
         );
         if (vIdx !== -1) targetIdx = vIdx;
+      } else {
+        const searchAttrMap = {};
+        if (searchParams?.forEach) {
+          searchParams.forEach((val, k) => {
+            if (k !== 'watch' && k !== 'mode' && k !== 'variant') {
+              searchAttrMap[normalizeAttrKey(k)] = val.toLowerCase().trim();
+            }
+          });
+        }
+        if (Object.keys(searchAttrMap).length > 0) {
+          const attrIdx = combos.findIndex(c => {
+            const cMap = c.attrMap || {};
+            return Object.keys(searchAttrMap).every(k => (cMap[k] || '').toLowerCase().trim() === searchAttrMap[k]);
+          });
+          if (attrIdx !== -1) targetIdx = attrIdx;
+        }
       }
       setActiveComboIndex(targetIdx);
       if (heroSwiperRef.current) {
@@ -503,7 +519,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         }
       }
     }
-  }, [productsData, watchId, searchParams?.get ? searchParams.get('variant') : null]);
+  }, [productsData, watchId, searchParams ? searchParams.toString() : '']);
 
   if (loading) {
     return (
@@ -568,6 +584,24 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         return va && va.attributeValue?.label?.toLowerCase().trim() === selections[normKey].toLowerCase().trim();
       });
     });
+
+    if (!matchingVariant && hasSelections && (product.variants || []).length > 0) {
+      let bestScore = -1;
+      (product.variants || []).forEach(v => {
+        const vAttrs = v.variantAttributes || [];
+        let score = 0;
+        Object.keys(selections).forEach(normKey => {
+          const va = vAttrs.find(a => normalizeAttrKey(a.attributeValue?.attribute?.name) === normKey);
+          if (va && va.attributeValue?.label?.toLowerCase().trim() === selections[normKey].toLowerCase().trim()) {
+            score += 1;
+          }
+        });
+        if (score > bestScore && score > 0) {
+          bestScore = score;
+          matchingVariant = v;
+        }
+      });
+    }
   }
 
   const activeVariant = matchingVariant || (product.variants || []).find(v => v.isPrimary || v.isDefault) || (product.variants || [])[0];
@@ -614,30 +648,17 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   // ── HERO CONFIGURATION CAROUSEL STATE & LOGIC ──
   const productCombos = product?.combinations || [];
 
-  // Determine initial combo index based on URL variant or activeVariant
-  const initialComboIndex = (() => {
-    if (productCombos.length > 0) {
-      if (variantIdParam) {
-        const vIdx = productCombos.findIndex(c => 
-          c.id?.toString() === variantIdParam?.toString() || 
-          c.variantId?.toString() === variantIdParam?.toString()
-        );
-        if (vIdx !== -1) return vIdx;
-      }
-      if (activeVariant) {
-        const aIdx = productCombos.findIndex(c => 
-          c.id?.toString() === activeVariant.id?.toString() || 
-          c.variantId?.toString() === activeVariant.id?.toString()
-        );
-        if (aIdx !== -1) return aIdx;
-      }
-    }
-    return 0;
-  })();
+  // Match activeVariant against combinations list if present
+  const matchedCombo = (activeVariant && productCombos.length > 0)
+    ? productCombos.find(c => 
+        c.id?.toString() === activeVariant.id?.toString() || 
+        c.variantId?.toString() === activeVariant.id?.toString()
+      )
+    : null;
 
-  const currentCombo = (productCombos.length > 0 && productCombos[activeComboIndex])
-    ? productCombos[activeComboIndex]
-    : (activeVariant ? {
+  // In configured mode or when custom selections exist, activeVariant is the source of truth
+  const currentCombo = (isConfiguredMode || hasConfig)
+    ? (matchedCombo || (activeVariant ? {
         id: activeVariant.id?.toString(),
         variantId: activeVariant.id?.toString(),
         name: product?.variantName,
@@ -646,12 +667,36 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         formattedPrice: product?.formattedPrice,
         attrMap: selections,
         variant: activeVariant
-      } : null);
+      } : (productCombos[activeComboIndex] || null)))
+    : ((productCombos.length > 0 && productCombos[activeComboIndex])
+        ? productCombos[activeComboIndex]
+        : (matchedCombo || (activeVariant ? {
+            id: activeVariant.id?.toString(),
+            variantId: activeVariant.id?.toString(),
+            name: product?.variantName,
+            img: product?.heroImage,
+            price: product?.price,
+            formattedPrice: product?.formattedPrice,
+            attrMap: selections,
+            variant: activeVariant
+          } : null)));
 
-  const activeDisplayHeroImg = currentCombo?.img || product?.heroImage;
-  const activeDisplayPrice = currentCombo?.formattedPrice || product?.formattedPrice || (typeof product?.price === 'number' ? `₹ ${product.price.toLocaleString('en-IN')}` : product?.price) || '₹ 25,000';
-  const activeDisplaySelections = (currentCombo?.attrMap && Object.keys(currentCombo.attrMap).length > 0) ? currentCombo.attrMap : selections;
-  const activeDisplayVariantId = currentCombo?.variantId || currentCombo?.id || activeVariant?.id?.toString();
+  const activeDisplayHeroImg = (isConfiguredMode || hasConfig)
+    ? (product?.heroImage || currentCombo?.img)
+    : (currentCombo?.img || product?.heroImage);
+
+  const activeDisplayPrice = (isConfiguredMode || hasConfig)
+    ? (product?.formattedPrice || currentCombo?.formattedPrice || (typeof product?.price === 'number' ? `₹ ${product.price.toLocaleString('en-IN')}` : product?.price) || '₹ 25,000')
+    : (currentCombo?.formattedPrice || product?.formattedPrice || (typeof product?.price === 'number' ? `₹ ${product.price.toLocaleString('en-IN')}` : product?.price) || '₹ 25,000');
+
+  const activeDisplaySelections = (isConfiguredMode || hasConfig)
+    ? (Object.keys(selections).length > 0 ? selections : (currentCombo?.attrMap || {}))
+    : ((currentCombo?.attrMap && Object.keys(currentCombo.attrMap).length > 0) ? currentCombo.attrMap : selections);
+
+  const activeDisplayVariantId = (isConfiguredMode || hasConfig)
+    ? (activeVariant?.id?.toString() || currentCombo?.variantId || currentCombo?.id)
+    : (currentCombo?.variantId || currentCombo?.id || activeVariant?.id?.toString());
+
   const hasDisplayConfig = Boolean(hasConfig || Object.keys(activeDisplaySelections).length > 0);
   const showHeroCarousel = !isConfiguredMode && !hasConfig && productCombos.length > 1;
 
@@ -669,8 +714,12 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   };
 
   // Build the 3 angle photos list (strictly scoped to THIS specific variant only)
-  const activeVarObj = currentCombo?.variant || activeVariant;
-  const basePrimary = currentCombo?.img || product?.heroImage;
+  const activeVarObj = (isConfiguredMode || hasConfig)
+    ? (activeVariant || currentCombo?.variant)
+    : (currentCombo?.variant || activeVariant);
+  const basePrimary = (isConfiguredMode || hasConfig)
+    ? (product?.heroImage || currentCombo?.img)
+    : (currentCombo?.img || product?.heroImage);
   const seenAngleKeys = new Set();
   const sideList = [];
 

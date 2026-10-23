@@ -526,6 +526,10 @@ function ConfigureContent() {
       // Final completed step - Navigate to /configured outcome page!
       const params = new URLSearchParams();
       params.set('watch', watchId);
+      const match = findMatchingVariant(userSelections);
+      if (match?.id) {
+        params.set('variant', match.id.toString());
+      }
       Object.entries(userSelections).forEach(([k, v]) => {
         if (k && v) params.set(k, v);
       });
@@ -838,8 +842,16 @@ function ConfigureContent() {
               <img src={previewSrc} alt={product?.title || 'Watch'} className="alert-watch-preview" />
             </div>
             <button className="alert-footer-btn" onClick={() => {
-              const params = new URLSearchParams({ watch: watchId, ...userSelections });
-              router.push(`/discover?${params.toString()}`);
+              const params = new URLSearchParams();
+              params.set('watch', watchId);
+              const match = findMatchingVariant(userSelections);
+              if (match?.id) {
+                params.set('variant', match.id.toString());
+              }
+              Object.entries(userSelections).forEach(([k, v]) => {
+                if (k && v) params.set(k, v);
+              });
+              router.push(`/configured?${params.toString()}`);
             }}>Discover</button>
           </div>
         </div>
