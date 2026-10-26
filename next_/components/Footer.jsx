@@ -17,7 +17,7 @@ const Footer = () => {
 
         .footer-grid-v1 {
           display: grid;
-          grid-template-columns: 1.5fr 1fr 1fr 1fr;
+          grid-template-columns: 1.5fr 1fr 1fr;
           gap: 40px clamp(20px, 3vw, 50px);
           padding-bottom: 50px;
         }
@@ -195,18 +195,18 @@ const Footer = () => {
             <Link href="/" className="footer-logo-v1">
               <img src="/fylex_logo_name.png" alt="Fylex" />
             </Link>
-            <p className="footer-legal-ownership">
+            {/* <p className="footer-legal-ownership">
               Fylex Watches and Radhika Times is a brand owned and operated by <strong>Rajeshbhai Mohanbhai Limbasiya</strong>.
-            </p>
-            <div className="footer-gst-badge">
+            </p> */}
+            {/* <div className="footer-gst-badge">
               <span>Trade Name: <b>Radhika Times</b></span>
               <span>Legal Name: <b>Rajeshbhai Mohanbhai Limbasiya</b></span>
               <span>GSTIN: <b>24ABBPL7345R1Z6</b></span>
-            </div>
+            </div> */}
           </div>
 
           {/* Registered Office */}
-          <div className="footer-col-section">
+          {/* <div className="footer-col-section">
             <h4 className="footer-col-heading">Registered Office</h4>
             <p className="footer-address-text">
               6/11 Patel Nagar,<br />
@@ -214,7 +214,7 @@ const Footer = () => {
               Rajkot, Gujarat - 360002,<br />
               India
             </p>
-          </div>
+          </div> */}
 
           {/* Contact & Support */}
           <div className="footer-col-section">
