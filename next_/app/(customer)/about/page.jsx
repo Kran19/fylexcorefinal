@@ -323,6 +323,27 @@ export default function About() {
                 const isAdding = addingId === vId;
                 const isAdded = addedIds.has(vId);
                 const targetWatchId = variant.productId || variant.product?.id || '';
+                const configuredUrl = (() => {
+                  const params = new URLSearchParams();
+                  if (targetWatchId) params.set('watch', targetWatchId.toString());
+                  if (variant.id) params.set('variant', variant.id.toString());
+                  (variant.variantAttributes || []).forEach(va => {
+                    const rawName = (va.attributeValue?.attribute?.name || '').toLowerCase().trim();
+                    let normKey = rawName;
+                    if (rawName.includes('dial')) normKey = 'dial';
+                    else if (rawName.includes('belt') || rawName.includes('strap')) normKey = 'belt';
+                    else if (rawName.includes('case') || rawName.includes('bracelet') || rawName.includes('model') || rawName.includes('color')) normKey = 'case';
+
+                    const valLabel = va.attributeValue?.label || va.attributeValue?.value || '';
+                    if (normKey && valLabel) {
+                      params.set(normKey, valLabel);
+                      if (rawName && rawName !== normKey) {
+                        params.set(rawName, valLabel);
+                      }
+                    }
+                  });
+                  return `/configured?${params.toString()}`;
+                })();
                 return (
                   <div 
                     key={variant.id}
@@ -415,7 +436,7 @@ export default function About() {
                         {isAdding ? 'ADDING...' : isAdded ? 'ADDED ✓' : 'ADD TO CART'}
                       </button>
                       <Link 
-                        href={`/explore?watch=${targetWatchId}&variant=${variant.id}`}
+                        href={configuredUrl}
                         style={{
                           flex: 1,
                           padding: '12px 14px',
