@@ -200,6 +200,17 @@ function formatSubtitle(targetVariant, product, fallbackVariant) {
 export function getDisplayData(product, variant = null) {
     if (!product) return { name: '', price: 0, image: '', isConfigurable: false };
 
+    let parsedTheme = {};
+    if (product.theme) {
+        if (typeof product.theme === 'object') {
+            parsedTheme = product.theme;
+        } else if (typeof product.theme === 'string') {
+            try {
+                parsedTheme = JSON.parse(product.theme);
+            } catch (e) {}
+        }
+    }
+
     const isConfig = product.productType === 'configurable' || product.isConfigurable;
     
     // DETERMINISTIC SELECTION: Use variant only if explicitly provided.
@@ -211,6 +222,25 @@ export function getDisplayData(product, variant = null) {
         ? (targetVariant?.sellingPrice || targetVariant?.price || fallbackVariant?.sellingPrice || fallbackVariant?.price || product.sellingPrice || product.price)
         : (product.sellingPrice || product.price);
 
+    const comparePriceVal = targetVariant?.comparePrice 
+        ? Number(targetVariant.comparePrice) 
+        : (fallbackVariant?.comparePrice 
+            ? Number(fallbackVariant.comparePrice) 
+            : (parsedTheme.comparePrice ? Number(parsedTheme.comparePrice) : (product.comparePrice ? Number(product.comparePrice) : 0)));
+
+    const effectivePrice = Number(priceValue || 0);
+    const effectiveComparePrice = Number(comparePriceVal || 0);
+
+    // If discountEnabled is explicitly specified in theme (from Admin switch), respect it.
+    // Otherwise, if comparePrice > priceValue, default to enabled.
+    const isDiscountToggleOn = parsedTheme.discountEnabled !== undefined 
+        ? Boolean(parsedTheme.discountEnabled) 
+        : Boolean(effectiveComparePrice > effectivePrice);
+
+    const isDiscounted = Boolean(isDiscountToggleOn && effectiveComparePrice > effectivePrice && effectivePrice > 0);
+    const discountPercent = isDiscounted ? Math.round(((effectiveComparePrice - effectivePrice) / effectiveComparePrice) * 100) : 0;
+    const discountSavings = isDiscounted ? (effectiveComparePrice - effectivePrice) : 0;
+
     return {
         id: product.id?.toString(),
         variantId: targetVariant?.id?.toString(),
@@ -218,16 +248,21 @@ export function getDisplayData(product, variant = null) {
         subtitle: formatSubtitle(targetVariant, product, fallbackVariant),
         isConfigurable: isConfig,
         variant: targetVariant || fallbackVariant,
-        price: Number(priceValue || 0),
-        formattedPrice: `₹${Number(priceValue || 0).toLocaleString('en-IN')}`,
+        price: effectivePrice,
+        formattedPrice: `₹${effectivePrice.toLocaleString('en-IN')}`,
+        comparePrice: effectiveComparePrice,
+        formattedComparePrice: effectiveComparePrice > 0 ? `₹${effectiveComparePrice.toLocaleString('en-IN')}` : null,
+        isDiscounted,
+        discountPercent,
+        discountSavings,
+        discountBadge: isDiscounted && discountPercent > 0 ? `${discountPercent}% OFF` : null,
+        discountEnabled: isDiscountToggleOn,
         image: resolveProductImage(product, targetVariant),
         heroBgImage: resolveProductBackground(product, targetVariant),
         slug: product.slug,
         sku: targetVariant?.sku || fallbackVariant?.sku || product.sku
     };
 }
-
-
 
 export function resolveProductImage(product, variant = null) {
   if (!product) return '/assets/fylex-watch-v2/premium.png';

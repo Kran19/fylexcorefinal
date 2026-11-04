@@ -159,6 +159,9 @@ const PreConfigure = () => {
             id: p.id.toString(),
             title: p.name,
             price: display.formattedPrice,
+            formattedComparePrice: display.formattedComparePrice,
+            isDiscounted: display.isDiscounted,
+            discountPercent: display.discountPercent,
             heroImage: display.image,
             theme: p.theme || 'champagne',
             textColor: pageTheme.textColor,
@@ -804,8 +807,18 @@ const PreConfigure = () => {
                           </button>
                         )}
                       </div>
-                      <div className="product-price-row flex items-center gap-3 mb-4" style={{ color: 'var(--theme-text, inherit)' }}>
+                      <div className="product-price-row flex items-baseline gap-2.5 mb-4" style={{ color: 'var(--theme-text, inherit)' }}>
                         <span className="product-price !m-0" style={{ color: 'var(--theme-text, inherit)' }}>{product.price}</span>
+                        {product.isDiscounted && product.formattedComparePrice && (
+                          <span className="line-through text-sm opacity-60 font-normal">
+                            {product.formattedComparePrice}
+                          </span>
+                        )}
+                        {product.isDiscounted && product.discountPercent > 0 && (
+                          <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {product.discountPercent}% OFF
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => {

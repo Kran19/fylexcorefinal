@@ -83,6 +83,9 @@ const Products = () => {
             description: p.description || p.shortDescription || '',
             image: display.image,
             price: display.formattedPrice,
+            comparePrice: display.formattedComparePrice,
+            isDiscounted: display.isDiscounted,
+            discountPercent: display.discountPercent,
             totalStock: p.qty || 0,
             sold: p.soldCount || 0,
             theme: p.theme || 'champagne',
@@ -1134,8 +1137,18 @@ const Products = () => {
                   <span className="p-tagline" style={{ color: autoTextColor, opacity: 0.9 }}>{col.tagline}</span>
                   <p className="p-description" style={{ color: autoTextColor, opacity: 0.7 }}>{col.description}</p>
 
-                  <div className="p-price-row flex items-center gap-3">
+                  <div className="p-price-row flex items-baseline gap-2.5">
                     <span className="p-price-tag" style={{ color: autoTextColor }}>{col.price}</span>
+                    {col.isDiscounted && col.comparePrice && (
+                      <span className="line-through text-sm opacity-60 font-normal" style={{ color: autoTextColor }}>
+                        {col.comparePrice}
+                      </span>
+                    )}
+                    {col.isDiscounted && col.discountPercent > 0 && (
+                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {col.discountPercent}% OFF
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {

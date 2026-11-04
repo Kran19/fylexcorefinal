@@ -681,6 +681,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
             variant: activeVariant
           } : null)));
 
+  const activeDisplayData = product ? getDisplayData(product, activeVariant || currentCombo?.variant) : null;
+
   const activeDisplayHeroImg = (isConfiguredMode || hasConfig)
     ? (product?.heroImage || currentCombo?.img)
     : (currentCombo?.img || product?.heroImage);
@@ -2797,8 +2799,18 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                 </div>
               )}
               <div className="cfg-price-add-row">
-                <div className="cfg-details-price" style={product?.heroBgImage ? { color: '#ffffff' } : { color: activeTextColor || product?.textColor || '#111111' }}>
-                  {activeDisplayPrice}
+                <div className="cfg-details-price flex items-baseline gap-2.5" style={product?.heroBgImage ? { color: '#ffffff' } : { color: activeTextColor || product?.textColor || '#111111' }}>
+                  <span>{activeDisplayPrice}</span>
+                  {activeDisplayData?.isDiscounted && activeDisplayData?.formattedComparePrice && (
+                    <span className="line-through text-sm opacity-60 font-normal">
+                      {activeDisplayData.formattedComparePrice}
+                    </span>
+                  )}
+                  {activeDisplayData?.isDiscounted && activeDisplayData?.discountPercent > 0 && (
+                    <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {activeDisplayData.discountPercent}% OFF
+                    </span>
+                  )}
                 </div>
 
                 {!hasDisplayConfig && (

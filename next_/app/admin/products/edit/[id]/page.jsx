@@ -42,6 +42,8 @@ const EditProductPage = () => {
         specifications: {}, // specId: value
         sku: '',
         price: '',
+        comparePrice: '',
+        discountEnabled: false,
         qty: '',
         subtitle: '',
         tagline: '',
@@ -271,6 +273,10 @@ const EditProductPage = () => {
                     categoryId: p.mainCategoryId?.toString() || '',
                     taxClassId: p.taxClassId?.toString() || '',
                     price: p.price?.toString() || '',
+                    comparePrice: (parsedTheme.comparePrice || p.comparePrice || '')?.toString(),
+                    discountEnabled: parsedTheme.discountEnabled !== undefined
+                        ? Boolean(parsedTheme.discountEnabled)
+                        : (p.variants?.some(v => v.comparePrice && Number(v.comparePrice) > Number(v.price)) || Boolean(parsedTheme.comparePrice && Number(parsedTheme.comparePrice) > Number(p.price))),
                     qty: p.qty?.toString() || '0',
                     subtitle: p.subtitle || '',
                     tagline: p.tagline || '',
@@ -576,6 +582,8 @@ const EditProductPage = () => {
 
         const themeJson = JSON.stringify({
             configuredImageCount: configuredImageNum,
+            discountEnabled: Boolean(form.discountEnabled),
+            comparePrice: form.comparePrice ? Number(form.comparePrice) : null,
             exploreHeroImage: form.exploreHeroImage || null,
             exploreStoryImage: form.exploreStoryImage || null,
             exploreSpecsImage: form.exploreSpecsImage || null,
@@ -608,6 +616,9 @@ const EditProductPage = () => {
             mainCategoryId: activeCatId,
             sku: form.sku || form.productCode || `SKU-${Date.now()}`,
             price: variants.length > 0 
+                ? Math.min(...variants.map(v => parseFloat(v.price) || Infinity)).toString()
+                : (form.price || '0'),
+            sellingPrice: variants.length > 0 
                 ? Math.min(...variants.map(v => parseFloat(v.price) || Infinity)).toString()
                 : (form.price || '0'),
             qty: variants.length > 0 
@@ -776,6 +787,118 @@ const EditProductPage = () => {
                                             <label htmlFor="isFeatured" className="text-sm font-bold text-indigo-950 cursor-pointer">
                                                 Featured Product (Show on Homepage)
                                             </label>
+                                        </div>
+
+                                        {/* Pricing & Promotional Discount Control Card */}
+                                        <div className="md:col-span-2 mt-2 bg-gradient-to-br from-slate-900 to-indigo-950 p-6 rounded-2xl border border-indigo-800/50 shadow-xl text-white space-y-5">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 text-lg border border-amber-500/30">
+                                                        <i className="fas fa-tags"></i>
+                                                    </span>
+                                                    <div>
+                                                        <h4 className="text-base font-bold text-white tracking-wide">Promotional Pricing & Discount Control</h4>
+                                                        <p className="text-xs text-slate-300 mt-0.5">Manage product-level MRP, Sales Price, and live discount badge status</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* DISCOUNT ON / OFF SWITCH */}
+                                                <div className="flex items-center gap-3 bg-black/40 px-4 py-2.5 rounded-xl border border-white/15">
+                                                    <span className={`text-xs font-black tracking-wider uppercase px-2.5 py-1 rounded-full ${form.discountEnabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-700/50 text-slate-400 border border-slate-600'}`}>
+                                                        {form.discountEnabled ? '● Discount ON' : '○ Discount OFF'}
+                                                    </span>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            name="discountEnabled"
+                                                            checked={Boolean(form.discountEnabled)}
+                                                            onChange={(e) => setForm(prev => ({ ...prev, discountEnabled: e.target.checked }))}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="w-12 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            {/* Pricing Fields Grid */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                                                        Product MRP / Actual Price (₹)
+                                                    </label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                                                        <input 
+                                                            type="number"
+                                                            name="comparePrice"
+                                                            value={form.comparePrice || ''}
+                                                            onChange={handleChange}
+                                                            placeholder="e.g. 24999 (Original Price)"
+                                                            className="w-full bg-slate-800/80 border border-white/15 rounded-xl py-2.5 pl-8 pr-4 text-white text-sm font-semibold placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                                                        />
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-400 mt-1">Original manufacturer price (struck-through on storefront when discount is ON).</p>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                                                        Product Sales / Selling Price (₹)
+                                                    </label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                                                        <input 
+                                                            type="number"
+                                                            name="price"
+                                                            value={form.price || ''}
+                                                            onChange={handleChange}
+                                                            placeholder="e.g. 19999 (Offer Price)"
+                                                            className="w-full bg-slate-800/80 border border-white/15 rounded-xl py-2.5 pl-8 pr-4 text-white text-sm font-semibold placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                                                        />
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-400 mt-1">Customer selling price. For configurable products, variants can override or sync with this.</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Live Preview Indicator */}
+                                            <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-slate-400">Live Preview:</span>
+                                                    {form.discountEnabled && Number(form.comparePrice) > Number(form.price) && Number(form.price) > 0 ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-emerald-400 font-bold text-sm">₹{Number(form.price).toLocaleString('en-IN')}</span>
+                                                            <span className="line-through text-slate-400 text-xs">₹{Number(form.comparePrice).toLocaleString('en-IN')}</span>
+                                                            <span className="bg-amber-500/20 text-amber-300 font-extrabold px-2 py-0.5 rounded-full border border-amber-500/30 text-[10px]">
+                                                                {Math.round(((Number(form.comparePrice) - Number(form.price)) / Number(form.comparePrice)) * 100)}% OFF (Save ₹{(Number(form.comparePrice) - Number(form.price)).toLocaleString('en-IN')})
+                                                            </span>
+                                                        </div>
+                                                    ) : form.discountEnabled ? (
+                                                        <span className="text-amber-400 italic">Enter MRP higher than Sales Price to activate discount badge</span>
+                                                    ) : (
+                                                        <span className="text-slate-400 italic">Discount is OFF. Storefront will display standard selling price only.</span>
+                                                    )}
+                                                </div>
+
+                                                {form.productType === 'configurable' && variants.length > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (!form.price && !form.comparePrice) {
+                                                                toast?.error?.('Please enter MRP and/or Sales Price above first.');
+                                                                return;
+                                                            }
+                                                            setVariants(prev => prev.map(v => ({
+                                                                ...v,
+                                                                ...(form.price ? { price: Number(form.price) } : {}),
+                                                                ...(form.comparePrice ? { comparePrice: Number(form.comparePrice) } : {})
+                                                            })));
+                                                            toast?.success?.(`Applied MRP (₹${form.comparePrice || '-'}) and Price (₹${form.price || '-'}) to all ${variants.length} variants!`);
+                                                        }}
+                                                        className="self-start sm:self-auto px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shadow flex items-center gap-1.5 cursor-pointer"
+                                                    >
+                                                        <i className="fas fa-sync-alt"></i> Apply MRP & Price to All Variants ({variants.length})
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1502,6 +1625,43 @@ const EditProductPage = () => {
 
                                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                                              <button
+                                                                  type="button"
+                                                                  onClick={() => {
+                                                                      const nextVal = !form.discountEnabled;
+                                                                      setForm(prev => ({ ...prev, discountEnabled: nextVal }));
+                                                                      toast?.info?.(nextVal ? 'Discount enabled on product!' : 'Discount disabled on product!');
+                                                                  }}
+                                                                  style={{
+                                                                      padding: '7px 14px',
+                                                                      borderRadius: '10px',
+                                                                      border: form.discountEnabled ? '1px solid #10b981' : '1px solid #cbd5e1',
+                                                                      background: form.discountEnabled ? '#ecfdf5' : '#f8fafc',
+                                                                      color: form.discountEnabled ? '#065f46' : '#64748b',
+                                                                      fontSize: '12px',
+                                                                      fontWeight: 800,
+                                                                      cursor: 'pointer',
+                                                                      display: 'inline-flex',
+                                                                      alignItems: 'center',
+                                                                      gap: '6px'
+                                                                  }}
+                                                              >
+                                                                  <i className="fas fa-power-off" style={{ color: form.discountEnabled ? '#10b981' : '#94a3b8' }}></i>
+                                                                  Discount: {form.discountEnabled ? 'ON' : 'OFF'}
+                                                              </button>
+                                                              <button
+                                                                  type="button"
+                                                                  onClick={() => {
+                                                                      const val = prompt('Enter Actual Price (MRP) to apply to ALL variants:');
+                                                                      if (val !== null && val !== '' && !isNaN(val)) {
+                                                                          setVariants(prev => prev.map(v => ({ ...v, comparePrice: Number(val) })));
+                                                                          toast?.success?.(`Updated MRP (Actual Price) to ₹${val} for all variants`);
+                                                                      }
+                                                                  }}
+                                                                  style={{ padding: '7px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#334155', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                              >
+                                                                  <i className="fas fa-tag" style={{ color: '#0ea5e9' }}></i> Batch MRP
+                                                              </button>
+                                                              <button
                                                                  type="button"
                                                                  onClick={() => {
                                                                      const val = prompt('Enter Selling Price to apply to ALL variants:');
@@ -1527,6 +1687,27 @@ const EditProductPage = () => {
                                                              >
                                                                  <i className="fas fa-boxes" style={{ color: '#10b981' }}></i> Batch Stock
                                                              </button>
+                                                              <button
+                                                                  type="button"
+                                                                  onClick={() => {
+                                                                      const pctStr = prompt('Enter Discount % (e.g. 20 for 20% off MRP):');
+                                                                      if (pctStr !== null && pctStr !== '' && !isNaN(pctStr)) {
+                                                                          const pct = Number(pctStr);
+                                                                          setVariants(prev => prev.map(v => {
+                                                                              const mrp = Number(v.comparePrice || form.comparePrice || 0);
+                                                                              if (mrp > 0) {
+                                                                                  const calculatedPrice = Math.round(mrp * (1 - pct / 100));
+                                                                                  return { ...v, price: calculatedPrice };
+                                                                              }
+                                                                              return v;
+                                                                          }));
+                                                                          toast?.success?.(`Applied ${pct}% discount across all variants!`);
+                                                                      }
+                                                                  }}
+                                                                  style={{ padding: '7px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#334155', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                                                              >
+                                                                  <i className="fas fa-percent" style={{ color: '#f59e0b' }}></i> Batch % Discount
+                                                              </button>
                                                          </div>
                                                      </div>
 

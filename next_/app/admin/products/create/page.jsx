@@ -30,7 +30,7 @@ const AddProductPage = () => {
         gallery: [],
         tagIds: [],
         specifications: {},
-        price: '', qty: '',
+        price: '', comparePrice: '', discountEnabled: false, qty: '',
         bgColor: '#ffffff', accentColor: '#c4a35a', textColor: '#1a1a1a',
         gradient: '', mistColor: '#f8fafc', videoUrl: '',
         discoverHeroBgImage: '',
@@ -254,6 +254,11 @@ const AddProductPage = () => {
             mainCategoryId: form.categoryId,
             sku: form.sku || form.productCode || `SKU-${Date.now()}`,
             price: (parseFloat(form.price) || 0).toString(),
+            sellingPrice: (parseFloat(form.price) || 0).toString(),
+            theme: JSON.stringify({
+                discountEnabled: Boolean(form.discountEnabled),
+                comparePrice: form.comparePrice ? Number(form.comparePrice) : null,
+            }),
             qty: parseInt(form.qty) || 0,
             isFeatured: form.isFeatured,
             specifications: [],
@@ -352,6 +357,97 @@ const AddProductPage = () => {
                                             <label htmlFor="isFeatured" className="text-sm font-bold text-indigo-900 cursor-pointer">
                                                 Featured Product (Show on Homepage)
                                             </label>
+                                        </div>
+
+                                        {/* Pricing & Promotional Discount Control Card */}
+                                        <div className="md:col-span-2 mt-2 bg-gradient-to-br from-slate-900 to-indigo-950 p-6 rounded-2xl border border-indigo-800/50 shadow-xl text-white space-y-5">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 text-lg border border-amber-500/30">
+                                                        <i className="fas fa-tags"></i>
+                                                    </span>
+                                                    <div>
+                                                        <h4 className="text-base font-bold text-white tracking-wide">Promotional Pricing & Discount Control</h4>
+                                                        <p className="text-xs text-slate-300 mt-0.5">Manage product-level MRP, Sales Price, and live discount badge status</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* DISCOUNT ON / OFF SWITCH */}
+                                                <div className="flex items-center gap-3 bg-black/40 px-4 py-2.5 rounded-xl border border-white/15">
+                                                    <span className={`text-xs font-black tracking-wider uppercase px-2.5 py-1 rounded-full ${form.discountEnabled ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-700/50 text-slate-400 border border-slate-600'}`}>
+                                                        {form.discountEnabled ? '● Discount ON' : '○ Discount OFF'}
+                                                    </span>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            name="discountEnabled"
+                                                            checked={Boolean(form.discountEnabled)}
+                                                            onChange={(e) => setForm(prev => ({ ...prev, discountEnabled: e.target.checked }))}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="w-12 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            {/* Pricing Fields Grid */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                                                        Product MRP / Actual Price (₹)
+                                                    </label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                                                        <input 
+                                                            type="number"
+                                                            name="comparePrice"
+                                                            value={form.comparePrice || ''}
+                                                            onChange={handleChange}
+                                                            placeholder="e.g. 24999 (Original Price)"
+                                                            className="w-full bg-slate-800/80 border border-white/15 rounded-xl py-2.5 pl-8 pr-4 text-white text-sm font-semibold placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                                                        />
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-400 mt-1">Original manufacturer price (struck-through on storefront when discount is ON).</p>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                                                        Product Sales / Selling Price (₹)
+                                                    </label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                                                        <input 
+                                                            type="number"
+                                                            name="price"
+                                                            value={form.price || ''}
+                                                            onChange={handleChange}
+                                                            placeholder="e.g. 19999 (Offer Price)"
+                                                            className="w-full bg-slate-800/80 border border-white/15 rounded-xl py-2.5 pl-8 pr-4 text-white text-sm font-semibold placeholder-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                                                        />
+                                                    </div>
+                                                    <p className="text-[11px] text-slate-400 mt-1">Customer selling price. For configurable products, variants can override or sync with this.</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Live Preview Indicator */}
+                                            <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-slate-400">Live Preview:</span>
+                                                    {form.discountEnabled && Number(form.comparePrice) > Number(form.price) && Number(form.price) > 0 ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-emerald-400 font-bold text-sm">₹{Number(form.price).toLocaleString('en-IN')}</span>
+                                                            <span className="line-through text-slate-400 text-xs">₹{Number(form.comparePrice).toLocaleString('en-IN')}</span>
+                                                            <span className="bg-amber-500/20 text-amber-300 font-extrabold px-2 py-0.5 rounded-full border border-amber-500/30 text-[10px]">
+                                                                {Math.round(((Number(form.comparePrice) - Number(form.price)) / Number(form.comparePrice)) * 100)}% OFF (Save ₹{(Number(form.comparePrice) - Number(form.price)).toLocaleString('en-IN')})
+                                                            </span>
+                                                        </div>
+                                                    ) : form.discountEnabled ? (
+                                                        <span className="text-amber-400 italic">Enter MRP higher than Sales Price to activate discount badge</span>
+                                                    ) : (
+                                                        <span className="text-slate-400 italic">Discount is OFF. Storefront will display standard selling price only.</span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
 
                                     </div>

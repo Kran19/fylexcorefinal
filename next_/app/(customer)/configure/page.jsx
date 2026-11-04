@@ -11,7 +11,7 @@ import Lenis from 'lenis';
 import { X, RefreshCw, ChevronRight, ChevronLeft, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { fetchProducts } from '../../../lib/api';
-import { getFileUrl, resolveProductImage, resolveProductBackground } from '../../../lib/utils';
+import { getFileUrl, resolveProductImage, resolveProductBackground, getDisplayData } from '../../../lib/utils';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -842,6 +842,25 @@ function ConfigureContent() {
               <h3 className="f-title">{product?.title || ''}</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span className="f-price">{displayPrice}</span>
+                {(() => {
+                  const match = findMatchingVariant(userSelections);
+                  const display = product ? getDisplayData(product, match) : null;
+                  if (display?.isDiscounted && display?.formattedComparePrice) {
+                    return (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ textDecoration: 'line-through', fontSize: '13px', color: '#888' }}>
+                          {display.formattedComparePrice}
+                        </span>
+                        {display.discountPercent > 0 && (
+                          <span style={{ fontSize: '10px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px', background: 'rgba(245, 158, 11, 0.15)', color: '#d97706', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                            {display.discountPercent}% OFF
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 {(() => {
                   const match = findMatchingVariant(userSelections);
                   const inStock = isVariantInStock(match);

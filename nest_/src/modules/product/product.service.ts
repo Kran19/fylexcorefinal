@@ -841,6 +841,7 @@ export class ProductService {
       }
 
       if (rest.price !== undefined) prismaData.price = Number(rest.price);
+      if (rest.sellingPrice !== undefined) { prismaData.sellingPrice = Number(rest.sellingPrice); } else if (rest.price !== undefined) { prismaData.sellingPrice = Number(rest.price); }
       if (rest.specialPrice !== undefined) prismaData.specialPrice = rest.specialPrice ? Number(rest.specialPrice) : null;
       
 

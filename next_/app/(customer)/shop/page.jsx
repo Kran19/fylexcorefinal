@@ -729,6 +729,22 @@ export default function Shop() {
                     }}>
                       {founderVariant.product?.name || 'Watch'}
                     </h4>
+                    {(() => {
+                      const display = getDisplayData(founderVariant.product, founderVariant);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '8px', marginBottom: '15px' }}>
+                          <span style={{ fontSize: '18px', fontWeight: '700', color: '#fff' }}>{display.formattedPrice}</span>
+                          {display.isDiscounted && display.formattedComparePrice && (
+                            <span style={{ textDecoration: 'line-through', fontSize: '14px', color: '#888' }}>{display.formattedComparePrice}</span>
+                          )}
+                          {display.isDiscounted && display.discountPercent > 0 && (
+                            <span style={{ fontSize: '11px', fontWeight: '800', background: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d', border: '1px solid rgba(245, 158, 11, 0.3)', padding: '2px 8px', borderRadius: '12px' }}>
+                              {display.discountPercent}% OFF
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div style={{ display: 'flex', gap: '10px', marginTop: '15px', justifyContent: 'center', width: '100%' }}>
                       <button 
                         onClick={(e) => handleAddToCart(e, founderVariant)}

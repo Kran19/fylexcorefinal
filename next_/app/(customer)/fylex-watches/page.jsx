@@ -576,7 +576,19 @@ export default function FylexWatchesPage() {
                       ))}
                     </div>
 
-                    <div className="fw-price">{priceFormatted}</div>
+                    <div className="fw-price-row flex items-baseline gap-2">
+                      <div className="fw-price">{priceFormatted}</div>
+                      {display.isDiscounted && display.formattedComparePrice && (
+                        <span className="line-through text-slate-400 text-sm font-normal">
+                          {display.formattedComparePrice}
+                        </span>
+                      )}
+                      {display.isDiscounted && display.discountPercent > 0 && (
+                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          {display.discountPercent}% OFF
+                        </span>
+                      )}
+                    </div>
 
                     <div className="fw-actions-row">
                       <button
