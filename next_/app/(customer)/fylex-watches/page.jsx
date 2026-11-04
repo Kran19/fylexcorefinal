@@ -181,7 +181,7 @@ export default function FylexWatchesPage() {
         }
 
         .fw-hero-section {
-          padding: calc(var(--header-h, 75px) + 50px) clamp(20px, 6vw, 80px) 40px;
+          padding: calc(var(--header-h, 75px) + 20px) clamp(20px, 6vw, 80px) 16px;
           text-align: center;
           position: relative;
           background: radial-gradient(circle at 50% 20%, rgba(196, 163, 90, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
@@ -222,7 +222,7 @@ export default function FylexWatchesPage() {
           justify-content: center;
           flex-wrap: wrap;
           gap: 10px;
-          margin: 40px auto 20px;
+          margin: 0 auto 10px;
           padding: 0 20px;
           max-width: 900px;
         }
@@ -498,13 +498,6 @@ export default function FylexWatchesPage() {
       <main style={{ flex: 1 }}>
         {/* ── HERO BANNER ── */}
         <section className="fw-hero-section">
-          <span className="fw-eyebrow">Ready for Immediate Acquisition</span>
-          <h1 className="fw-title">FYLEX Watches</h1>
-          <p className="fw-subtitle">
-            Masterfully configured timepieces curated by our founder and master watchmakers.
-            Every case, dial, and bracelet balanced to absolute perfection.
-          </p>
-
           {/* ── FILTER TABS ── */}
           {categories.length > 1 && (
             <div className="fw-tabs-bar">
