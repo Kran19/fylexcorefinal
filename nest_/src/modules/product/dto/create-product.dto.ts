@@ -40,6 +40,21 @@ export class CreateProductDto {
   price: number;
 
   @IsOptional()
+  @Transform(({ value }) => value ? Number(value) : undefined)
+  @IsNumber()
+  sellingPrice?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => value ? Number(value) : undefined)
+  @IsNumber()
+  comparePrice?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  discountEnabled?: boolean;
+
+  @IsOptional()
   @Transform(({ value }) => value ? Number(value) : null)
   @IsNumber()
   specialPrice?: number;

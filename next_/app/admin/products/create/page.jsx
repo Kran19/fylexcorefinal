@@ -247,14 +247,13 @@ const AddProductPage = () => {
         }
 
         setSubmitting(true);
-        const { shortDesc, categoryId, ...formData } = form;
+        const { shortDesc, categoryId, comparePrice, discountEnabled, ...formData } = form;
         const payload = {
             ...formData,
             status: 'draft',
             mainCategoryId: form.categoryId,
             sku: form.sku || form.productCode || `SKU-${Date.now()}`,
             price: (parseFloat(form.price) || 0).toString(),
-            sellingPrice: (parseFloat(form.price) || 0).toString(),
             theme: JSON.stringify({
                 discountEnabled: Boolean(form.discountEnabled),
                 comparePrice: form.comparePrice ? Number(form.comparePrice) : null,

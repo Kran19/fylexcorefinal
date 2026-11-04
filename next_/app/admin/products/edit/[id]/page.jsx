@@ -660,6 +660,9 @@ const EditProductPage = () => {
 
         delete payload.variantImageCounts;
         delete payload.configuredImageCount;
+        delete payload.comparePrice;
+        delete payload.discountEnabled;
+        delete payload.sellingPrice;
         delete payload.exploreHeroImage;
         delete payload.exploreStoryImage;
         delete payload.exploreSpecsImage;
