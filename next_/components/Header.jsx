@@ -309,10 +309,10 @@ const Header = () => {
         <div className="menu-grid-v1">
           <div className="menu-links-side">
             <div className="nav-link-group">
-              <Link href="/products" className="primary" onClick={closeAll}>
+              <Link href="/pre-configure" className="primary" onClick={closeAll}>
                 Build Your Watch
               </Link>
-              <Link href="/pre-configure" className="primary" onClick={closeAll}>
+              <Link href="/fylex-watches" className="primary" onClick={closeAll}>
                 FYLEX Watches
               </Link>
               <Link href="/my-purchases" className="primary" onClick={closeAll}>Your Collection</Link>

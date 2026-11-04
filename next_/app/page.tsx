@@ -1204,9 +1204,9 @@ const Home = () => {
                 <div className="video-container">
                   <video
                     src={getFileUrl(videoSettings.home_hero_video) || "/assets/Fylexxx.mp4"}
-                    autoPlay muted loop playsInline
-                    preload={isMobile ? "metadata" : "auto"}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    autoPlay muted defaultMuted loop playsInline preload="auto"
+
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
                   />
                 </div>
                 <div className="hero-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -1283,8 +1283,8 @@ const Home = () => {
                 <div className="video-container">
                   <video
                     src={getFileUrl(videoSettings.home_legacy_video) || "/assets/Fylexx.mp4"}
-                    autoPlay muted loop playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    autoPlay muted defaultMuted loop playsInline preload="auto"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
                   />
                 </div>
                 <div className="card" style={{ zIndex: 10 }}>

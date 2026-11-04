@@ -254,7 +254,7 @@ export default function About() {
           {videoSettings.shop_hero_video_is_iframe === 'true' ? (
             <iframe className="hvideo" src={videoSettings.shop_hero_video} frameBorder="0" allow="autoplay; fullscreen" allowFullScreen></iframe>
           ) : (
-            <video className="hvideo" src={getFileUrl(videoSettings.shop_hero_video) || "/assets/Fylex.mp4"} autoPlay loop muted playsInline></video>
+            <video className="hvideo" src={getFileUrl(videoSettings.shop_hero_video) || "/assets/Fylex.mp4"} autoPlay loop muted defaultMuted playsInline preload="auto" style={{ pointerEvents: 'none' }}></video>
           )}
         </div>
         <div className="hov"></div>

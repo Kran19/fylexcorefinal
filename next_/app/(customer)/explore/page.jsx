@@ -2943,8 +2943,10 @@ export function DiscoverContent({ isConfiguredMode = false }) {
                       autoPlay
                       loop
                       muted
+                      defaultMuted
+                      preload="auto"
                       playsInline
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
                     />
                   </div>
                 </section>

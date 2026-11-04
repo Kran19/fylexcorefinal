@@ -1068,9 +1068,11 @@ const Products = () => {
             src={getFileUrl(videoSettings.products_hero_video) || getFileUrl(videoSettings.shop_hero_video) || getFileUrl(videoSettings.home_hero_video) || "/assets/Fylex.mp4"}
             autoPlay
             muted
+            defaultMuted
+            preload="auto"
             loop
             playsInline
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
           />
         </div>
       </section>

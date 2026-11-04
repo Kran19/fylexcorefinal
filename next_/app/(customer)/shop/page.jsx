@@ -184,7 +184,7 @@ export default function Shop() {
       canvas.height = 1080;
 
       const frameCount = 210;
-      const currentFrame = index => `watch/ezgif-frame-${(index + 1).toString().padStart(3, '0')}.jpg`;
+      const currentFrame = index => `/watch/ezgif-frame-${(index + 1).toString().padStart(3, '0')}.jpg`;
 
       const images = [];
       const airpods = { frame: 0 };
@@ -506,7 +506,7 @@ export default function Shop() {
           {videoSettings.shop_hero_video_is_iframe === 'true' ? (
             <iframe className="hvideo" src={videoSettings.shop_hero_video} frameBorder="0" allow="autoplay; fullscreen" allowFullScreen></iframe>
           ) : (
-            <video className="hvideo" src={getFileUrl(videoSettings.shop_hero_video) || "/Watch-iframe-3.mp4"} autoPlay loop muted playsInline></video>
+            <video className="hvideo" src={getFileUrl(videoSettings.shop_hero_video) || "/Watch-iframe-3.mp4"} autoPlay loop muted defaultMuted playsInline preload="auto" style={{ pointerEvents: 'none' }}></video>
           )}
         </div>
         <div className="hov" style={{ background: 'linear-gradient(100deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 40%, transparent 100%)' }}></div>
@@ -574,7 +574,7 @@ export default function Shop() {
           {videoSettings.shop_deepsea_video_is_iframe === 'true' ? (
             <iframe className="hvideo" src={videoSettings.shop_deepsea_video} frameBorder="0" allow="autoplay; fullscreen" allowFullScreen></iframe>
           ) : (
-            <video className="hvideo" src={getFileUrl(videoSettings.shop_deepsea_video) || "/Watch-iframe-2.mp4"} autoPlay loop muted playsInline></video>
+            <video className="hvideo" src={getFileUrl(videoSettings.shop_deepsea_video) || "/Watch-iframe-2.mp4"} autoPlay loop muted defaultMuted playsInline preload="auto" style={{ pointerEvents: 'none' }}></video>
           )}
         </div>
         <div className="hov" style={{ background: 'rgba(0,0,0,0.35)' }}></div>
