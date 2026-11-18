@@ -118,9 +118,20 @@ export class MarketingService {
   }
 
   // Validate a coupon based on code, customer, cart amount, and cart items
-  async validateCoupon(customerId: string, code: string, cartAmount: number, items: any[] = []) {
+  async validateCoupon(customerId: string, code: string, cartAmount: number, items: any[] = [], customerMobile?: string) {
     const now = new Date();
-    const cId = Number(customerId);
+    const rawIdStr = customerId !== undefined && customerId !== null ? String(customerId).trim() : '';
+    const isNumericCustomerId = rawIdStr !== '' && !isNaN(Number(rawIdStr)) && !rawIdStr.includes('gst_') && !rawIdStr.includes('usr_');
+    let cId: number | null = isNumericCustomerId ? Number(rawIdStr) : null;
+
+    // If guest session but mobile number is known (e.g. from Razorpay Magic Checkout), resolve customerId for accurate usage checks
+    if (!cId && customerMobile) {
+      const cleanMob = String(customerMobile).replace(/\D/g, '').slice(-10);
+      if (cleanMob.length === 10) {
+        const existingCust = await this.prisma.customer.findUnique({ where: { mobile: cleanMob }, select: { id: true } }).catch(() => null);
+        if (existingCust) cId = existingCust.id;
+      }
+    }
 
     // Add 14-hour buffer to now for startsAt check to handle timezone offsets (e.g. local timezone is ahead of UTC)
     const startsAtLimit = new Date(now.getTime() + 14 * 60 * 60 * 1000);
@@ -192,8 +203,8 @@ export class MarketingService {
       throw new BadRequestException('Coupon usage limit reached');
     }
 
-    // 4. Per Customer Usage Limit check
-    if (offer.usesPerCustomer) {
+    // 4. Per Customer Usage Limit check (enforced when customerId is resolved)
+    if (offer.usesPerCustomer && cId) {
       const usageCount = await this.prisma.offerUsage.count({
         where: { offerId: offer.id, customerId: cId },
       });
@@ -223,6 +234,59 @@ export class MarketingService {
       discountAmount,
       isActive: offer.status === 1
     };
+  }
+
+  /**
+   * Lists eligible public promotions in Razorpay Magic Checkout's expected JSON schema.
+   */
+  async getPublicMagicPromotions(customerId: string, cartAmount: number, items: any[] = [], customerMobile?: string) {
+    const now = new Date();
+    const startsAtLimit = new Date(now.getTime() + 14 * 60 * 60 * 1000);
+
+    const offers = await this.prisma.offer.findMany({
+      where: {
+        status: 1,
+        code: { not: null },
+        couponType: { in: ['public', 'new_user'] },
+        startsAt: { lte: startsAtLimit },
+        OR: [
+          { endsAt: null },
+          { endsAt: { gte: now } },
+        ],
+      },
+      include: {
+        categories: { include: { category: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const promotions: any[] = [];
+
+    for (const offer of offers) {
+      if (!offer.code || !offer.code.trim()) continue;
+      try {
+        const validated = await this.validateCoupon(customerId, offer.code, cartAmount, items, customerMobile);
+        const discountRupees = Number(validated.discountAmount || 0);
+        if (discountRupees <= 0) continue;
+
+        // Avoid 100% free coupons inside Razorpay modal since Razorpay requires payable >= ₹1
+        if (discountRupees >= cartAmount) continue;
+
+        promotions.push({
+          reference_id: `offer_${offer.id}`,
+          code: offer.code.trim().toUpperCase(),
+          type: 'coupon',
+          summary: offer.name || `${offer.code.toUpperCase()} — Save ₹${Math.round(discountRupees)}`,
+          description: offer.description || `Save ₹${Math.round(discountRupees)} on your FYLEX order`,
+          value: Math.round(discountRupees * 100),
+          value_type: 'fixed_amount',
+        });
+      } catch {
+        // Skip offers that don't qualify for the current cart/customer
+      }
+    }
+
+    return promotions;
   }
 
   // CRUD Operations for Admin

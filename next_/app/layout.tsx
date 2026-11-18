@@ -67,6 +67,12 @@ export default function RootLayout({
           />
         </noscript>
         {/* End Meta Pixel Code */}
+        {/* Preload Razorpay 1-Click Magic Checkout SDK */}
+        <Script
+          id="razorpay-magic-sdk"
+          src="https://checkout.razorpay.com/v1/magic-checkout.js"
+          strategy="lazyOnload"
+        />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>

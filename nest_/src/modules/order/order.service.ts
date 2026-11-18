@@ -8,10 +8,15 @@ import { OrderStatusHistoryService } from './order-status-history.service';
 import { ShiprocketService } from './shiprocket.service';
 import { PaymentService } from '../payment/payment.service';
 import { WhatsappService } from '../auth/whatsapp.service';
+import { AuthService } from '../auth/auth.service';
+import { isEarlyBirdMobile } from '../marketing/early-bird-mobiles';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class OrderService {
   private readonly logger = new Logger(OrderService.name);
+  private readonly inFlightMagicOrders = new Map<string, Promise<any>>();
+
   constructor(
     private prisma: PrismaService,
     private marketingService: MarketingService,
@@ -20,6 +25,7 @@ export class OrderService {
     private shiprocketService: ShiprocketService,
     @Inject(forwardRef(() => PaymentService)) private paymentService: PaymentService,
     private whatsappService: WhatsappService,
+    @Inject(forwardRef(() => AuthService)) private authService: AuthService,
   ) { }
 
   // Create order from cart (Checkout)
@@ -1801,6 +1807,1287 @@ export class OrderService {
     }
 
     return result;
+  }
+
+  // ============================================================================
+  // ⚡ RAZORPAY 1-CLICK MAGIC CHECKOUT ENGINE (ZERO-FRICTION + SILENT ACCOUNT)
+  // ============================================================================
+
+  /**
+   * Resolves active cart by either logged-in customerId or guest sessionId ('gst_...').
+   */
+  private async findActiveCartWithDetails(userOrSessionId: string, explicitCartId?: number | null) {
+    const idStr = (userOrSessionId || '').toString().trim();
+    const isNumeric = idStr !== '' && !isNaN(Number(idStr)) && !idStr.includes('gst_') && !idStr.includes('usr_');
+    const cId = isNumeric ? Number(idStr) : null;
+
+    const cartInclude = {
+      items: {
+        include: {
+          productVariant: {
+            include: {
+              product: { include: { categories: true, productMedia: { include: { media: true } } } },
+              variantImages: { include: { media: true } },
+              variantAttributes: { include: { attributeValue: { include: { attribute: true } } } },
+            },
+          },
+          Product: { include: { categories: true } },
+          belt: { include: { image: true } },
+        },
+        orderBy: [{ createdAt: 'asc' as const }, { id: 'asc' as const }],
+      },
+      customer: true,
+      offer: { include: { categories: true } },
+    };
+
+    if (explicitCartId && !isNaN(Number(explicitCartId))) {
+      const byId = await this.prisma.cart.findUnique({
+        where: { id: Number(explicitCartId) },
+        include: cartInclude,
+      });
+      if (byId && byId.items.length > 0) return byId;
+    }
+
+    if (!idStr) return null;
+
+    const withItems = await this.prisma.cart.findFirst({
+      where: {
+        OR: [
+          ...(cId ? [{ customerId: cId }] : []),
+          { sessionId: idStr },
+        ],
+        status: 'active',
+        items: { some: {} },
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      include: cartInclude,
+    });
+
+    if (withItems) return withItems;
+
+    return this.prisma.cart.findFirst({
+      where: {
+        OR: [
+          ...(cId ? [{ customerId: cId }] : []),
+          { sessionId: idStr },
+        ],
+        status: 'active',
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      include: cartInclude,
+    });
+  }
+
+  private resolvePublicImageUrl(rawPath?: string | null, publicOrigin?: string): string | undefined {
+    if (!rawPath || typeof rawPath !== 'string') return undefined;
+    const trimmed = rawPath.trim();
+    if (!trimmed) return undefined;
+
+    if (trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.startsWith('http://') && !trimmed.includes('localhost') && !trimmed.includes('127.0.0.1')) {
+      return trimmed;
+    }
+
+    const base = (publicOrigin || process.env.PUBLIC_SITE_URL || 'https://fylexwatches.com').replace(/\/+$/, '');
+    if (base.includes('localhost') || base.includes('127.0.0.1')) {
+      return undefined; // Razorpay line_items validator requires public domain URLs
+    }
+
+    let cleanRel = trimmed;
+    if (cleanRel.includes('/uploads/')) {
+      cleanRel = '/api/uploads/' + cleanRel.slice(cleanRel.indexOf('/uploads/') + 9);
+    } else if (!cleanRel.startsWith('/')) {
+      cleanRel = '/api/uploads/' + cleanRel;
+    }
+    return `${base}${cleanRel}`;
+  }
+
+  /**
+   * Step 1: Creates a Razorpay Magic Checkout order directly from Cart (Guest or Logged-in).
+   * Supports pre-applied coupons & FYLEX Credits, or returns { freeOrder: true } when total === 0.
+   */
+  async prepareMagicCheckoutOrder(params: {
+    userId: string;
+    couponCode?: string;
+    useCredits?: boolean;
+    receipt?: string;
+    publicOrigin?: string;
+  }) {
+    const { userId, couponCode, useCredits = true, receipt, publicOrigin } = params;
+    if (!userId) throw new BadRequestException('Cart session or userId is required');
+
+    const cart = await this.findActiveCartWithDetails(userId);
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException('Your cart is empty');
+    }
+
+    // Pre-flight stock validation before opening payment modal
+    for (const item of cart.items) {
+      const variant = item.productVariant;
+      if (variant && variant.manageStock) {
+        if (!variant.inStock || variant.qty < item.quantity) {
+          throw new BadRequestException(
+            `Item "${variant.product?.name || variant.sku}" is out of stock or exceeds available quantity.`,
+          );
+        }
+      } else if (item.beltId && item.belt) {
+        if (typeof item.belt.stock === 'number' && item.belt.stock < item.quantity) {
+          throw new BadRequestException(`Strap "${item.belt.name}" is out of stock.`);
+        }
+      }
+    }
+
+    const cleanCoupon = couponCode?.trim() || '';
+    const totals: any = await this.calculateOrderTotal(userId, undefined, cleanCoupon || undefined, useCredits);
+
+    if (cleanCoupon && totals.couponError) {
+      throw new BadRequestException(totals.couponError);
+    }
+
+    // Handle 100% Free Coupon / Full Credit Order (Razorpay requires payable >= ₹1)
+    if (totals.total <= 0) {
+      return {
+        freeOrder: true,
+        amount: 0,
+        currency: 'INR',
+        cartId: cart.id,
+        totals,
+      };
+    }
+
+    const totalDiscountPaise = Math.max(0, Math.round(Number(totals.discount || 0) * 100));
+    const rawItemsPaise = cart.items.map((item) => {
+      const unitPaise = Math.round(Number(item.unitPrice || 0) * 100);
+      const qty = Math.max(1, Number(item.quantity || 1));
+      return { item, unitPaise, qty, lineSubtotalPaise: unitPaise * qty };
+    });
+
+    const subtotalPaise = rawItemsPaise.reduce((s, r) => s + r.lineSubtotalPaise, 0);
+    const targetPayablePaise = Math.max(100, subtotalPaise - totalDiscountPaise);
+
+    // Distribute any pre-applied discount cleanly across line_items so sum(offer_price * quantity) === amount
+    let remainingDiscountPaise = Math.min(totalDiscountPaise, Math.max(0, subtotalPaise - 100));
+    const lineItems: any[] = [];
+
+    rawItemsPaise.forEach((entry, idx) => {
+      const { item, unitPaise, qty, lineSubtotalPaise } = entry;
+      const isLast = idx === rawItemsPaise.length - 1;
+      let itemDiscountPaise = 0;
+
+      if (remainingDiscountPaise > 0 && subtotalPaise > 0) {
+        itemDiscountPaise = isLast
+          ? remainingDiscountPaise
+          : Math.min(remainingDiscountPaise, Math.round((lineSubtotalPaise / subtotalPaise) * totalDiscountPaise));
+        itemDiscountPaise = Math.min(itemDiscountPaise, lineSubtotalPaise);
+        remainingDiscountPaise -= itemDiscountPaise;
+      }
+
+      const variant = item.productVariant;
+      const product = variant?.product;
+      const belt = item.belt;
+
+      const sku = (variant?.sku || (belt ? `BELT-${belt.id}` : `FYL-${item.id}`)).slice(0, 64);
+      const variantIdStr = String(item.productVariantId || (belt ? `belt-${belt.id}` : item.id));
+      const itemName = (product?.name || belt?.name || 'FYLEX Luxury Timepiece').slice(0, 120);
+
+      const attrLabels = (variant?.variantAttributes || [])
+        .map((va: any) => va.attributeValue?.label || va.attributeValue?.value)
+        .filter(Boolean)
+        .join(' • ');
+      const itemDesc = (attrLabels || (belt ? 'Compatible Watch Strap' : product?.subtitle || 'Handcrafted Timepiece')).slice(0, 200);
+
+      const rawImg =
+        variant?.variantImages?.[0]?.media?.filePath ||
+        variant?.variantImages?.[0]?.media?.fileName ||
+        product?.productMedia?.[0]?.media?.filePath ||
+        product?.heroImage ||
+        belt?.image?.filePath ||
+        belt?.image?.fileName ||
+        null;
+      const imageUrl = this.resolvePublicImageUrl(rawImg, publicOrigin);
+      const weightGrams = Math.max(50, Math.round(Number(variant?.weight || 0.4) * 1000));
+
+      const baseUnitDiscount = Math.floor(itemDiscountPaise / qty);
+      const remainderDiscount = itemDiscountPaise - baseUnitDiscount * qty;
+
+      const buildLine = (lineQty: number, offerUnitPaise: number, suffix = '') => {
+        const line: any = {
+          sku: suffix ? `${sku}-${suffix}`.slice(0, 64) : sku,
+          variant_id: variantIdStr,
+          price: unitPaise,
+          offer_price: Math.max(0, offerUnitPaise),
+          tax_amount: 0,
+          quantity: lineQty,
+          name: itemName,
+          description: itemDesc,
+          weight: weightGrams,
+        };
+        if (imageUrl) line.image_url = imageUrl;
+        return line;
+      };
+
+      if (remainderDiscount > 0 && qty > 1) {
+        lineItems.push(buildLine(qty - 1, unitPaise - baseUnitDiscount));
+        lineItems.push(buildLine(1, unitPaise - baseUnitDiscount - remainderDiscount, 'D'));
+      } else {
+        lineItems.push(buildLine(qty, unitPaise - baseUnitDiscount - remainderDiscount));
+      }
+    });
+
+    const computedLineTotalPaise = lineItems.reduce((sum, li) => sum + li.offer_price * li.quantity, 0);
+    const finalAmountPaise = computedLineTotalPaise > 0 ? computedLineTotalPaise : targetPayablePaise;
+
+    const appliedCouponCode = (!totals.couponError && cleanCoupon && Number(totals.couponDiscount) > 0)
+      ? cleanCoupon
+      : (cart.offer?.code && Number(totals.couponDiscount) > 0 ? cart.offer.code : '');
+    const appliedCredits = Number(totals.appliedCredits || totals.creditDiscount || 0);
+
+    const rzpOrder = await this.paymentService.createMagicOrder({
+      amountPaise: finalAmountPaise,
+      currency: 'INR',
+      receipt: receipt || `fyl_${cart.id}_${Date.now()}`,
+      lineItems,
+      lineItemsTotalPaise: finalAmountPaise,
+      notes: {
+        source: 'fylex_magic_checkout',
+        cartId: String(cart.id),
+        userId: String(userId),
+        preAppliedCoupon: appliedCouponCode,
+        redeemPoints: String(appliedCredits),
+      },
+    });
+
+    return {
+      ...rzpOrder,
+      freeOrder: false,
+      cartId: cart.id,
+      totals,
+      prefill: cart.customer
+        ? {
+            name: cart.customer.name || '',
+            email: cart.customer.email || '',
+            contact: cart.customer.mobile || '',
+          }
+        : undefined,
+    };
+  }
+
+  /**
+   * Step 2a: Razorpay Magic Checkout Server Callback — Real-time Shipping & COD Serviceability.
+   * Returns raw JSON (ResponseInterceptor is bypassed for this route).
+   */
+  async handleMagicShippingInfo(payload: any) {
+    const addresses = Array.isArray(payload?.addresses) ? payload.addresses : [];
+    const pickupPincode = process.env.SHIPROCKET_PICKUP_PINCODE || '360002';
+
+    const results = await Promise.all(
+      addresses.map(async (addr: any) => {
+        const zipcode = String(addr?.zipcode || addr?.pincode || addr?.postal_code || '').trim();
+        const rateData = await this.shiprocketService.checkServiceability(pickupPincode, zipcode, 0.5);
+        const isServiceable = rateData.serviceable !== false;
+        const isCodAllowed = isServiceable && rateData.codAvailable !== false;
+        const etdSummary = rateData.etd ? `Delivered within ${rateData.etd}` : 'Delivered within 3-5 business days';
+
+        return {
+          ...(addr?.id !== undefined ? { id: addr.id } : {}),
+          zipcode,
+          state: addr?.state || '',
+          ...(addr?.state_code ? { state_code: addr.state_code } : {}),
+          country: addr?.country || 'IN',
+          serviceable: isServiceable,
+          cod: isCodAllowed,
+          cod_fee: 0,
+          cod_amount: 0,
+          shipping_methods: isServiceable
+            ? [
+                {
+                  id: 'fylex_free_insured',
+                  name: 'Free Insured Express Delivery',
+                  description: etdSummary,
+                  summary: etdSummary,
+                  serviceability: true,
+                  cod: isCodAllowed,
+                  cod_fee: 0,
+                  shipping_fee: 0,
+                  charge: 0,
+                },
+              ]
+            : [],
+        };
+      }),
+    );
+
+    return { addresses: results };
+  }
+
+  /**
+   * Step 2b: Razorpay Magic Checkout Server Callback — List Available Coupons Inside Modal.
+   */
+  async handleMagicGetPromotions(payload: any) {
+    try {
+      const rzpOrderId = payload?.order_id || payload?.razorpay_order_id;
+      const contact = payload?.contact || payload?.customer_details?.contact || '';
+      let cart: any = null;
+      let userId = '';
+
+      if (rzpOrderId) {
+        const rzpOrder = await this.paymentService.fetchOrder(rzpOrderId).catch(() => null);
+        const notes = rzpOrder?.notes || {};
+        if (notes.preAppliedCoupon) {
+          // A coupon was already applied on /cart before launching Magic Checkout; prevent double-stacking
+          return { promotions: [] };
+        }
+        userId = notes.userId || '';
+        cart = await this.findActiveCartWithDetails(userId, notes.cartId ? Number(notes.cartId) : null);
+      }
+
+      const cartSubtotal = cart
+        ? cart.items.reduce((s: number, i: any) => s + (Number(i.total) || Number(i.unitPrice) * Number(i.quantity) || 0), 0)
+        : 0;
+
+      const promotions = await this.marketingService.getPublicMagicPromotions(
+        userId,
+        cartSubtotal,
+        cart?.items || [],
+        contact,
+      );
+
+      return { promotions };
+    } catch (err: any) {
+      this.logger.warn(`handleMagicGetPromotions error: ${err.message}`);
+      return { promotions: [] };
+    }
+  }
+
+  /**
+   * Step 2c: Razorpay Magic Checkout Server Callback — Validate & Apply Coupon Inside Modal.
+   */
+  async handleMagicApplyPromotion(payload: any) {
+    const rzpOrderId = payload?.order_id || payload?.razorpay_order_id;
+    const rawCode = String(payload?.code || '').trim();
+    const contact = payload?.contact || payload?.customer_details?.contact || '';
+
+    if (!rawCode) {
+      throw new BadRequestException({
+        failure_reason: 'Please enter a valid coupon code',
+        failure_code: 'INVALID_COUPON',
+      });
+    }
+
+    let cart: any = null;
+    let userId = '';
+
+    if (rzpOrderId) {
+      const rzpOrder = await this.paymentService.fetchOrder(rzpOrderId).catch(() => null);
+      const notes = rzpOrder?.notes || {};
+      if (notes.preAppliedCoupon) {
+        throw new BadRequestException({
+          failure_reason: `Coupon ${notes.preAppliedCoupon} is already applied to your cart`,
+          failure_code: 'COUPON_ALREADY_APPLIED',
+        });
+      }
+      userId = notes.userId || '';
+      cart = await this.findActiveCartWithDetails(userId, notes.cartId ? Number(notes.cartId) : null);
+    }
+
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException({
+        failure_reason: 'Cart is empty or expired',
+        failure_code: 'CART_EMPTY',
+      });
+    }
+
+    const subtotal = cart.items.reduce(
+      (s: number, i: any) => s + (Number(i.total) || Number(i.unitPrice) * Number(i.quantity) || 0),
+      0,
+    );
+
+    try {
+      const offer = await this.marketingService.validateCoupon(userId, rawCode, subtotal, cart.items, contact);
+      const discountRupees = Number(offer.discountAmount || 0);
+
+      if (discountRupees >= subtotal) {
+        throw new BadRequestException(
+          '100% free watch coupons must be applied directly in your Shopping Cart before checkout.',
+        );
+      }
+
+      // Attach offer to cart so final order completion records OfferUsage accurately
+      await this.prisma.cart.update({
+        where: { id: cart.id },
+        data: { offerId: offer.id },
+      }).catch(() => {});
+
+      return {
+        promotion: {
+          reference_id: `offer_${offer.id}`,
+          code: offer.code || rawCode.toUpperCase(),
+          type: 'coupon',
+          value: Math.round(discountRupees * 100),
+          value_type: 'fixed_amount',
+          description: offer.description || `Saved ₹${Math.round(discountRupees)} with ${offer.code}`,
+        },
+      };
+    } catch (err: any) {
+      const msg = err?.response?.failure_reason || err?.message || 'Invalid or ineligible coupon code';
+      throw new BadRequestException({
+        failure_reason: msg,
+        failure_code: 'PROMOTION_INVALID',
+      });
+    }
+  }
+
+  /**
+   * Silent Account Resolution: Finds existing Customer by ID / 10-digit mobile / email,
+   * or seamlessly creates a verified Customer + CustomerAddress without breaking any FK constraint.
+   */
+  private async resolveOrCreateMagicCustomer(params: {
+    hintUserId?: string;
+    name: string;
+    mobile: string;
+    email?: string;
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    pincode: string;
+    country: string;
+  }): Promise<{ customer: any; customerAddress: any; isNewlyCreated: boolean }> {
+    const {
+      hintUserId,
+      name,
+      mobile,
+      email,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      pincode,
+      country,
+    } = params;
+
+    const cleanMobile = String(mobile || '').replace(/\D/g, '').slice(-10);
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanName = (name || '').trim() || 'FYLEX Patron';
+    const combinedAddress = [addressLine1, addressLine2].filter(Boolean).join(', ').trim() || 'India';
+    const cleanCity = (city || '').trim() || 'India';
+    const cleanState = (state || '').trim() || 'India';
+    const cleanPincode = String(pincode || '').replace(/\D/g, '').slice(0, 6) || '000000';
+    const cleanCountry = !country || country.toUpperCase() === 'IN' ? 'India' : country;
+
+    let customer: any = null;
+    let isNewlyCreated = false;
+
+    // 1. Try explicit logged-in customerId if numeric
+    const rawHint = (hintUserId || '').toString().trim();
+    if (rawHint && !isNaN(Number(rawHint)) && !rawHint.includes('gst_') && !rawHint.includes('usr_')) {
+      customer = await this.prisma.customer.findUnique({ where: { id: Number(rawHint) } });
+    }
+
+    // 2. Match by 10-digit mobile number (Primary identity in Magic Checkout)
+    if (!customer && cleanMobile.length === 10) {
+      customer = await this.prisma.customer.findUnique({ where: { mobile: cleanMobile } });
+    }
+
+    // 3. Match by email if still not found
+    if (!customer && cleanEmail && cleanEmail.includes('@')) {
+      customer = await this.prisma.customer.findUnique({ where: { email: cleanEmail } });
+    }
+
+    // 4. Auto-create silent Customer account if brand new shopper
+    if (!customer) {
+      let safeEmail: string | null = null;
+      if (cleanEmail && cleanEmail.includes('@')) {
+        const emailTaken = await this.prisma.customer.findUnique({ where: { email: cleanEmail }, select: { id: true } });
+        if (!emailTaken) safeEmail = cleanEmail;
+      }
+
+      let safeMobile: string | null = cleanMobile.length === 10 ? cleanMobile : null;
+      if (safeMobile) {
+        const mobileTaken = await this.prisma.customer.findUnique({ where: { mobile: safeMobile }, select: { id: true } });
+        if (mobileTaken) {
+          customer = await this.prisma.customer.findUnique({ where: { id: mobileTaken.id } });
+        }
+      }
+
+      if (!customer) {
+        const randomPwd = await bcrypt.hash(`MAGIC_${Date.now()}_${Math.random().toString(36).slice(2)}`, 10);
+        customer = await this.prisma.customer.create({
+          data: {
+            name: cleanName,
+            mobile: safeMobile,
+            email: safeEmail,
+            password: randomPwd,
+            city: cleanCity,
+            address: `${combinedAddress}, ${cleanCity}, ${cleanState} - ${cleanPincode}`,
+            status: 1,
+            mobileVerifiedAt: safeMobile ? new Date() : null,
+          },
+        });
+        isNewlyCreated = true;
+
+        // Trigger Welcome WhatsApp + Early Bird 500 Credits check asynchronously
+        if (customer.mobile) {
+          this.whatsappService.sendWelcomeMessage(customer.mobile, customer.name).catch((err) => {
+            this.logger.warn(`Welcome WhatsApp skipped for Magic customer ${customer.mobile}: ${err?.message}`);
+          });
+
+          if (isEarlyBirdMobile(customer.mobile)) {
+            this.prisma.loyaltyProgram.findFirst({ where: { status: 1 } }).then(async (program) => {
+              if (!program) return;
+              const loyalty = await this.prisma.customerLoyalty.create({
+                data: {
+                  customerId: customer.id,
+                  loyaltyProgramId: program.id,
+                  availablePoints: 500,
+                  totalPoints: 500,
+                  usedPoints: 0,
+                },
+              });
+              await this.prisma.loyaltyTransaction.create({
+                data: {
+                  customerLoyaltyId: loyalty.id,
+                  customerId: customer.id,
+                  type: 'earning',
+                  points: 500,
+                  balance: 500,
+                  notes: 'Early Bird Welcome Bonus - 500 Free Fylex Credits',
+                },
+              });
+            }).catch(() => {});
+          }
+        }
+      }
+    } else {
+      // Backfill missing profile fields on existing customer gently without overwriting custom names
+      const patchData: any = {};
+      if (!customer.address && combinedAddress) {
+        patchData.address = `${combinedAddress}, ${cleanCity}, ${cleanState} - ${cleanPincode}`;
+      }
+      if (!customer.city && cleanCity) {
+        patchData.city = cleanCity;
+      }
+      if (!customer.mobile && cleanMobile.length === 10) {
+        const taken = await this.prisma.customer.findUnique({ where: { mobile: cleanMobile }, select: { id: true } });
+        if (!taken) patchData.mobile = cleanMobile;
+      }
+      if (Object.keys(patchData).length > 0) {
+        customer = await this.prisma.customer.update({
+          where: { id: customer.id },
+          data: patchData,
+        }).catch(() => customer);
+      }
+    }
+
+    // 5. Create or reuse matching CustomerAddress for clean profile & checkout history
+    const addrPhone = cleanMobile || customer.mobile || '9999999999';
+    let customerAddress = await this.prisma.customerAddress.findFirst({
+      where: {
+        customerId: customer.id,
+        pincode: cleanPincode,
+        address: combinedAddress,
+      },
+    });
+
+    if (!customerAddress) {
+      customerAddress = await this.prisma.customerAddress.create({
+        data: {
+          customerId: customer.id,
+          type: 'shipping',
+          name: cleanName,
+          mobile: addrPhone,
+          address: combinedAddress,
+          city: cleanCity,
+          state: cleanState,
+          country: cleanCountry,
+          pincode: cleanPincode,
+          isDefault: true,
+        },
+      });
+    }
+
+    return { customer, customerAddress, isNewlyCreated };
+  }
+
+  /**
+   * Step 3: Completes a Razorpay Magic Checkout order (Prepaid OR Magic COD).
+   * Concurrency-safe and idempotent across simultaneous frontend callback + Razorpay webhook.
+   */
+  async completeMagicCheckoutOrder(params: {
+    razorpayOrderId: string;
+    razorpayPaymentId?: string;
+    razorpaySignature?: string;
+    userId?: string;
+    issueSession?: boolean;
+    webhookPaymentEntity?: any;
+    webhookOrderEntity?: any;
+    fallbackCustomerInput?: {
+      name?: string;
+      mobile?: string;
+      email?: string;
+      address?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+    };
+  }) {
+    const { razorpayOrderId } = params;
+    if (!razorpayOrderId) throw new BadRequestException('razorpayOrderId is required');
+
+    // In-memory lock prevents duplicate order creation if webhook & frontend callback arrive simultaneously
+    const existingLock = this.inFlightMagicOrders.get(razorpayOrderId);
+    if (existingLock) {
+      await existingLock.catch(() => {});
+    }
+
+    const executionPromise = this._executeMagicOrderCompletion(params);
+    this.inFlightMagicOrders.set(razorpayOrderId, executionPromise);
+
+    try {
+      return await executionPromise;
+    } finally {
+      this.inFlightMagicOrders.delete(razorpayOrderId);
+    }
+  }
+
+  private async _executeMagicOrderCompletion(params: {
+    razorpayOrderId: string;
+    razorpayPaymentId?: string;
+    razorpaySignature?: string;
+    userId?: string;
+    issueSession?: boolean;
+    webhookPaymentEntity?: any;
+    webhookOrderEntity?: any;
+    fallbackCustomerInput?: {
+      name?: string;
+      mobile?: string;
+      email?: string;
+      address?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+    };
+  }) {
+    const {
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature,
+      userId,
+      issueSession = false,
+      webhookPaymentEntity,
+      webhookOrderEntity,
+      fallbackCustomerInput,
+    } = params;
+
+    // 1. Verify cryptographic signature if called from frontend with signature
+    if (razorpayPaymentId && razorpaySignature) {
+      const sigOk = this.paymentService.verifySignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
+      if (!sigOk) {
+        throw new BadRequestException('Invalid Razorpay payment signature');
+      }
+    }
+
+    // 2. Database Idempotency Check: Has this Razorpay Order or Payment already been converted into a FYLEX Order?
+    const existingAttempt = await this.prisma.paymentAttempt.findFirst({
+      where: { attemptId: razorpayOrderId },
+      include: {
+        order: {
+          include: {
+            customer: true,
+            addresses: true,
+            shipments: true,
+            items: {
+              include: {
+                product: true,
+                productVariant: {
+                  include: {
+                    variantImages: { include: { media: true } },
+                    variantAttributes: { include: { attributeValue: { include: { attribute: true } } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (existingAttempt?.order) {
+      const session = issueSession && existingAttempt.order.customer
+        ? await this.authService.issueSessionForCustomer(existingAttempt.order.customer)
+        : null;
+      return {
+        completed: true,
+        alreadyProcessed: true,
+        order: existingAttempt.order,
+        ...(session ? { access_token: session.access_token, user: session.user } : {}),
+      };
+    }
+
+    if (razorpayPaymentId) {
+      const existingPayment = await this.prisma.payment.findFirst({
+        where: { transactionId: razorpayPaymentId },
+        include: { order: { include: { customer: true, addresses: true, items: true } } },
+      });
+      if (existingPayment?.order) {
+        const session = issueSession && existingPayment.order.customer
+          ? await this.authService.issueSessionForCustomer(existingPayment.order.customer)
+          : null;
+        return {
+          completed: true,
+          alreadyProcessed: true,
+          order: existingPayment.order,
+          ...(session ? { access_token: session.access_token, user: session.user } : {}),
+        };
+      }
+    }
+
+    // 3. Fetch authoritative Order & Payment details directly from Razorpay API
+    const rzpOrder = webhookOrderEntity?.customer_details
+      ? webhookOrderEntity
+      : await this.paymentService.fetchOrder(razorpayOrderId);
+
+    const paymentsListRes = webhookPaymentEntity
+      ? { items: [webhookPaymentEntity] }
+      : await this.paymentService.fetchOrderPayments(razorpayOrderId);
+    const paymentsList: any[] = Array.isArray(paymentsListRes?.items) ? paymentsListRes.items : [];
+
+    // Locate winning payment: explicit paymentId, captured/authorized prepaid, or Magic COD pending payment
+    let winningPayment = razorpayPaymentId
+      ? paymentsList.find((p) => p.id === razorpayPaymentId)
+      : null;
+
+    if (!winningPayment) {
+      winningPayment =
+        paymentsList.find((p) => p.status === 'captured' || p.status === 'authorized') ||
+        paymentsList.find((p) => (p.method || '').toLowerCase() === 'cod' && p.status !== 'failed') ||
+        null;
+    }
+
+    // If frontend verified signature with razorpayPaymentId before fetchPayments indexed it, synthesize safely
+    if (!winningPayment && razorpayPaymentId && razorpaySignature) {
+      winningPayment = {
+        id: razorpayPaymentId,
+        status: 'captured',
+        method: 'online',
+        amount: rzpOrder?.amount_paid || rzpOrder?.amount || 0,
+      };
+    }
+
+    if (!winningPayment) {
+      return {
+        completed: false,
+        message: 'Payment has not been completed yet.',
+      };
+    }
+
+    const isCod = (winningPayment.method || '').toLowerCase() === 'cod';
+    const isPaidPrepaid =
+      !isCod &&
+      (winningPayment.status === 'captured' ||
+        winningPayment.status === 'authorized' ||
+        rzpOrder?.status === 'paid' ||
+        Boolean(razorpaySignature));
+
+    if (!isCod && !isPaidPrepaid) {
+      return {
+        completed: false,
+        message: `Payment is in ${winningPayment.status || 'incomplete'} state.`,
+      };
+    }
+
+    // 4. Extract Verified Customer & Address from Razorpay Magic Checkout's customer_details
+    const notes = rzpOrder?.notes || {};
+    const effectiveUserId = userId || notes.userId || '';
+    const cd = rzpOrder?.customer_details || {};
+    const ship =
+      cd.shipping_address ||
+      rzpOrder?.shipping_address ||
+      cd.billing_address ||
+      {};
+
+    // Fallback to saved customer address ONLY if testing with a non-Magic Razorpay key where shipping_address is empty
+    let fallbackSavedAddr: any = null;
+    if (!ship?.line1 && !ship?.zipcode && effectiveUserId && !isNaN(Number(effectiveUserId))) {
+      fallbackSavedAddr = await this.prisma.customerAddress.findFirst({
+        where: { customerId: Number(effectiveUserId) },
+        orderBy: [{ isDefault: 'desc' }, { id: 'desc' }],
+      });
+    }
+
+    const rawPhone =
+      ship.contact ||
+      cd.contact ||
+      winningPayment.contact ||
+      fallbackCustomerInput?.mobile ||
+      fallbackSavedAddr?.mobile ||
+      '';
+    const cleanPhone = String(rawPhone).replace(/\D/g, '').slice(-10);
+
+    const rawEmail =
+      cd.email ||
+      ship.email ||
+      winningPayment.email ||
+      fallbackCustomerInput?.email ||
+      '';
+
+    const resolvedName =
+      ship.name ||
+      [ship.first_name, ship.last_name].filter(Boolean).join(' ') ||
+      cd.name ||
+      fallbackCustomerInput?.name ||
+      fallbackSavedAddr?.name ||
+      'FYLEX Patron';
+
+    const line1 =
+      ship.line1 ||
+      fallbackCustomerInput?.address ||
+      fallbackSavedAddr?.address ||
+      'Address captured via Razorpay Checkout';
+    const line2 = [ship.line2, ship.landmark].filter(Boolean).join(', ');
+    const city = ship.city || fallbackCustomerInput?.city || fallbackSavedAddr?.city || 'India';
+    const state = ship.state || fallbackCustomerInput?.state || fallbackSavedAddr?.state || 'India';
+    const pincode =
+      String(ship.zipcode || ship.pincode || ship.postal_code || fallbackCustomerInput?.pincode || fallbackSavedAddr?.pincode || '')
+        .replace(/\D/g, '')
+        .slice(0, 6) || '360002';
+    const country = !ship.country || ship.country.toUpperCase() === 'IN' ? 'India' : ship.country;
+
+    const { customer, customerAddress } = await this.resolveOrCreateMagicCustomer({
+      hintUserId: effectiveUserId,
+      name: resolvedName,
+      mobile: cleanPhone,
+      email: rawEmail,
+      addressLine1: line1,
+      addressLine2: line2,
+      city,
+      state,
+      pincode,
+      country,
+    });
+
+    // 5. Locate Cart & Calculate Final Order Totals
+    const cart = await this.findActiveCartWithDetails(
+      effectiveUserId || String(customer.id),
+      notes.cartId ? Number(notes.cartId) : null,
+    );
+
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException('Cart items were already processed or cart is empty.');
+    }
+
+    const subtotal = cart.items.reduce(
+      (sum, item) => sum + (Number(item.total) || Number(item.unitPrice) * Number(item.quantity) || 0),
+      0,
+    );
+
+    // Resolve applied coupon (either pre-applied on /cart or applied inside Razorpay Magic modal)
+    const rzpPromoCode =
+      notes.preAppliedCoupon ||
+      rzpOrder?.promotions?.[0]?.code ||
+      cart.offer?.code ||
+      '';
+
+    let appliedOffer: any = null;
+    if (rzpPromoCode) {
+      appliedOffer = await this.marketingService
+        .validateCoupon(String(customer.id), rzpPromoCode, subtotal, cart.items, cleanPhone)
+        .catch(() => cart.offer || null);
+    }
+
+    let redeemPoints = Math.max(0, Number(notes.redeemPoints || 0));
+    if (redeemPoints > 0) {
+      const loyalty = await this.prisma.customerLoyalty.findFirst({ where: { customerId: customer.id } });
+      const avail = Number(loyalty?.availablePoints || 0);
+      redeemPoints = Math.min(redeemPoints, avail);
+    }
+
+    // Trust Razorpay's final payable amount (in paise -> rupees) so in-modal Magic promotions are respected
+    const rzpPayablePaise = Number(winningPayment.amount || rzpOrder?.amount_due || rzpOrder?.amount || 0);
+    const rzpFeePaise = Number(rzpOrder?.shipping_fee || 0) + Number(rzpOrder?.cod_fee || 0);
+    const grandTotal = rzpPayablePaise > 0
+      ? Math.max(0, Math.round((rzpPayablePaise - rzpFeePaise) / 100))
+      : Math.max(0, subtotal - (appliedOffer ? await this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0) - redeemPoints);
+
+    const totalDiscount = Math.max(0, subtotal - grandTotal);
+    const couponDiscountAmount = Math.max(0, totalDiscount - redeemPoints);
+    const pointsEarned = Math.floor(grandTotal);
+
+    const nameParts = resolvedName.trim().split(/\s+/);
+    const firstName = nameParts[0] || 'Customer';
+    const lastName = nameParts.slice(1).join(' ') || 'Fylex';
+
+    // 6. Atomic Order Creation Transaction (Identical Relational Integrity to Standard Checkout)
+    const createdOrder = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          customer: { connect: { id: customer.id } },
+          offer: appliedOffer ? { connect: { id: appliedOffer.id } } : undefined,
+          status: 'pending',
+          paymentStatus: isCod ? 'pending' : 'paid',
+          shippingStatus: 'pending',
+          paymentMethod: isCod ? 'cod' : 'online',
+          subtotal: Number(subtotal),
+          shippingTotal: 0,
+          taxTotal: 0,
+          discountTotal: Number(totalDiscount),
+          grandTotal: Number(grandTotal),
+          couponCode: appliedOffer?.code || (rzpPromoCode || null),
+          customerFirstName: firstName,
+          customerLastName: lastName,
+          customerMobile: cleanPhone || customer.mobile || '',
+          orderNumber: `ORD-${Date.now()}`,
+          loyaltyPointsUsed: Number(redeemPoints),
+          loyaltyPointsEarned: Number(pointsEarned),
+          createdAt: new Date(),
+        },
+      });
+
+      // Idempotency anchor for razorpayOrderId
+      await tx.paymentAttempt.create({
+        data: {
+          orderId: order.id,
+          paymentMethod: isCod ? 'cod' : 'online',
+          attemptId: razorpayOrderId,
+          amount: Number(grandTotal),
+          status: isCod ? 'cod_confirmed' : 'captured',
+          gatewayResponse: JSON.stringify({
+            razorpayOrderId,
+            razorpayPaymentId: winningPayment.id,
+            method: winningPayment.method,
+          }),
+          createdAt: new Date(),
+        },
+      });
+
+      await tx.payment.create({
+        data: {
+          orderId: order.id,
+          paymentMethod: isCod ? 'cod' : 'online',
+          paymentGateway: 'razorpay',
+          transactionId: winningPayment.id || razorpayOrderId,
+          amount: Number(grandTotal),
+          status: isCod ? 'pending' : 'paid',
+          paidAt: isCod ? null : new Date(),
+          createdAt: new Date(),
+        },
+      });
+
+      await tx.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: 'pending',
+          notes: `Order placed via 1-Click Magic Checkout (${isCod ? 'Magic COD' : 'Prepaid'})`,
+        },
+      });
+
+      await tx.orderAddress.create({
+        data: {
+          order: { connect: { id: order.id } },
+          type: 'shipping',
+          firstName,
+          lastName,
+          email: rawEmail || customer.email || 'concierge@fylexwatches.com',
+          phone: cleanPhone || customer.mobile || customerAddress.mobile,
+          address1: line1,
+          address2: line2 || null,
+          city,
+          state,
+          postcode: pincode,
+          country,
+        },
+      });
+
+      // Create OrderItems & deduct stock
+      for (const item of cart.items) {
+        await tx.orderItem.create({
+          data: {
+            order: { connect: { id: order.id } },
+            ...(item.productVariantId
+              ? {
+                  product: { connect: { id: item.productVariant?.productId } },
+                  productVariant: { connect: { id: item.productVariantId } },
+                  productName: item.productVariant?.product?.name || 'Product',
+                  sku: item.productVariant?.sku || 'SKU',
+                }
+              : item.beltId
+              ? {
+                  belt: { connect: { id: item.beltId } },
+                  productName: item.belt?.name || 'Belt',
+                  sku: 'BELT-' + item.beltId,
+                }
+              : {
+                  productName: 'FYLEX Timepiece',
+                  sku: 'FYLEX-ITEM',
+                }),
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            subtotal: item.total,
+            total: item.total,
+            discountAmount: 0,
+            attributes: item.attributes as any,
+          },
+        });
+
+        const variant = item.productVariant;
+        if (variant) {
+          const updateData: any = {
+            fakeSoldCount: { increment: item.quantity },
+          };
+          if (variant.manageStock) {
+            const newQty = Math.max(0, variant.qty - item.quantity);
+            updateData.qty = newQty;
+            updateData.inStock = newQty > 0;
+            updateData.stockStatus = newQty > 0 ? 'instock' : 'outofstock';
+          }
+          await tx.productVariant.update({
+            where: { id: variant.id },
+            data: updateData,
+          });
+        } else if (item.beltId && item.belt) {
+          const newBeltStock = Math.max(0, Number(item.belt.stock || 0) - item.quantity);
+          await tx.belt.update({
+            where: { id: item.beltId },
+            data: { stock: newBeltStock },
+          }).catch(() => {});
+        }
+      }
+
+      // Track Coupon Usage
+      if (appliedOffer) {
+        await tx.offerUsage.create({
+          data: {
+            offerId: appliedOffer.id,
+            customerId: customer.id,
+            orderId: order.id,
+            discountAmount: Number(couponDiscountAmount),
+          },
+        });
+        await tx.offer.update({
+          where: { id: appliedOffer.id },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+
+      // Deduct Redeemed FYLEX Credits
+      if (redeemPoints > 0) {
+        const loyalty = await tx.customerLoyalty.findFirst({ where: { customerId: customer.id } });
+        if (loyalty) {
+          await tx.loyaltyTransaction.create({
+            data: {
+              customerLoyaltyId: loyalty.id,
+              customerId: customer.id,
+              type: 'redemption',
+              points: -redeemPoints,
+              balance: Math.max(0, Number(loyalty.availablePoints) - redeemPoints),
+              referenceType: 'order',
+              referenceId: order.id,
+              notes: 'Spent on 1-Click Magic Checkout',
+            },
+          });
+          await tx.customerLoyalty.update({
+            where: { id: loyalty.id },
+            data: {
+              availablePoints: { decrement: redeemPoints },
+              usedPoints: { increment: redeemPoints },
+            },
+          });
+        }
+      }
+
+      // Clear active cart (and any leftover guest session cart for this user)
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+      await tx.cart.update({
+        where: { id: cart.id },
+        data: { status: 'completed', subtotal: 0, grandTotal: 0, offerId: null },
+      });
+
+      if (effectiveUserId && effectiveUserId.startsWith('gst_')) {
+        const guestCarts = await tx.cart.findMany({
+          where: { sessionId: effectiveUserId, status: 'active' },
+          select: { id: true },
+        });
+        for (const gc of guestCarts) {
+          await tx.cartItem.deleteMany({ where: { cartId: gc.id } });
+          await tx.cart.update({
+            where: { id: gc.id },
+            data: { status: 'completed', subtotal: 0, grandTotal: 0, offerId: null },
+          });
+        }
+      }
+
+      return tx.order.findUnique({
+        where: { id: order.id },
+        include: {
+          addresses: true,
+          items: {
+            include: {
+              product: true,
+              productVariant: {
+                include: {
+                  variantImages: { include: { media: true } },
+                  variantAttributes: { include: { attributeValue: { include: { attribute: true } } } },
+                },
+              },
+            },
+          },
+        },
+      });
+    }, { timeout: 30000, maxWait: 10000 });
+
+    // 7. Dispatch Customer & Owner WhatsApp Notifications asynchronously
+    try {
+      if (createdOrder) {
+        const recipientMobile = createdOrder.customerMobile || (createdOrder as any)?.addresses?.[0]?.phone;
+        if (recipientMobile) {
+          this.whatsappService
+            .sendOrderReceived(recipientMobile, createdOrder.orderNumber || `ORD-${createdOrder.id}`)
+            .catch((err) => this.logger.error(`Failed to dispatch Order Received WhatsApp: ${err.message}`));
+        }
+        this.notifyAdminsNewOrder(createdOrder).catch((err) =>
+          this.logger.error(`Failed to dispatch Owner Order WhatsApp notification: ${err.message}`),
+        );
+      }
+    } catch (e: any) {
+      this.logger.error(`Error initiating Magic Checkout WhatsApp alerts: ${e.message}`);
+    }
+
+    const session = issueSession ? await this.authService.issueSessionForCustomer(customer) : null;
+
+    return {
+      completed: true,
+      order: createdOrder,
+      ...(session ? { access_token: session.access_token, user: session.user } : {}),
+    };
+  }
+
+  /**
+   * Handles Razorpay Server Webhooks (`order.paid`, `payment.captured`, and `payment.pending` with `method === 'cod'`).
+   * Ensures orders are never lost even if customer closes mobile browser after UPI app switch or Magic COD.
+   */
+  async handleRazorpayMagicWebhook(rawBody: Buffer | string, signature: string | undefined, payload: any) {
+    if (!payload || Object.keys(payload).length === 0) {
+      return { status: 'ok', message: 'Razorpay Magic Webhook active' };
+    }
+
+    const validSig = this.paymentService.verifyWebhookSignature(rawBody, signature);
+    if (!validSig) {
+      this.logger.warn('Rejected Razorpay webhook due to invalid X-Razorpay-Signature');
+      throw new BadRequestException('Invalid webhook signature');
+    }
+
+    const event = String(payload.event || '');
+    const paymentEntity = payload?.payload?.payment?.entity;
+    const orderEntity = payload?.payload?.order?.entity;
+    const razorpayOrderId = orderEntity?.id || paymentEntity?.order_id;
+
+    this.logger.log(`Razorpay Webhook event=${event}, order_id=${razorpayOrderId || 'N/A'}`);
+
+    if (!razorpayOrderId) {
+      return { status: 'ignored', reason: 'No order_id in webhook payload' };
+    }
+
+    const isPrepaidSuccess = event === 'order.paid' || event === 'payment.captured';
+    const isMagicCodPlaced =
+      event === 'payment.pending' && (paymentEntity?.method || '').toLowerCase() === 'cod';
+
+    if (!isPrepaidSuccess && !isMagicCodPlaced) {
+      return { status: 'ignored', event };
+    }
+
+    try {
+      const result: any = await this.completeMagicCheckoutOrder({
+        razorpayOrderId,
+        razorpayPaymentId: paymentEntity?.id,
+        issueSession: false,
+        webhookPaymentEntity: paymentEntity,
+        webhookOrderEntity: orderEntity,
+      });
+      return { status: 'processed', completed: result.completed, orderNumber: result.order?.orderNumber };
+    } catch (err: any) {
+      this.logger.warn(`Webhook order completion skipped/handled for ${razorpayOrderId}: ${err.message}`);
+      return { status: 'acknowledged', detail: err.message };
+    }
+  }
+
+  /**
+   * Completes a 100% Free Coupon / Credit order (grandTotal === ₹0) in 1 step for Guest or Logged-in shoppers,
+   * using Silent Account Resolution + Auto-Login without requiring /login or /signup.
+   */
+  async completeFreeMagicOrder(params: {
+    userId: string;
+    couponCode?: string;
+    useCredits?: boolean;
+    name: string;
+    mobile: string;
+    email?: string;
+    pincode: string;
+    city: string;
+    state?: string;
+    address: string;
+  }) {
+    const { userId, couponCode, useCredits = true, name, mobile, email, pincode, city, state, address } = params;
+    if (!userId) throw new BadRequestException('userId is required');
+
+    const cleanMobile = String(mobile || '').replace(/\D/g, '').slice(-10);
+    if (cleanMobile.length !== 10) {
+      throw new BadRequestException('Please enter a valid 10-digit mobile number');
+    }
+    if (!name?.trim() || !address?.trim() || String(pincode || '').replace(/\D/g, '').length !== 6) {
+      throw new BadRequestException('Please enter your name, 6-digit PIN code, and delivery address');
+    }
+
+    // Server-side verification that total is genuinely ₹0
+    const totals: any = await this.calculateOrderTotal(userId, pincode, couponCode, useCredits);
+    if (totals.couponError) {
+      throw new BadRequestException(totals.couponError);
+    }
+    if (totals.total > 0) {
+      throw new BadRequestException('Order has a payable balance and must be completed via payment gateway.');
+    }
+
+    const cart = await this.findActiveCartWithDetails(userId);
+    if (!cart || cart.items.length === 0) {
+      throw new BadRequestException('Cart is empty');
+    }
+
+    const { customer, customerAddress } = await this.resolveOrCreateMagicCustomer({
+      hintUserId: userId,
+      name,
+      mobile: cleanMobile,
+      email,
+      addressLine1: address,
+      city,
+      state: state || 'India',
+      pincode,
+      country: 'India',
+    });
+
+    // If cart belonged to guest session, bind it to resolved customer so standard checkout() runs cleanly
+    if (!cart.customerId || cart.customerId !== customer.id) {
+      await this.prisma.cart.update({
+        where: { id: cart.id },
+        data: { customerId: customer.id },
+      });
+    }
+
+    const order = await this.checkout(String(customer.id), {
+      customerId: String(customer.id),
+      shippingAddressId: String(customerAddress.id),
+      billingAddressId: String(customerAddress.id),
+      paymentMethod: 'online',
+      paymentId: `free_coupon_${Date.now()}`,
+      couponCode: couponCode?.trim() || '',
+      redeemPoints: Number(totals.appliedCredits || totals.creditDiscount || 0),
+    } as any);
+
+    const session = await this.authService.issueSessionForCustomer(customer);
+
+    return {
+      completed: true,
+      order,
+      ...(session ? { access_token: session.access_token, user: session.user } : {}),
+    };
   }
 }
 

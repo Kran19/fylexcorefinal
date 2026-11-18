@@ -21,8 +21,13 @@ import { json, urlencoded } from 'express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
-  // Set global body and urlencoded size limits to 700mb
-  app.use(json({ limit: '700mb' }));
+  // Set global body and urlencoded size limits to 700mb (preserve rawBody for Razorpay webhook HMAC verification)
+  app.use(json({
+    limit: '700mb',
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }));
   app.use(urlencoded({ limit: '700mb', extended: true }));
 
   app.setGlobalPrefix('api');

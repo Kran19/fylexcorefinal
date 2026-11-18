@@ -14,8 +14,14 @@ export class ResponseInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const url = request?.url || '';
 
-    // Bypass wrapper for webhooks (Shiprocket, etc.) so external services get raw 200 responses
-    if (url.includes('webhook') || url.includes('tracking-update')) {
+    // Bypass wrapper for external webhooks & Razorpay Magic Checkout server-to-server callbacks
+    if (
+      url.includes('webhook') ||
+      url.includes('tracking-update') ||
+      url.includes('/payments/magic/shipping-info') ||
+      url.includes('/payments/magic/promotions') ||
+      url.includes('/payments/magic/apply-promotion')
+    ) {
       return next.handle();
     }
     

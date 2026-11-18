@@ -106,6 +106,15 @@ export class AuthService {
     };
   }
 
+  /**
+   * Issues a standard 30-day customer JWT session for Silent Account Resolution (1-Click Magic Checkout).
+   */
+  async issueSessionForCustomer(customer: any) {
+    if (!customer) return null;
+    const sanitized = this.sanitizeUser(customer, 'customer');
+    return this.login(sanitized);
+  }
+
   async getAuthenticatedUser(userId: string, role: AuthRole) {
     if (role === 'admin') {
       const admin = await this.prisma.admin.findUnique({

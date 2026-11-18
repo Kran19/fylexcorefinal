@@ -168,6 +168,28 @@ export const initiatePaymentApi = (userId, pincode, receipt, couponCode, useCred
 };
 export const verifyPaymentApi = (paymentData) => request('POST', '/payments/verify', paymentData);
 
+// 1-Click Razorpay Magic Checkout API (Supports Guest 'gst_*' & Logged-In Customers)
+export const initiateMagicPaymentApi = (userId, couponCode = '', useCredits = true, receipt = '') => {
+    return request('POST', '/payments/magic/create-order', {
+        userId,
+        couponCode,
+        useCredits,
+        receipt: receipt || `fyl_${Date.now()}`,
+    });
+};
+
+export const completeMagicPaymentApi = (payload) => {
+    return request('POST', '/payments/magic/complete', payload);
+};
+
+export const checkMagicOrderApi = (razorpayOrderId, userId) => {
+    return request('POST', '/payments/magic/check-order', { razorpayOrderId, userId });
+};
+
+export const completeFreeMagicOrderApi = (payload) => {
+    return request('POST', '/payments/magic/complete-free', payload);
+};
+
 // Address API
 export const addAddressApi = (userId, addressData) => request('POST', `/customers/${userId}/addresses`, addressData);
 export const fetchAddressesApi = (userId) => request('GET', `/customers/${userId}/addresses`);

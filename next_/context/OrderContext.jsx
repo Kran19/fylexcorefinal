@@ -59,25 +59,36 @@ export function OrderProvider({ children }) {
   };
 
   // Initial load from backend
-  useEffect(() => {
-    const loadOrders = async () => {
-      if (!user?.id) {
-        setOrders([]);
-        return;
-      }
-      
-      try {
-        const response = await fetchOrders(user.id);
-        // Handle both { success: true, data: [] }, { orders: [] } and raw array responses
-        const data = response?.data || response?.orders || (Array.isArray(response) ? response : []);
-        const normalized = data.map(normalizeOrder);
-        setOrders(normalized);
-      } catch (err) {
-        console.warn('Order API unavailable, using local data:', err.message);
-      }
-    };
-    loadOrders();
+  const refreshOrders = React.useCallback(async (overrideUserId = null) => {
+    const targetId = overrideUserId || user?.id;
+    if (!targetId) {
+      setOrders([]);
+      return;
+    }
+
+    try {
+      const response = await fetchOrders(targetId);
+      // Handle both { success: true, data: [] }, { orders: [] } and raw array responses
+      const data = response?.data || response?.orders || (Array.isArray(response) ? response : []);
+      const normalized = data.map(normalizeOrder);
+      setOrders(normalized);
+    } catch (err) {
+      console.warn('Order API unavailable, using local data:', err.message);
+    }
   }, [user?.id]);
+
+  useEffect(() => {
+    refreshOrders();
+  }, [refreshOrders]);
+
+  const prependRawOrder = (rawOrder) => {
+    if (!rawOrder) return;
+    const normalized = normalizeOrder(rawOrder);
+    setOrders(prev => {
+      const filtered = prev.filter(o => o.orderNumber !== normalized.orderNumber && o.orderId !== normalized.orderId);
+      return [normalized, ...filtered];
+    });
+  };
 
   const addOrder = async (orderData) => {
     try {
@@ -97,7 +108,7 @@ export function OrderProvider({ children }) {
   };
 
   return (
-    <OrderContext.Provider value={{ orders, addOrder }}>
+    <OrderContext.Provider value={{ orders, addOrder, refreshOrders, prependRawOrder }}>
       {children}
     </OrderContext.Provider>
   );

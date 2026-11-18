@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
 import { useOrder } from '@/context/OrderContext';
 import { useAuth } from '@/context/AuthContext';
@@ -8,8 +8,10 @@ import { addAddressApi, initiatePaymentApi, verifyPaymentApi, calculateTotalApi 
 import { getFileUrl } from '@/lib/utils';
 import Swal from 'sweetalert2';
 
-const Checkout = () => {
+const CheckoutContent = () => {
   const navigate = useRouter();
+  const searchParams = useSearchParams();
+  const isClassicMode = searchParams?.get('mode') === 'classic' || process.env.NEXT_PUBLIC_CHECKOUT_MODE === 'classic';
   const { items, totals: cartTotals, clearCart } = useCart();
   const { addOrder } = useOrder();
   const { user, guestId } = useAuth();
@@ -56,6 +58,10 @@ const Checkout = () => {
   const [useCredits, setUseCredits] = useState(true);
 
   useEffect(() => {
+    if (!isClassicMode) {
+      navigate.replace('/cart?autocheckout=1');
+      return;
+    }
     if (!user) {
       navigate.push('/login');
       return;
@@ -90,7 +96,7 @@ const Checkout = () => {
             document.body.removeChild(script); 
         }
     };
-  }, [user]);
+  }, [user, isClassicMode, navigate]);
 
   useEffect(() => {
     const fetchPincodeDetails = async () => {
@@ -348,6 +354,14 @@ const Checkout = () => {
       });
     }
   };
+
+  if (!isClassicMode) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#050505', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', fontSize: 13, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        Opening 1-Click Magic Checkout...
+      </div>
+    );
+  }
 
   return (
     <div className={`checkout-page ${isLoaded ? 'loaded' : ''}`}>
@@ -1082,4 +1096,10 @@ const Checkout = () => {
   );
 };
 
-export default Checkout;
+export default function Checkout() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#050505' }} />}>
+      <CheckoutContent />
+    </Suspense>
+  );
+}
