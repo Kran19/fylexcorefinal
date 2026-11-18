@@ -548,7 +548,7 @@ function CartContent() {
                 <circle cx="38" cy="46" r="2" fill="#ffffff" opacity="0.4" />
               </svg>
               <p>Your cart is empty</p>
-              <Link href="/products" className="cart-empty-cta">
+              <Link href="/pre-configure" className="cart-empty-cta">
                 Explore Watches
               </Link>
             </div>
@@ -720,7 +720,7 @@ function CartContent() {
                 ⚡ Auto-fills saved address via mobile number • UPI, Cards, Netbanking &amp; COD
               </div>
 
-              <Link href="/products" className="cart-continue-link">
+              <Link href="/pre-configure" className="cart-continue-link">
                 ← Continue Shopping
               </Link>
             </div>

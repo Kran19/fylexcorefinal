@@ -293,7 +293,7 @@ export default function MyPurchases() {
         {allPurchasedUnits.length === 0 ? (
           <div className="purchases-empty">
             <h2>No purchases made yet.</h2>
-            <Link href="/products" className="empty-cta">Browse Collection</Link>
+            <Link href="/pre-configure" className="empty-cta">Browse Collection</Link>
           </div>
         ) : (
           <div className="purchases-grid">

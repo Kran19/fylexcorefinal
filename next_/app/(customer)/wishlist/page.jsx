@@ -258,7 +258,7 @@ export default function Wishlist() {
         {wishlist.length === 0 ? (
           <div className="wishlist-empty">
             <h2>No Watches Purchased Yet</h2>
-            <Link href="/products" className="wishlist-empty-cta">Shop Collection</Link>
+            <Link href="/pre-configure" className="wishlist-empty-cta">Shop Collection</Link>
           </div>
         ) : (
           <div className="wishlist-grid">
