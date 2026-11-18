@@ -511,12 +511,14 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         }
       }
       setActiveComboIndex(targetIdx);
-      if (heroSwiperRef.current) {
-        if (heroSwiperRef.current.params?.loop) {
-          heroSwiperRef.current.slideToLoop(targetIdx, 0);
-        } else {
-          heroSwiperRef.current.slideTo(targetIdx, 0);
-        }
+      if (heroSwiperRef.current && !heroSwiperRef.current.destroyed) {
+        try {
+          if (heroSwiperRef.current.params?.loop) {
+            heroSwiperRef.current.slideToLoop(targetIdx, 0);
+          } else {
+            heroSwiperRef.current.slideTo(targetIdx, 0);
+          }
+        } catch (e) {}
       }
     }
   }, [productsData, watchId, searchParams ? searchParams.toString() : '']);
@@ -648,6 +650,27 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   // ── HERO CONFIGURATION CAROUSEL STATE & LOGIC ──
   const productCombos = product?.combinations || [];
 
+  // Determine initial combo index based on URL variant or activeVariant
+  const initialComboIndex = (() => {
+    if (productCombos.length > 0) {
+      if (variantIdParam) {
+        const vIdx = productCombos.findIndex(c => 
+          c.id?.toString() === variantIdParam?.toString() || 
+          c.variantId?.toString() === variantIdParam?.toString()
+        );
+        if (vIdx !== -1) return vIdx;
+      }
+      if (activeVariant) {
+        const aIdx = productCombos.findIndex(c => 
+          c.id?.toString() === activeVariant.id?.toString() || 
+          c.variantId?.toString() === activeVariant.id?.toString()
+        );
+        if (aIdx !== -1) return aIdx;
+      }
+    }
+    return 0;
+  })();
+
   // Match activeVariant against combinations list if present
   const matchedCombo = (activeVariant && productCombos.length > 0)
     ? productCombos.find(c => 
@@ -656,8 +679,8 @@ export function DiscoverContent({ isConfiguredMode = false }) {
       )
     : null;
 
-  // In configured mode or when custom selections exist, activeVariant is the source of truth
-  const currentCombo = (isConfiguredMode || hasConfig)
+  // In configured mode, when custom selections exist, or when a variant is selected via URL, activeVariant is the source of truth
+  const currentCombo = (isConfiguredMode || hasConfig || variantIdParam)
     ? (matchedCombo || (activeVariant ? {
         id: activeVariant.id?.toString(),
         variantId: activeVariant.id?.toString(),
@@ -667,7 +690,7 @@ export function DiscoverContent({ isConfiguredMode = false }) {
         formattedPrice: product?.formattedPrice,
         attrMap: selections,
         variant: activeVariant
-      } : (productCombos[activeComboIndex] || null)))
+      } : (productCombos[initialComboIndex] || productCombos[activeComboIndex] || null)))
     : ((productCombos.length > 0 && productCombos[activeComboIndex])
         ? productCombos[activeComboIndex]
         : (matchedCombo || (activeVariant ? {
@@ -784,9 +807,9 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   const displayStoryImg = isConfiguredMode ? product.heroImage : (getImgUrl(activeStoryImg) || product.galleryImages?.[0] || product.heroImage);
   const displaySpecsImg = isConfiguredMode ? product.heroImage : (getImgUrl(activeSpecsImg) || product.galleryImages?.[1] || product.galleryImages?.[0] || product.heroImage);
   const effectiveImageCount = 3;
-  const materialParam = searchParams.get('material');
-  const bezelParam = searchParams.get('bezel');
-  const dialParam = searchParams.get('dial');
+  const materialParam = searchParams?.get ? searchParams.get('material') : null;
+  const bezelParam = searchParams?.get ? searchParams.get('bezel') : null;
+  const dialParam = searchParams?.get ? searchParams.get('dial') : null;
 
   // Dynamic config map derived from product variants if possible, with hardcoded fallbacks for featured looks
   const configMap = {
