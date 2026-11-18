@@ -62,8 +62,15 @@ const Checkout = () => {
     }
     setIsLoaded(true);
     const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.src = 'https://checkout.razorpay.com/v1/magic-checkout.js';
     script.async = true;
+    script.onerror = () => {
+      // Graceful fallback to standard checkout if magic script fails
+      const fallback = document.createElement('script');
+      fallback.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      fallback.async = true;
+      document.body.appendChild(fallback);
+    };
     document.body.appendChild(script);
 
     if (user?.name) {
@@ -251,11 +258,16 @@ const Checkout = () => {
     const payRes = await initiatePaymentApi(currentUserId, formData.postalCode, `rcpt_${Date.now()}`, activeCoupon, useCredits);
     if (!payRes.success) throw new Error(payRes.error);
 
+    const customerFullName = `${formData.firstName || ''} ${formData.lastName || ''}`.trim() || user?.name || '';
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: payRes.data.amount,
       currency: payRes.data.currency,
       order_id: payRes.data.id,
+      one_click_checkout: true,
+      name: 'Fylex Watches',
+      description: 'Luxury Timepiece Purchase',
+      image: '/fylex_icon_square.png',
       handler: async (response) => {
         const verRes = await verifyPaymentApi({
           orderId: payRes.data.id,
@@ -270,8 +282,12 @@ const Checkout = () => {
           setIsProcessing(false);
         }
       },
-      prefill: { email: formData.email, contact: formData.phone },
-      theme: { color: '#1e293b' },
+      prefill: {
+        name: customerFullName,
+        email: formData.email || user?.email || '',
+        contact: formData.phone || user?.mobile || '',
+      },
+      theme: { color: '#000000' },
       modal: { ondismiss: () => setIsProcessing(false) }
     };
 
@@ -484,10 +500,13 @@ const Checkout = () => {
                       onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'razorpay' }))}
                     >
                       <div className="card-info">
-                        <div className="card-icon">💳</div>
+                        <div className="card-icon">⚡</div>
                         <div>
-                          <div className="card-type">Razorpay (Cards/UPI/Netbanking)</div>
-                          <div className="card-desc">Secure live payment gateway</div>
+                          <div className="card-type" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>Magic Checkout (Razorpay)</span>
+                            <span style={{ fontSize: '0.68rem', padding: '2px 7px', borderRadius: '4px', background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', fontWeight: 700, letterSpacing: '0.5px' }}>1-CLICK</span>
+                          </div>
+                          <div className="card-desc">Instant 1-Click UPI (GPay/PhonePe/Paytm), Cards, Netbanking & COD</div>
                         </div>
                       </div>
                       <div className="card-radio" />
@@ -507,9 +526,9 @@ const Checkout = () => {
                       <div className="card-info">
                         <div className="card-icon" style={{ opacity: 0.5 }}>🚚</div>
                         <div>
-                          <div className="card-type" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Cash on Delivery</div>
-                          <div className="card-desc" style={{ color: '#e11d48', fontWeight: 600, fontSize: '0.8rem', marginTop: '2px' }}>
-                            COD not available at your location
+                          <div className="card-type" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>Standard Cash on Delivery</div>
+                          <div className="card-desc" style={{ color: 'rgba(255, 255, 255, 0.5)', fontWeight: 500, fontSize: '0.8rem', marginTop: '2px' }}>
+                            Included inside Magic Checkout with RTO verification
                           </div>
                         </div>
                       </div>
@@ -519,7 +538,7 @@ const Checkout = () => {
 
                   {formData.paymentMethod === 'razorpay' && (
                     <div className="payment-notice">
-                      <p>You will be redirected to Razorpay secure checkout to complete your purchase.</p>
+                      <p>⚡ You will be redirected to Razorpay Magic Checkout for instant 1-click purchase.</p>
                     </div>
                   )}
                 </div>
