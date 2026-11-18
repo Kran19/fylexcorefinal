@@ -1230,7 +1230,7 @@ const Home = () => {
                     WEAR YOUR CHOICE
                   </p>
                   <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
-                    <Link href="/products">
+                    <Link href="/pre-configure">
                       <button className="cta-button">Explore</button>
                     </Link>
                   </div>
