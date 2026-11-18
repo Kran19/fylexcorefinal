@@ -928,6 +928,9 @@ const Products = () => {
             background: #ffffff;
             padding: 0;
           }
+          .p-sections-list .p-section:first-child {
+            padding-top: 110px;
+          }
           .p-section {
             min-height: auto;
             display: flex;
@@ -1063,22 +1066,6 @@ const Products = () => {
       <nav className={`products-top-nav ${scrollDir === 'down' && isScrolled ? 'hidden' : ''}`} style={{ justifyContent: 'flex-end' }}>
         <Link href="/pre-configure" className="btn-config-pill">Build Your Watch</Link>
       </nav>
-
-      {/* ═══ HERO ═══ */}
-      <section className="products-hero">
-        <div className="video-container">
-          <video
-            src={getFileUrl(videoSettings.products_hero_video) || getFileUrl(videoSettings.shop_hero_video) || getFileUrl(videoSettings.home_hero_video) || "/assets/Fylex.mp4"}
-            autoPlay
-            muted
-            defaultMuted
-            preload="auto"
-            loop
-            playsInline
-            style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
-          />
-        </div>
-      </section>
 
       {/* ═══ PRODUCT SECTIONS ═══ */}
       <div className="p-sections-list">
