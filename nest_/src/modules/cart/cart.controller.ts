@@ -39,18 +39,22 @@ export class CartController {
 
   @Patch('items/:id')
   async updateItem(
-    @Body('userId') userId: string,
+    @Body('userId') bodyUserId: string,
+    @Query('userId') queryUserId: string,
     @Param('id') itemId: string,
     @Body() updateCartItemDto: UpdateCartItemDto,
   ) {
+    const userId = bodyUserId || queryUserId;
     return this.cartService.updateItem(userId, itemId, updateCartItemDto);
   }
 
   @Delete('items/:id')
   async removeItem(
-    @Body('userId') userId: string,
+    @Body('userId') bodyUserId: string,
+    @Query('userId') queryUserId: string,
     @Param('id') itemId: string,
   ) {
+    const userId = bodyUserId || queryUserId;
     return this.cartService.removeItem(userId, itemId);
   }
 

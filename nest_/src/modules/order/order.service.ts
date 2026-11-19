@@ -1434,8 +1434,16 @@ export class OrderService {
       return { subtotal: 0, shipping: 0, tax: 0, discount: 0, couponDiscount: 0, creditDiscount: 0, availableCredits: 0, appliedCredits: 0, total: 0 };
     }
 
-    // Always compute subtotal directly from cart items
-    const subtotal = cart.items.reduce((sum, item) => sum + (Number(item.total) || (Number(item.unitPrice) * Number(item.quantity)) || 0), 0);
+    // Always compute subtotal directly from cart items with live variant pricing fallback
+    const subtotal = cart.items.reduce((sum, item) => {
+      let livePrice = Number(item.unitPrice || 0);
+      if (item.productVariant) {
+        livePrice = Number(item.productVariant.price ?? item.unitPrice ?? 0);
+      } else if (item.belt) {
+        livePrice = Number(item.belt.price ?? item.unitPrice ?? 0);
+      }
+      return sum + (livePrice * Number(item.quantity || 1));
+    }, 0);
     let shippingTotal = 0; // FREE SHIPPING ALL OVER INDIA
     let message = 'Free Shipping All Over India';
 
@@ -1957,7 +1965,13 @@ export class OrderService {
 
     const totalDiscountPaise = Math.max(0, Math.round(Number(totals.discount || 0) * 100));
     const rawItemsPaise = cart.items.map((item) => {
-      const unitPaise = Math.round(Number(item.unitPrice || 0) * 100);
+      let livePrice = Number(item.unitPrice || 0);
+      if (item.productVariant) {
+        livePrice = Number(item.productVariant.price ?? item.unitPrice ?? 0);
+      } else if (item.belt) {
+        livePrice = Number(item.belt.price ?? item.unitPrice ?? 0);
+      }
+      const unitPaise = Math.round(livePrice * 100);
       const qty = Math.max(1, Number(item.quantity || 1));
       return { item, unitPaise, qty, lineSubtotalPaise: unitPaise * qty };
     });

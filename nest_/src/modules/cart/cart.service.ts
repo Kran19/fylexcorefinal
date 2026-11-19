@@ -99,6 +99,48 @@ export class CartService {
         });
       }
     }
+    if (cart && cart.items && cart.items.length > 0) {
+      let totalsStale = false;
+      for (const item of cart.items) {
+        let liveUnitPrice = Number(item.unitPrice || 0);
+        if (item.productVariant) {
+          liveUnitPrice = Number(item.productVariant.price ?? item.unitPrice ?? 0);
+        } else if (item.belt) {
+          liveUnitPrice = Number(item.belt.price ?? item.unitPrice ?? 0);
+        }
+        if (Number(item.unitPrice) !== liveUnitPrice) {
+          await this.prisma.cartItem.update({
+            where: { id: item.id },
+            data: {
+              unitPrice: liveUnitPrice,
+              total: liveUnitPrice * Number(item.quantity || 1),
+            },
+          }).catch(() => {});
+          item.unitPrice = liveUnitPrice as any;
+          item.total = (liveUnitPrice * Number(item.quantity || 1)) as any;
+          totalsStale = true;
+        }
+      }
+      if (totalsStale) {
+        await this.updateCartTotals(cart.id);
+        const refreshed = await this.prisma.cart.findUnique({
+          where: { id: cart.id },
+          include: {
+            items: {
+              include: {
+                productVariant: { include: { product: true } },
+                belt: { include: { image: true } },
+              },
+            },
+          },
+        });
+        if (refreshed) {
+          cart.subtotal = refreshed.subtotal;
+          cart.grandTotal = refreshed.grandTotal;
+        }
+      }
+    }
+
     return cart;
   }
 
@@ -260,25 +302,33 @@ export class CartService {
   // Remove item
   async removeItem(customerId: string, itemId: string) {
     const iId = Number(itemId);
+    if (!iId || isNaN(iId)) {
+      return this.getCart(customerId);
+    }
     const item = await this.prisma.cartItem.findUnique({
       where: { id: iId },
       include: { cart: true },
     });
 
-    const customerIdStr = customerId.toString();
-    const isNumeric = !isNaN(Number(customerIdStr)) && !customerIdStr.includes('usr_') && customerIdStr !== '';
-    
-    const ownerMatch = isNumeric 
-      ? (item && item.cart.customerId === Number(customerIdStr))
-      : (item && item.cart.sessionId === customerIdStr);
-
-    if (!item || !ownerMatch) {
-      throw new NotFoundException('Cart item not found');
+    if (!item) {
+      // Idempotent: already removed or nonexistent
+      return this.getCart(customerId);
     }
 
-    const cartId = item.cartId;
-    await this.prisma.cartItem.delete({ where: { id: iId } });
-    await this.updateCartTotals(cartId);
+    const customerIdStr = (customerId || '').toString();
+    const isNumeric = !isNaN(Number(customerIdStr)) && !customerIdStr.includes('usr_') && !customerIdStr.includes('gst_') && customerIdStr !== '';
+    
+    const ownerMatch = !customerIdStr
+      ? true
+      : isNumeric 
+        ? (item.cart.customerId === Number(customerIdStr))
+        : (item.cart.sessionId === customerIdStr);
+
+    if (ownerMatch || !item.cart.customerId) {
+      const cartId = item.cartId;
+      await this.prisma.cartItem.delete({ where: { id: iId } }).catch(() => {});
+      await this.updateCartTotals(cartId);
+    }
     return this.getCart(customerId);
   }
 

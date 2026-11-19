@@ -117,9 +117,11 @@ export const addToCartApi = (userId, variantId, quantity = 1) => {
   return request('POST', '/cart/items', { userId, variantId, quantity });
 };
 
-export const removeFromCartApi = (userId, id) => request('DELETE', `/cart/items/${id}`, { userId });
+export const removeFromCartApi = (userId, id) =>
+  request('DELETE', `/cart/items/${id}?userId=${encodeURIComponent(userId || '')}`, { userId });
 
-export const updateCartQtyApi = (userId, id, quantity) => request('PATCH', `/cart/items/${id}`, { userId, quantity });
+export const updateCartQtyApi = (userId, id, quantity) =>
+  request('PATCH', `/cart/items/${id}?userId=${encodeURIComponent(userId || '')}`, { userId, quantity });
 
 export const mergeCartApi = (guestSessionId, userId) => request('POST', '/cart/merge', { guestSessionId, userId });
 
