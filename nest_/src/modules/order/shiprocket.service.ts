@@ -9,8 +9,8 @@ export class ShiprocketService {
   private baseUrl = 'https://apiv2.shiprocket.in/v1/external';
 
   private async login(): Promise<string> {
-    const email = process.env.SHIPROCKET_EMAIL || 'heetlimbasiya10@gmail.com';
-    const password = process.env.SHIPROCKET_PASSWORD || '7Pm8K^%ThcQ5YNeHsH7l8ssuK1^q6ctf';
+    const email = process.env.SHIPROCKET_EMAIL || 'fylexmagiccheckout@gmail.com';
+    const password = process.env.SHIPROCKET_PASSWORD || 'jwbPvJ1UGgyvV4z%ruTvDW&ubs#Y!z!3';
 
     try {
       this.logger.log(`Authenticating with Shiprocket API for ${email}...`);
