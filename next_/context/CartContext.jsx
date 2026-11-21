@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 import { resolveProductImage, getDisplayData } from '../lib/utils';
 import { eventBus, EVENTS } from '../lib/events';
+import { trackMetaAddToCart } from '../lib/metaPixel';
 
 const CartContext = createContext(null);
 
@@ -139,7 +140,42 @@ export function CartProvider({ children }) {
         if (result.success) {
             mapCartData(result.data);
             eventBus.emit(EVENTS.CART_UPDATED);
-            // if (success) success('Added to cart successfully');
+
+            // Fire Meta Pixel AddToCart with exact INR value & currency
+            try {
+                const rawItems = result.data?.items || [];
+                const vStr = String(variantId);
+                const matched = rawItems.find((it) =>
+                    vStr.startsWith('belt-')
+                        ? `belt-${it.beltId}` === vStr
+                        : String(it.productVariantId) === vStr
+                );
+                const unitPrice = Number(
+                    matched?.unitPrice ||
+                    matched?.productVariant?.price ||
+                    matched?.belt?.price ||
+                    0
+                );
+                const qtyAdded = Math.max(1, Number(quantity || 1));
+                const itemName =
+                    matched?.productVariant?.product?.name ||
+                    matched?.belt?.name ||
+                    'FYLEX Timepiece';
+                const itemSku =
+                    matched?.productVariant?.sku ||
+                    (matched?.beltId ? `BELT-${matched.beltId}` : vStr);
+
+                trackMetaAddToCart({
+                    id: vStr,
+                    sku: itemSku,
+                    name: itemName,
+                    quantity: qtyAdded,
+                    unitPrice,
+                    value: Number((unitPrice * qtyAdded).toFixed(2)),
+                });
+            } catch (pixelErr) {
+                console.warn('Meta AddToCart tracking skipped:', pixelErr);
+            }
         } else {
             if (toastError) toastError(result.error || 'Failed to add to cart');
         }

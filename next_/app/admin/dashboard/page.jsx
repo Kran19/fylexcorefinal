@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, PointElement, LineElement,
@@ -10,6 +10,10 @@ import Link from 'next/link';
 import { dashboardService } from '@/services';
 import Loader from '@/components/admin/ui/Loader';
 import ErrorBanner from '@/components/admin/ui/ErrorBanner';
+import {
+  DateRangeFilterBar,
+  CartCheckoutFunnelPanel,
+} from '@/components/admin/CartCheckoutFunnelPanel';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, Filler);
 
@@ -115,26 +119,54 @@ const EmptyState = ({ icon, message }) => (
 const Dashboard = () => {
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [revenueView, setRevenueView] = useState('weekly'); // 'weekly' | 'monthly'
   const [orderView, setOrderView] = useState('status'); // 'status' | 'category'
 
-  const fetchDashboard = async () => {
-    setLoading(true);
+  // Date Range Filter State
+  const [preset, setPreset] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const fetchDashboard = useCallback(async (queryParams = { preset: 'all' }, isInitial = false) => {
+    if (isInitial) setLoading(true);
+    else setRefreshing(true);
     setError(null);
-    const { data, error: err } = await dashboardService.getDashboard();
+    const { data, error: err } = await dashboardService.getDashboard(queryParams);
     if (err) {
       setError(err);
     } else {
       setDashData(data);
     }
     setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useEffect(() => {
+    fetchDashboard({ preset: 'all' }, true);
+  }, [fetchDashboard]);
+
+  const handleSelectPreset = (nextPreset) => {
+    setPreset(nextPreset);
+    setStartDate('');
+    setEndDate('');
+    fetchDashboard({ preset: nextPreset });
   };
 
-  useEffect(() => { fetchDashboard(); }, []);
+  const handleApplyCustom = () => {
+    if (!startDate && !endDate) return;
+    setPreset('custom');
+    fetchDashboard({ startDate, endDate });
+  };
+
+  const handleRefresh = () => {
+    if (startDate || endDate) fetchDashboard({ startDate, endDate });
+    else fetchDashboard({ preset });
+  };
 
   if (loading) return <Loader message="Loading dashboard..." />;
-  if (error)   return <ErrorBanner message={error} onRetry={fetchDashboard} />;
+  if (error)   return <ErrorBanner message={error} onRetry={handleRefresh} />;
 
   // ── Data extraction with safe fallbacks ──────────────────────
   const stats = dashData?.stats || {};
@@ -188,12 +220,14 @@ const Dashboard = () => {
     plugins: { legend: { display: false } },
   };
 
+  const comparisonPeriodLabel = stats.comparison_label || 'This month';
+
   const mainStatCards = [
     {
       title: 'Total Revenue',
       value: `₹${Number(stats.total_revenue || stats.totalRevenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
       change: stats.revenue_change ?? stats.revenueChange ?? 0,
-      changePeriod: 'This month',
+      changePeriod: comparisonPeriodLabel,
       icon: 'fas fa-rupee-sign',
       iconGradient: 'linear-gradient(135deg, #34d399, #059669)',
     },
@@ -201,7 +235,7 @@ const Dashboard = () => {
       title: 'Total Orders',
       value: Number(stats.total_orders || stats.totalOrders || 0).toLocaleString(),
       change: stats.orders_change ?? stats.ordersChange ?? 0,
-      changePeriod: 'This month',
+      changePeriod: comparisonPeriodLabel,
       icon: 'fas fa-shopping-cart',
       iconGradient: 'linear-gradient(135deg, #38bdf8, #0284c7)',
     },
@@ -209,7 +243,7 @@ const Dashboard = () => {
       title: 'Total Products',
       value: Number(stats.total_products || stats.totalProducts || 0).toLocaleString(),
       change: stats.products_change ?? stats.productsChange ?? 0,
-      changePeriod: 'New this month',
+      changePeriod: comparisonPeriodLabel,
       icon: 'fas fa-box',
       iconGradient: 'linear-gradient(135deg, #818cf8, #4f46e5)',
     },
@@ -217,7 +251,7 @@ const Dashboard = () => {
       title: 'Total Customers',
       value: Number(stats.total_customers || stats.totalCustomers || 0).toLocaleString(),
       change: stats.customers_change ?? stats.customersChange ?? 0,
-      changePeriod: 'New this month',
+      changePeriod: comparisonPeriodLabel,
       icon: 'fas fa-users',
       iconGradient: 'linear-gradient(135deg, #fbbf24, #d97706)',
     },
@@ -283,6 +317,20 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Date Range Filter Bar — Above All Dashboard & Funnel Data */}
+      <DateRangeFilterBar
+        preset={preset}
+        startDate={startDate}
+        endDate={endDate}
+        rangeLabel={stats.range_label || dashData?.funnel?.rangeLabel}
+        loading={refreshing}
+        onSelectPreset={handleSelectPreset}
+        onChangeStartDate={setStartDate}
+        onChangeEndDate={setEndDate}
+        onApplyCustom={handleApplyCustom}
+        onRefresh={handleRefresh}
+      />
+
       {/* Quick Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {quickStatCards.map((card, i) => (
@@ -315,6 +363,11 @@ const Dashboard = () => {
           <StatCard key={i} {...card} />
         ))}
       </div>
+
+      {/* Add-to-Cart & Unpaid Checkout Funnel Panel */}
+      {dashData?.funnel && (
+        <CartCheckoutFunnelPanel funnel={dashData.funnel} compact={true} />
+      )}
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

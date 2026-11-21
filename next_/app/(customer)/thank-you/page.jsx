@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { trackMetaPurchase } from '@/lib/metaPixel';
 import './thank-you.css';
 
 const ThankYouPage = () => {
@@ -8,6 +9,18 @@ const ThankYouPage = () => {
 
   useEffect(() => {
     setVisible(true);
+
+    // Ensure Meta Pixel Purchase with INR value is recorded (deduplicated by orderNumber)
+    try {
+      const raw = sessionStorage.getItem('fylex_last_purchase_meta');
+      if (raw) {
+        const snapshot = JSON.parse(raw);
+        if (snapshot && (snapshot.orderNumber || snapshot.orderId || snapshot.value >= 0)) {
+          trackMetaPurchase(snapshot);
+        }
+        sessionStorage.removeItem('fylex_last_purchase_meta');
+      }
+    } catch {}
   }, []);
 
   return (

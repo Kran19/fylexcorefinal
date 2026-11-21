@@ -1954,6 +1954,16 @@ export class OrderService {
 
     // Handle 100% Free Coupon / Full Credit Order (Razorpay requires payable >= ₹1)
     if (totals.total <= 0) {
+      this.logCheckoutInitiated({
+        razorpayOrderId: `free_checkout_${cart.id}_${Date.now()}`,
+        cart,
+        userId: String(userId),
+        subtotal: Number(totals.subtotal || 0),
+        discount: Number(totals.discount || 0),
+        value: 0,
+        couponCode: cleanCoupon || cart.offer?.code || '',
+        mode: 'free_order_modal',
+      });
       return {
         freeOrder: true,
         amount: 0,
@@ -2071,6 +2081,17 @@ export class OrderService {
       },
     });
 
+    this.logCheckoutInitiated({
+      razorpayOrderId: rzpOrder.id,
+      cart,
+      userId: String(userId),
+      subtotal: Number(totals.subtotal || 0),
+      discount: Number(totals.discount || 0),
+      value: Number((finalAmountPaise / 100).toFixed(2)),
+      couponCode: appliedCouponCode,
+      mode: 'magic_checkout',
+    });
+
     return {
       ...rzpOrder,
       freeOrder: false,
@@ -2146,6 +2167,11 @@ export class OrderService {
 
       if (rzpOrderId) {
         const rzpOrder = await this.paymentService.fetchOrder(rzpOrderId).catch(() => null);
+        this.enrichCheckoutContact(rzpOrderId, {
+          contact,
+          customerDetails: rzpOrder?.customer_details || payload?.customer_details,
+          email: payload?.email,
+        });
         const notes = rzpOrder?.notes || {};
         if (notes.preAppliedCoupon) {
           // A coupon was already applied on /cart before launching Magic Checkout; prevent double-stacking
@@ -2193,6 +2219,11 @@ export class OrderService {
 
     if (rzpOrderId) {
       const rzpOrder = await this.paymentService.fetchOrder(rzpOrderId).catch(() => null);
+      this.enrichCheckoutContact(rzpOrderId, {
+        contact,
+        customerDetails: rzpOrder?.customer_details || payload?.customer_details,
+        email: payload?.email,
+      });
       const notes = rzpOrder?.notes || {};
       if (notes.preAppliedCoupon) {
         throw new BadRequestException({
@@ -2966,6 +2997,18 @@ export class OrderService {
       this.logger.error(`Error initiating Magic Checkout WhatsApp alerts: ${e.message}`);
     }
 
+    if (createdOrder) {
+      this.markCheckoutCompleted({
+        razorpayOrderId,
+        cartId: cart.id,
+        customerId: customer?.id,
+        orderId: createdOrder.id,
+        orderNumber: createdOrder.orderNumber,
+        grandTotal: Number(createdOrder.grandTotal || 0),
+        paymentMethod: createdOrder.paymentMethod || 'online',
+      });
+    }
+
     const session = issueSession ? await this.authService.issueSessionForCustomer(customer) : null;
 
     return {
@@ -3095,6 +3138,17 @@ export class OrderService {
       redeemPoints: Number(totals.appliedCredits || totals.creditDiscount || 0),
     } as any);
 
+    if (order) {
+      this.markCheckoutCompleted({
+        cartId: cart.id,
+        customerId: customer.id,
+        orderId: (order as any).id,
+        orderNumber: (order as any).orderNumber,
+        grandTotal: 0,
+        paymentMethod: 'free_coupon',
+      });
+    }
+
     const session = await this.authService.issueSessionForCustomer(customer);
 
     return {
@@ -3102,6 +3156,207 @@ export class OrderService {
       order,
       ...(session ? { access_token: session.access_token, user: session.user } : {}),
     };
+  }
+
+  // ─── Marketing Funnel & Checkout Drop-off Tracking Helpers ─────────────────
+
+  async recordClassicCheckoutInitiated(customerId: string, razorpayOrderId: string, totals: any) {
+    try {
+      const cart = await this.findActiveCartWithDetails(customerId);
+      if (!cart || !cart.items?.length) return;
+      this.logCheckoutInitiated({
+        razorpayOrderId,
+        cart,
+        userId: String(customerId),
+        subtotal: Number(totals?.subtotal || 0),
+        discount: Number(totals?.discount || 0),
+        value: Number(totals?.total || 0),
+        couponCode: '',
+        mode: 'classic_checkout',
+      });
+    } catch (e: any) {
+      this.logger.warn(`Non-blocking classic checkout log failed: ${e?.message}`);
+    }
+  }
+
+  private logCheckoutInitiated(params: {
+    razorpayOrderId: string;
+    cart: any;
+    userId: string;
+    subtotal: number;
+    discount: number;
+    value: number;
+    couponCode?: string;
+    mode: string;
+  }) {
+    const { razorpayOrderId, cart, userId, subtotal, discount, value, couponCode, mode } = params;
+    const now = new Date();
+
+    const itemsSnapshot = (cart?.items || []).map((item: any) => {
+      const variant = item.productVariant;
+      const product = variant?.product;
+      const belt = item.belt;
+      const attrLabels = (variant?.variantAttributes || [])
+        .map((va: any) => va.attributeValue?.label || va.attributeValue?.value)
+        .filter(Boolean)
+        .join(' • ');
+      return {
+        productId: product?.id || null,
+        variantId: variant?.id || (belt ? `belt-${belt.id}` : null),
+        beltId: belt?.id || null,
+        name: product?.name || belt?.name || 'FYLEX Timepiece',
+        variantLabel: attrLabels || (belt ? 'Strap' : ''),
+        sku: variant?.sku || (belt ? `BELT-${belt.id}` : `ITEM-${item.id}`),
+        quantity: Number(item.quantity || 1),
+        unitPrice: Number(item.unitPrice || 0),
+        total: Number(item.total || Number(item.unitPrice || 0) * Number(item.quantity || 1)),
+      };
+    });
+
+    if (cart?.id) {
+      this.prisma.cart
+        .update({
+          where: { id: cart.id },
+          data: { abandonedAt: now },
+        })
+        .catch(() => {});
+    }
+
+    this.prisma.activityLog
+      .create({
+        data: {
+          customerId: cart?.customerId || null,
+          action: 'CHECKOUT_INITIATED',
+          entityType: 'cart',
+          entityId: cart?.id || null,
+          oldData: razorpayOrderId,
+          newData: JSON.stringify({
+            razorpayOrderId,
+            cartId: cart?.id || null,
+            userId,
+            sessionId: cart?.sessionId || userId,
+            customerName: cart?.customer?.name || '',
+            customerMobile: cart?.customer?.mobile || '',
+            customerEmail: cart?.customer?.email || '',
+            subtotal,
+            discount,
+            value,
+            currency: 'INR',
+            couponCode: couponCode || '',
+            mode,
+            itemCount: itemsSnapshot.reduce((s: number, i: any) => s + i.quantity, 0),
+            items: itemsSnapshot,
+            initiatedAt: now.toISOString(),
+          }),
+          createdAt: now,
+          updatedAt: now,
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`Non-blocking CHECKOUT_INITIATED log failed: ${err?.message || err}`);
+      });
+  }
+
+  private enrichCheckoutContact(
+    razorpayOrderId: string,
+    info: { contact?: string; email?: string; customerDetails?: any },
+  ) {
+    if (!razorpayOrderId) return;
+    const cd = info.customerDetails || {};
+    const ship = cd.shipping_address || cd.billing_address || {};
+    const phone = String(ship.contact || cd.contact || info.contact || '').replace(/\D/g, '').slice(-10);
+    const email = cd.email || ship.email || info.email || '';
+    const name = ship.name || [ship.first_name, ship.last_name].filter(Boolean).join(' ') || cd.name || '';
+    const city = ship.city || '';
+    const pincode = ship.zipcode || ship.pincode || '';
+
+    if (!phone && !email && !name && !pincode) return;
+
+    this.prisma.activityLog
+      .findFirst({
+        where: { action: 'CHECKOUT_INITIATED', oldData: razorpayOrderId },
+        orderBy: { id: 'desc' },
+      })
+      .then(async (existing) => {
+        if (!existing) return;
+        let parsed: any = {};
+        try {
+          parsed = existing.newData ? JSON.parse(existing.newData) : {};
+        } catch {}
+
+        const updatedPayload = {
+          ...parsed,
+          customerName: name || parsed.customerName || '',
+          customerMobile: phone || parsed.customerMobile || '',
+          customerEmail: email || parsed.customerEmail || '',
+          city: city || parsed.city || '',
+          pincode: pincode || parsed.pincode || '',
+          stage: 'Modal Interacted',
+        };
+
+        await this.prisma.activityLog.update({
+          where: { id: existing.id },
+          data: {
+            newData: JSON.stringify(updatedPayload),
+            updatedAt: new Date(),
+          },
+        });
+      })
+      .catch(() => {});
+  }
+
+  private markCheckoutCompleted(params: {
+    razorpayOrderId?: string;
+    cartId?: number;
+    customerId?: number;
+    orderId: number;
+    orderNumber?: string;
+    grandTotal: number;
+    paymentMethod: string;
+  }) {
+    const { razorpayOrderId, cartId, customerId, orderId, orderNumber, grandTotal, paymentMethod } = params;
+    const now = new Date();
+    const completionPayload = JSON.stringify({
+      completed: true,
+      orderId,
+      orderNumber: orderNumber || `ORD-${orderId}`,
+      value: grandTotal,
+      currency: 'INR',
+      paymentMethod,
+      completedAt: now.toISOString(),
+    });
+
+    if (cartId) {
+      this.prisma.cart
+        .update({
+          where: { id: cartId },
+          data: { abandonedAt: null },
+        })
+        .catch(() => {});
+    }
+
+    const orFilters: any[] = [];
+    if (razorpayOrderId) orFilters.push({ oldData: razorpayOrderId });
+    if (cartId) orFilters.push({ entityType: 'cart', entityId: cartId });
+    if (customerId) orFilters.push({ customerId });
+
+    if (orFilters.length === 0) return;
+
+    this.prisma.activityLog
+      .updateMany({
+        where: {
+          action: 'CHECKOUT_INITIATED',
+          additionalData: null,
+          OR: orFilters,
+        },
+        data: {
+          additionalData: completionPayload,
+          updatedAt: now,
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(`Non-blocking markCheckoutCompleted failed: ${err?.message || err}`);
+      });
   }
 }
 

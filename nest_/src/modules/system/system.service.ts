@@ -1,27 +1,147 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PaymentService } from '../payment/payment.service';
+
+export interface DateRangeQuery {
+  startDate?: string;
+  endDate?: string;
+  preset?: string;
+}
 
 @Injectable()
 export class SystemService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private paymentService: PaymentService,
+  ) {}
 
-  async getDashboardStats() {
+  private resolveDateWindow(query?: DateRangeQuery) {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const preset = (query?.preset || '').toLowerCase().trim();
+
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    let rangeStart: Date | null = null;
+    let rangeEnd: Date | null = null;
+    let label = 'All Time';
+
+    if (query?.startDate || query?.endDate) {
+      if (query.startDate) {
+        const s = new Date(`${query.startDate}T00:00:00`);
+        if (!isNaN(s.getTime())) rangeStart = s;
+      }
+      if (query.endDate) {
+        const e = new Date(`${query.endDate}T23:59:59.999`);
+        if (!isNaN(e.getTime())) rangeEnd = e;
+      } else if (rangeStart) {
+        rangeEnd = endOfToday;
+      }
+      label = `${query.startDate || 'Start'} → ${query.endDate || 'Today'}`;
+    } else if (preset === 'today') {
+      rangeStart = startOfToday;
+      rangeEnd = endOfToday;
+      label = 'Today';
+    } else if (preset === 'yesterday') {
+      const yStart = new Date(startOfToday);
+      yStart.setDate(yStart.getDate() - 1);
+      const yEnd = new Date(endOfToday);
+      yEnd.setDate(yEnd.getDate() - 1);
+      rangeStart = yStart;
+      rangeEnd = yEnd;
+      label = 'Yesterday';
+    } else if (preset === '7d') {
+      const s = new Date(startOfToday);
+      s.setDate(s.getDate() - 6);
+      rangeStart = s;
+      rangeEnd = endOfToday;
+      label = 'Last 7 Days';
+    } else if (preset === '30d') {
+      const s = new Date(startOfToday);
+      s.setDate(s.getDate() - 29);
+      rangeStart = s;
+      rangeEnd = endOfToday;
+      label = 'Last 30 Days';
+    } else if (preset === 'this_month') {
+      rangeStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      rangeEnd = endOfToday;
+      label = 'This Month';
+    }
+
+    // Previous comparison window (defaults to last month vs this month when All Time)
+    let prevStart: Date;
+    let prevEnd: Date;
+    let comparisonLabel = 'vs previous period';
+
+    if (rangeStart && rangeEnd) {
+      const spanMs = Math.max(86_400_000, rangeEnd.getTime() - rangeStart.getTime() + 1);
+      prevEnd = new Date(rangeStart.getTime() - 1);
+      prevStart = new Date(rangeStart.getTime() - spanMs);
+    } else {
+      prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      comparisonLabel = 'this month';
+    }
+
+    const createdAtFilter =
+      rangeStart || rangeEnd
+        ? {
+            ...(rangeStart ? { gte: rangeStart } : {}),
+            ...(rangeEnd ? { lte: rangeEnd } : {}),
+          }
+        : undefined;
+
+    return {
+      rangeStart,
+      rangeEnd,
+      prevStart,
+      prevEnd,
+      createdAtFilter,
+      label,
+      comparisonLabel,
+      startOfToday,
+    };
+  }
+
+  async getDashboardStats(query?: DateRangeQuery) {
+    const now = new Date();
+    const {
+      rangeStart,
+      rangeEnd,
+      prevStart,
+      prevEnd,
+      createdAtFilter,
+      label: rangeLabel,
+      comparisonLabel,
+      startOfToday,
+    } = this.resolveDateWindow(query);
+
     const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const orderDateWhere = createdAtFilter ? { createdAt: createdAtFilter } : {};
+    const paidOrderWhere: any = {
+      OR: [
+        { paymentStatus: 'paid' },
+        { paymentMethod: 'cod', status: { notIn: ['cancelled', 'refunded'] } },
+      ],
+      ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
+    };
+    const prevPaidOrderWhere: any = {
+      OR: [
+        { paymentStatus: 'paid' },
+        { paymentMethod: 'cod', status: { notIn: ['cancelled', 'refunded'] } },
+      ],
+      createdAt: { gte: prevStart, lte: prevEnd },
+    };
 
     const [
       totalOrders,
-      totalOrdersLastMonth,
+      totalOrdersPrev,
       totalCustomers,
-      totalCustomersLastMonth,
+      totalCustomersPrev,
       totalProducts,
-      totalProductsLastMonth,
+      totalProductsPrev,
       revenueResult,
-      revenueResultLastMonth,
+      revenueResultPrev,
       todayOrders,
       yesterdayOrders,
       todayRevenue,
@@ -32,81 +152,100 @@ export class SystemService {
       recentOrders,
       recentCustomers,
       statusGroups,
-      topProductsRaw
+      topProductsRaw,
+      funnelResult,
     ] = await Promise.all([
-      // Total Counts
-      this.prisma.order.count(),
-      this.prisma.order.count({ where: { createdAt: { gte: startOfLastMonth, lt: startOfMonth } } }),
-      this.prisma.customer.count(),
-      this.prisma.customer.count({ where: { createdAt: { gte: startOfLastMonth, lt: startOfMonth } } }),
+      this.prisma.order.count({ where: orderDateWhere }),
+      this.prisma.order.count({ where: { createdAt: { gte: prevStart, lte: prevEnd } } }),
+      this.prisma.customer.count({ where: createdAtFilter ? { createdAt: createdAtFilter } : {} }),
+      this.prisma.customer.count({ where: { createdAt: { gte: prevStart, lte: prevEnd } } }),
       this.prisma.product.count(),
-      this.prisma.product.count({ where: { createdAt: { gte: startOfLastMonth, lt: startOfMonth } } }),
+      this.prisma.product.count({ where: { createdAt: { gte: prevStart, lte: prevEnd } } }),
 
-      // Revenue
-      this.prisma.order.aggregate({ where: { paymentStatus: 'paid' }, _sum: { grandTotal: true } }),
-      this.prisma.order.aggregate({ where: { paymentStatus: 'paid', createdAt: { gte: startOfLastMonth, lt: startOfMonth } }, _sum: { grandTotal: true } }),
+      // Revenue (Paid + Confirmed COD)
+      this.prisma.order.aggregate({ where: paidOrderWhere, _sum: { grandTotal: true } }),
+      this.prisma.order.aggregate({ where: prevPaidOrderWhere, _sum: { grandTotal: true } }),
 
       // Daily stats
       this.prisma.order.count({ where: { createdAt: { gte: startOfToday } } }),
       this.prisma.order.count({ where: { createdAt: { gte: startOfYesterday, lt: startOfToday } } }),
-      this.prisma.order.aggregate({ where: { paymentStatus: 'paid', createdAt: { gte: startOfToday } }, _sum: { grandTotal: true } }),
-      this.prisma.order.aggregate({ where: { paymentStatus: 'paid', createdAt: { gte: startOfYesterday, lt: startOfToday } }, _sum: { grandTotal: true } }),
+      this.prisma.order.aggregate({
+        where: {
+          OR: [{ paymentStatus: 'paid' }, { paymentMethod: 'cod', status: { notIn: ['cancelled', 'refunded'] } }],
+          createdAt: { gte: startOfToday },
+        },
+        _sum: { grandTotal: true },
+      }),
+      this.prisma.order.aggregate({
+        where: {
+          OR: [{ paymentStatus: 'paid' }, { paymentMethod: 'cod', status: { notIn: ['cancelled', 'refunded'] } }],
+          createdAt: { gte: startOfYesterday, lt: startOfToday },
+        },
+        _sum: { grandTotal: true },
+      }),
 
       // Specific metrics
-      this.prisma.order.count({ where: { status: 'pending' } }),
+      this.prisma.order.count({ where: { status: 'pending', ...orderDateWhere } }),
       this.prisma.productVariant.count({ where: { qty: { gt: 0, lt: 10 } } }),
       this.prisma.productVariant.count({ where: { qty: 0 } }),
 
       // Lists
       this.prisma.order.findMany({
-        take: 5,
+        where: orderDateWhere,
+        take: 6,
         orderBy: { createdAt: 'desc' },
-        include: { customer: { select: { name: true } } }
+        include: { customer: { select: { name: true } } },
       }),
       this.prisma.customer.findMany({
-        take: 5,
+        where: createdAtFilter ? { createdAt: createdAtFilter } : {},
+        take: 6,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, name: true, email: true, createdAt: true }
+        select: { id: true, name: true, email: true, mobile: true, createdAt: true },
       }),
 
       // Distributions
       this.prisma.order.groupBy({
         by: ['status'],
+        where: orderDateWhere,
         _count: { id: true },
       }),
 
-      // Top Products (simplified bestsellers)
+      // Top Products in range
       this.prisma.orderItem.groupBy({
         by: ['productId'],
+        where: createdAtFilter ? { order: { createdAt: createdAtFilter } } : undefined,
         _count: { productId: true },
-        _sum: { total: true },
+        _sum: { total: true, quantity: true },
         take: 5,
-        orderBy: { _count: { productId: 'desc' } }
-      })
+        orderBy: { _count: { productId: 'desc' } },
+      }),
+
+      // Cart & Checkout Marketing Funnel in range
+      this.buildCartCheckoutFunnelData(rangeStart, rangeEnd, rangeLabel),
     ]);
 
-    // Format Top Products in a single batch query (resolves N+1 query issue)
-    const productIds = topProductsRaw.map(item => item.productId).filter((id): id is number => id !== null);
-    const productsList = await this.prisma.product.findMany({
-      where: { id: { in: productIds } },
-      select: { id: true, name: true, price: true }
-    });
-    const productMap = new Map(productsList.map(p => [p.id, p]));
+    const productIds = topProductsRaw.map((item) => item.productId).filter((id): id is number => id !== null);
+    const productsList = productIds.length
+      ? await this.prisma.product.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, name: true, price: true },
+        })
+      : [];
+    const productMap = new Map(productsList.map((p) => [p.id, p]));
 
     const validTopProducts = topProductsRaw
-      .map(item => {
+      .map((item) => {
         if (item.productId === null) return null;
         const product = productMap.get(item.productId);
         return {
           name: product?.name || 'Unknown',
-          sales: item._count.productId,
-          revenue: Number(item._sum.total || 0),
-          price: Number(product?.price || 0)
+          sales: Number(item._sum?.quantity || item._count.productId || 0),
+          revenue: Number(item._sum?.total || 0),
+          price: Number(product?.price || 0),
         };
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
 
-    // Helper for percentage change
     const calculateChange = (current: number, previous: number) => {
       if (previous === 0) return current > 0 ? 100 : 0;
       return Number((((current - previous) / previous) * 100).toFixed(1));
@@ -114,13 +253,16 @@ export class SystemService {
 
     const stats = {
       total_revenue: Number(revenueResult._sum?.grandTotal || 0),
-      revenue_change: calculateChange(Number(revenueResult._sum?.grandTotal || 0), Number(revenueResultLastMonth._sum?.grandTotal || 0)),
+      revenue_change: calculateChange(
+        Number(revenueResult._sum?.grandTotal || 0),
+        Number(revenueResultPrev._sum?.grandTotal || 0),
+      ),
       total_orders: totalOrders,
-      orders_change: calculateChange(totalOrders, totalOrdersLastMonth),
+      orders_change: calculateChange(totalOrders, totalOrdersPrev),
       total_products: totalProducts,
-      products_change: calculateChange(totalProducts, totalProductsLastMonth),
+      products_change: calculateChange(totalProducts, totalProductsPrev),
       total_customers: totalCustomers,
-      customers_change: calculateChange(totalCustomers, totalCustomersLastMonth),
+      customers_change: calculateChange(totalCustomers, totalCustomersPrev),
       today_orders: todayOrders,
       yesterday_orders: yesterdayOrders,
       today_revenue: Number(todayRevenue._sum?.grandTotal || 0),
@@ -128,76 +270,701 @@ export class SystemService {
       pending_orders: pendingOrders,
       low_stock_products: lowStockCount,
       out_of_stock_products: outOfStockCount,
+      range_label: rangeLabel,
+      comparison_label: comparisonLabel,
     };
 
-    const orderStatusDistribution = {};
-    statusGroups.forEach(g => {
+    const orderStatusDistribution: Record<string, number> = {};
+    statusGroups.forEach((g) => {
       orderStatusDistribution[g.status] = g._count.id;
     });
 
-    // Real weekly revenue for chart
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+    // Dynamic chart buckets matching selected date range (defaults to last 7 days when All Time)
+    const chartEnd = rangeEnd || new Date();
+    const chartStart = rangeStart || new Date(chartEnd.getFullYear(), chartEnd.getMonth(), chartEnd.getDate() - 6);
+    const totalSpanDays = Math.max(
+      1,
+      Math.min(31, Math.round((chartEnd.getTime() - chartStart.getTime()) / 86_400_000) + 1),
+    );
+
+    const chartDays = Array.from({ length: totalSpanDays }, (_, i) => {
+      const d = new Date(chartEnd);
+      d.setDate(chartEnd.getDate() - (totalSpanDays - 1 - i));
       d.setHours(0, 0, 0, 0);
       return d;
-    }).reverse();
+    });
 
-    const revenueChartDataRaw = await Promise.all(last7Days.map(async (day) => {
-      const nextDay = new Date(day);
-      nextDay.setDate(day.getDate() + 1);
-      const res = await this.prisma.order.aggregate({
-        where: {
-          createdAt: { gte: day, lt: nextDay },
-          paymentStatus: 'paid'
-        },
-        _sum: { grandTotal: true }
-      });
-      return Number(res._sum?.grandTotal || 0);
-    }));
+    const ordersInChartWindow = await this.prisma.order.findMany({
+      where: {
+        createdAt: { gte: chartDays[0], lte: chartEnd },
+        OR: [{ paymentStatus: 'paid' }, { paymentMethod: 'cod', status: { notIn: ['cancelled', 'refunded'] } }],
+      },
+      select: { createdAt: true, grandTotal: true },
+    });
 
     const revenueChartData = {
-      labels: last7Days.map(d => d.toLocaleDateString('en-US', { weekday: 'short' })),
-      data: revenueChartDataRaw
+      labels: chartDays.map((d) =>
+        totalSpanDays <= 7
+          ? d.toLocaleDateString('en-IN', { weekday: 'short' })
+          : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+      ),
+      data: chartDays.map((day) => {
+        const nextDay = new Date(day);
+        nextDay.setDate(day.getDate() + 1);
+        return ordersInChartWindow
+          .filter((o) => o.createdAt && o.createdAt >= day && o.createdAt < nextDay)
+          .reduce((sum, o) => sum + Number(o.grandTotal || 0), 0);
+      }),
     };
 
-    // Real sales by payment method
+    // Monthly revenue series (last 6 months)
+    const last6Months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return d;
+    });
+    const sixMonthsOrders = await this.prisma.order.findMany({
+      where: {
+        createdAt: { gte: last6Months[0] },
+        OR: [{ paymentStatus: 'paid' }, { paymentMethod: 'cod', status: { notIn: ['cancelled', 'refunded'] } }],
+      },
+      select: { createdAt: true, grandTotal: true },
+    });
+    const monthlyRevenue = {
+      labels: last6Months.map((d) => d.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' })),
+      data: last6Months.map((mStart) => {
+        const mEnd = new Date(mStart.getFullYear(), mStart.getMonth() + 1, 1);
+        return sixMonthsOrders
+          .filter((o) => o.createdAt && o.createdAt >= mStart && o.createdAt < mEnd)
+          .reduce((s, o) => s + Number(o.grandTotal || 0), 0);
+      }),
+    };
+
     const salesByPaymentRaw = await this.prisma.order.groupBy({
       by: ['paymentMethod'],
       _sum: { grandTotal: true },
       _count: { id: true },
-      where: { paymentStatus: 'paid' }
+      where: paidOrderWhere,
     });
 
-    const salesByPaymentMethod = salesByPaymentRaw.map(s => ({
-      name: s.paymentMethod?.toUpperCase() || 'Unknown',
+    const salesByPaymentMethod = salesByPaymentRaw.map((s) => ({
+      name: s.paymentMethod?.toUpperCase() || 'ONLINE',
       total_amount: Number(s._sum.grandTotal || 0),
-      order_count: s._count.id
+      order_count: s._count.id,
     }));
 
     return {
       success: true,
       data: {
         stats,
-        recentOrders: recentOrders.map(o => ({
+        funnel: funnelResult,
+        recentOrders: recentOrders.map((o) => ({
           id: o.id.toString(),
           orderNumber: o.orderNumber,
-          customer: o.customer?.name || 'Guest',
+          customer: o.customer?.name || `${o.customerFirstName || ''} ${o.customerLastName || ''}`.trim() || 'Guest',
           amount: Number(o.grandTotal),
           status: o.status,
-          createdAt: o.createdAt
+          createdAt: o.createdAt,
         })),
-        recentCustomers: recentCustomers.map(c => ({
+        recentCustomers: recentCustomers.map((c) => ({
           id: c.id.toString(),
           name: c.name,
-          email: c.email,
-          createdAt: c.createdAt
+          email: c.email || c.mobile || '',
+          createdAt: c.createdAt,
         })),
         topProducts: validTopProducts,
         orderStatusDistribution,
         revenueChartData,
-        salesByPaymentMethod
+        monthlyRevenue,
+        salesByPaymentMethod,
+      },
+    };
+  }
+
+  async getCartCheckoutFunnel(query?: DateRangeQuery) {
+    const { rangeStart, rangeEnd, label } = this.resolveDateWindow(query);
+    const data = await this.buildCartCheckoutFunnelData(rangeStart, rangeEnd, label);
+    return { success: true, data };
+  }
+
+  private async buildCartCheckoutFunnelData(
+    rangeStart: Date | null,
+    rangeEnd: Date | null,
+    rangeLabel: string,
+  ) {
+    const dateFilter =
+      rangeStart || rangeEnd
+        ? {
+            ...(rangeStart ? { gte: rangeStart } : {}),
+            ...(rangeEnd ? { lte: rangeEnd } : {}),
+          }
+        : undefined;
+
+    const fromUnix = rangeStart ? Math.floor(rangeStart.getTime() / 1000) : undefined;
+    const toUnix = rangeEnd ? Math.floor(rangeEnd.getTime() / 1000) : undefined;
+
+    const [activeCarts, activityLogs, ordersInRange, completedAttempts, rzpRecentOrders] = await Promise.all([
+      this.prisma.cart.findMany({
+        where: {
+          items: { some: {} },
+          ...(dateFilter
+            ? {
+                OR: [{ updatedAt: dateFilter }, { createdAt: dateFilter }],
+              }
+            : {}),
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 250,
+        include: {
+          customer: { select: { id: true, name: true, email: true, mobile: true, city: true } },
+          offer: { select: { code: true, name: true } },
+          items: {
+            include: {
+              productVariant: {
+                include: {
+                  product: { select: { id: true, name: true, sku: true, heroImage: true } },
+                  variantAttributes: {
+                    include: { attributeValue: { select: { label: true, value: true } } },
+                  },
+                },
+              },
+              belt: true,
+            },
+          },
+        },
+      }),
+      this.prisma.activityLog.findMany({
+        where: {
+          action: { in: ['ADD_TO_CART', 'CHECKOUT_INITIATED'] },
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+        include: {
+          customer: { select: { id: true, name: true, email: true, mobile: true, city: true } },
+        },
+      }),
+      this.prisma.order.findMany({
+        where: {
+          deletedAt: null,
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 300,
+        include: {
+          customer: { select: { id: true, name: true, email: true, mobile: true } },
+          addresses: true,
+          items: true,
+        },
+      }),
+      this.prisma.paymentAttempt.findMany({
+        select: { attemptId: true, orderId: true },
+        orderBy: { id: 'desc' },
+        take: 500,
+      }),
+      this.paymentService.listRecentOrders(fromUnix, toUnix, 100),
+    ]);
+
+    const convertedRzpOrderIds = new Set(completedAttempts.map((pa) => pa.attemptId).filter(Boolean));
+
+    // Look up any numeric userIds referenced in Razorpay notes that aren't already loaded
+    const extraCustomerIds = new Set<number>();
+    for (const ro of rzpRecentOrders) {
+      const uid = ro?.notes?.userId;
+      if (uid && !isNaN(Number(uid))) extraCustomerIds.add(Number(uid));
+    }
+    const extraCustomers = extraCustomerIds.size
+      ? await this.prisma.customer.findMany({
+          where: { id: { in: Array.from(extraCustomerIds) } },
+          select: { id: true, name: true, email: true, mobile: true, city: true },
+        })
+      : [];
+    const customerLookup = new Map<number, any>(extraCustomers.map((c) => [c.id, c]));
+    activeCarts.forEach((c) => {
+      if (c.customer) customerLookup.set(c.customer.id, c.customer);
+    });
+
+    const activeCartMap = new Map<number, any>(activeCarts.map((c) => [c.id, c]));
+
+    const buildWhatsappLink = (rawPhone?: string, name?: string, productSummary?: string, value?: number) => {
+      const clean = String(rawPhone || '').replace(/\D/g, '').slice(-10);
+      if (clean.length !== 10) return null;
+      const greetingName = name && name !== 'Guest Shopper' && name !== 'FYLEX Patron' ? ` ${name.split(' ')[0]}` : '';
+      const itemPart = productSummary ? ` for *${productSummary}*` : '';
+      const valPart = value && value > 0 ? ` (₹${Math.round(value).toLocaleString('en-IN')})` : '';
+      const text = encodeURIComponent(
+        `Hello${greetingName}, we noticed your FYLEX timepiece checkout${itemPart}${valPart} wasn't completed. Let us know if we can assist you with your order!`,
+      );
+      return `https://wa.me/91${clean}?text=${text}`;
+    };
+
+    // ─── 1. Aggregate Products Added to Cart & Unique Add-to-Cart Users ─────────
+    const productStatsMap = new Map<
+      string,
+      {
+        key: string;
+        productId: number | string | null;
+        variantId: number | string | null;
+        name: string;
+        variant: string;
+        sku: string;
+        unitPrice: number;
+        totalQty: number;
+        totalValue: number;
+        stock: number | null;
+        userSet: Set<string>;
       }
+    >();
+    const uniqueCartUsersSet = new Set<string>();
+    const recordedCartVariantPairs = new Set<string>();
+
+    // Pass 1A: Active Carts currently in DB (captures all live + pre-existing carts!)
+    for (const cart of activeCarts) {
+      const shopperKey = cart.customerId ? `cust_${cart.customerId}` : `sess_${cart.sessionId || cart.id}`;
+      uniqueCartUsersSet.add(shopperKey);
+
+      for (const item of cart.items) {
+        const variant = item.productVariant;
+        const product = variant?.product;
+        const belt = item.belt;
+
+        const key = variant
+          ? `var_${variant.id}`
+          : belt
+          ? `belt_${belt.id}`
+          : `item_${item.id}`;
+
+        const pairKey = `${cart.id}_${key}`;
+        recordedCartVariantPairs.add(pairKey);
+
+        const attrLabel = (variant?.variantAttributes || [])
+          .map((va: any) => va.attributeValue?.label || va.attributeValue?.value)
+          .filter(Boolean)
+          .join(' • ');
+
+        const unitPrice = Number(item.unitPrice || variant?.price || belt?.price || 0);
+        const qty = Math.max(1, Number(item.quantity || 1));
+        const lineValue = Number(item.total || unitPrice * qty);
+
+        const existing = productStatsMap.get(key) || {
+          key,
+          productId: product?.id || (belt ? `belt-${belt.id}` : null),
+          variantId: variant?.id || (belt ? `belt-${belt.id}` : null),
+          name: product?.name || belt?.name || 'FYLEX Timepiece',
+          variant: attrLabel || (belt ? 'Compatible Watch Strap' : 'Standard Edition'),
+          sku: variant?.sku || (belt ? `BELT-${belt.id}` : `SKU-${item.id}`),
+          unitPrice,
+          totalQty: 0,
+          totalValue: 0,
+          stock: variant ? Number(variant.qty ?? 0) : belt ? Number(belt.stock ?? 0) : null,
+          userSet: new Set<string>(),
+        };
+
+        existing.totalQty += qty;
+        existing.totalValue += lineValue;
+        existing.userSet.add(shopperKey);
+        productStatsMap.set(key, existing);
+      }
+    }
+
+    // Pass 1B: Historical ADD_TO_CART event logs (includes carts that later converted & cleared CartItem!)
+    for (const log of activityLogs) {
+      if (log.action !== 'ADD_TO_CART' || !log.newData) continue;
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(log.newData);
+      } catch {
+        continue;
+      }
+
+      const shopperKey = log.customerId
+        ? `cust_${log.customerId}`
+        : `sess_${parsed.sessionId || log.oldData || log.id}`;
+      uniqueCartUsersSet.add(shopperKey);
+
+      const key = parsed.beltId
+        ? `belt_${parsed.beltId}`
+        : parsed.variantId
+        ? `var_${parsed.variantId}`
+        : `prod_${parsed.productId || log.entityId}`;
+      const pairKey = `${parsed.cartId || 0}_${key}`;
+
+      // Avoid double-counting if this item is still sitting in the active cart counted in Pass 1A
+      if (parsed.cartId && recordedCartVariantPairs.has(pairKey)) {
+        const existing = productStatsMap.get(key);
+        if (existing) existing.userSet.add(shopperKey);
+        continue;
+      }
+
+      const qty = Math.max(1, Number(parsed.quantity || 1));
+      const unitPrice = Number(parsed.unitPrice || 0);
+      const lineValue = Number(parsed.value || unitPrice * qty);
+
+      const existing = productStatsMap.get(key) || {
+        key,
+        productId: parsed.productId || null,
+        variantId: parsed.variantId || null,
+        name: parsed.productName || 'FYLEX Timepiece',
+        variant: parsed.variantLabel || 'Standard Edition',
+        sku: parsed.sku || '-',
+        unitPrice,
+        totalQty: 0,
+        totalValue: 0,
+        stock: null,
+        userSet: new Set<string>(),
+      };
+
+      existing.totalQty += qty;
+      existing.totalValue += lineValue;
+      existing.userSet.add(shopperKey);
+      productStatsMap.set(key, existing);
+    }
+
+    const productsAddedToCart = Array.from(productStatsMap.values())
+      .map((entry) => ({
+        key: entry.key,
+        productId: entry.productId,
+        variantId: entry.variantId,
+        name: entry.name,
+        variant: entry.variant,
+        sku: entry.sku,
+        unitPrice: Number(entry.unitPrice.toFixed(2)),
+        totalQty: entry.totalQty,
+        uniqueUsers: entry.userSet.size,
+        value: Number(entry.totalValue.toFixed(2)),
+        currency: 'INR',
+        stock: entry.stock,
+      }))
+      .sort((a, b) => b.value - a.value || b.totalQty - a.totalQty);
+
+    // ─── 2. Aggregate Checkout Initiations & Drop-offs (Went to Checkout, Did Not Pay) ──
+    const checkoutRecordsMap = new Map<string, any>();
+    const cartsWithUnpaidCheckout = new Set<number>();
+
+    // Source 2A: CHECKOUT_INITIATED ActivityLogs
+    for (const log of activityLogs) {
+      if (log.action !== 'CHECKOUT_INITIATED' || !log.newData) continue;
+      let parsed: any = null;
+      let completion: any = null;
+      try {
+        parsed = JSON.parse(log.newData);
+      } catch {
+        continue;
+      }
+      if (log.additionalData) {
+        try {
+          completion = JSON.parse(log.additionalData);
+        } catch {}
+      }
+
+      const rzpOrderId = parsed.razorpayOrderId || log.oldData || `chk_${log.id}`;
+      const isCompleted = Boolean(completion?.completed) || convertedRzpOrderIds.has(rzpOrderId);
+
+      const cust = log.customer || (parsed.userId && !isNaN(Number(parsed.userId)) ? customerLookup.get(Number(parsed.userId)) : null);
+      const name = parsed.customerName || cust?.name || 'Guest Shopper';
+      const mobile = String(parsed.customerMobile || cust?.mobile || '').replace(/\D/g, '').slice(-10);
+      const email = parsed.customerEmail || cust?.email || '';
+      const location = [parsed.city || cust?.city, parsed.pincode].filter(Boolean).join(' - ');
+      const items = Array.isArray(parsed.items) ? parsed.items : [];
+      const itemSummary = items.map((i: any) => `${i.name}${i.quantity > 1 ? ` ×${i.quantity}` : ''}`).join(', ');
+      const value = Number(parsed.value ?? parsed.subtotal ?? 0);
+
+      if (!isCompleted && parsed.cartId) {
+        cartsWithUnpaidCheckout.add(Number(parsed.cartId));
+      }
+
+      checkoutRecordsMap.set(rzpOrderId, {
+        id: rzpOrderId,
+        razorpayOrderId: rzpOrderId,
+        cartId: parsed.cartId || null,
+        createdAt: log.createdAt || parsed.initiatedAt,
+        customerName: name,
+        customerMobile: mobile,
+        customerEmail: email,
+        location,
+        isGuest: !log.customerId && (!parsed.userId || String(parsed.userId).startsWith('gst_')),
+        items,
+        itemSummary: itemSummary || 'FYLEX Timepiece',
+        itemCount: Number(parsed.itemCount || items.reduce((s: number, i: any) => s + Number(i.quantity || 1), 0) || 1),
+        couponCode: parsed.couponCode || '',
+        value: Number(value.toFixed(2)),
+        currency: 'INR',
+        stage: isCompleted ? 'Paid / Completed' : parsed.stage || 'Checkout Opened',
+        completed: isCompleted,
+        whatsappUrl: !isCompleted ? buildWhatsappLink(mobile, name, itemSummary, value) : null,
+      });
+    }
+
+    // Source 2B: Razorpay Magic Orders from Razorpay API (captures Nov 18+ sessions & attempted status!)
+    for (const ro of rzpRecentOrders) {
+      if (!ro?.id) continue;
+      const notes = ro.notes || {};
+      const rzpCreatedAt = ro.created_at ? new Date(ro.created_at * 1000) : new Date();
+      if (rangeStart && rzpCreatedAt < rangeStart) continue;
+      if (rangeEnd && rzpCreatedAt > rangeEnd) continue;
+
+      const isPaidInRzp = ro.status === 'paid' || Number(ro.amount_paid || 0) > 0 || convertedRzpOrderIds.has(ro.id);
+      const cd = ro.customer_details || {};
+      const ship = cd.shipping_address || cd.billing_address || {};
+      const linkedCart = notes.cartId ? activeCartMap.get(Number(notes.cartId)) : null;
+      const linkedCust =
+        linkedCart?.customer ||
+        (notes.userId && !isNaN(Number(notes.userId)) ? customerLookup.get(Number(notes.userId)) : null);
+
+      const mobile = String(ship.contact || cd.contact || linkedCust?.mobile || '').replace(/\D/g, '').slice(-10);
+      const email = cd.email || ship.email || linkedCust?.email || '';
+      const name =
+        ship.name ||
+        [ship.first_name, ship.last_name].filter(Boolean).join(' ') ||
+        cd.name ||
+        linkedCust?.name ||
+        'Guest Shopper';
+      const location = [ship.city || linkedCust?.city, ship.zipcode].filter(Boolean).join(' - ');
+
+      const existing = checkoutRecordsMap.get(ro.id);
+      if (existing) {
+        // Enrich existing DB log with Razorpay's live status & customer_details
+        existing.completed = existing.completed || isPaidInRzp;
+        existing.customerName = existing.customerName !== 'Guest Shopper' ? existing.customerName : name;
+        existing.customerMobile = existing.customerMobile || mobile;
+        existing.customerEmail = existing.customerEmail || email;
+        existing.location = existing.location || location;
+        if (!existing.completed) {
+          existing.stage = ro.status === 'attempted' || Number(ro.attempts || 0) > 0 ? 'Payment Attempted' : existing.stage;
+          existing.whatsappUrl = buildWhatsappLink(existing.customerMobile, existing.customerName, existing.itemSummary, existing.value);
+        } else {
+          existing.stage = 'Paid / Completed';
+          existing.whatsappUrl = null;
+        }
+        continue;
+      }
+
+      // Build from Razorpay line_items or linked active cart
+      const rzpLineItems = Array.isArray(ro.line_items) ? ro.line_items : [];
+      const items = rzpLineItems.length
+        ? rzpLineItems.map((li: any) => ({
+            name: li.name || 'FYLEX Timepiece',
+            variantLabel: li.description || '',
+            sku: li.sku || '',
+            quantity: Number(li.quantity || 1),
+            unitPrice: Number((Number(li.offer_price ?? li.price ?? 0) / 100).toFixed(2)),
+            total: Number(((Number(li.offer_price ?? li.price ?? 0) * Number(li.quantity || 1)) / 100).toFixed(2)),
+          }))
+        : (linkedCart?.items || []).map((ci: any) => ({
+            name: ci.productVariant?.product?.name || ci.belt?.name || 'FYLEX Timepiece',
+            variantLabel: '',
+            sku: ci.productVariant?.sku || '',
+            quantity: Number(ci.quantity || 1),
+            unitPrice: Number(ci.unitPrice || 0),
+            total: Number(ci.total || 0),
+          }));
+
+      const itemSummary = items.map((i: any) => `${i.name}${i.quantity > 1 ? ` ×${i.quantity}` : ''}`).join(', ');
+      const value = Number(((Number(ro.amount || 0)) / 100).toFixed(2));
+
+      if (!isPaidInRzp && notes.cartId) {
+        cartsWithUnpaidCheckout.add(Number(notes.cartId));
+      }
+
+      checkoutRecordsMap.set(ro.id, {
+        id: ro.id,
+        razorpayOrderId: ro.id,
+        cartId: notes.cartId ? Number(notes.cartId) : null,
+        createdAt: rzpCreatedAt,
+        customerName: name,
+        customerMobile: mobile,
+        customerEmail: email,
+        location,
+        isGuest: !notes.userId || String(notes.userId).startsWith('gst_'),
+        items,
+        itemSummary: itemSummary || 'FYLEX Timepiece',
+        itemCount: items.reduce((s: number, i: any) => s + Number(i.quantity || 1), 0) || 1,
+        couponCode: notes.preAppliedCoupon || '',
+        value,
+        currency: 'INR',
+        stage: isPaidInRzp
+          ? 'Paid / Completed'
+          : ro.status === 'attempted' || Number(ro.attempts || 0) > 0
+          ? 'Payment Attempted'
+          : 'Checkout Opened',
+        completed: isPaidInRzp,
+        whatsappUrl: !isPaidInRzp ? buildWhatsappLink(mobile, name, itemSummary, value) : null,
+      });
+    }
+
+    // Source 2C: Legacy unpaid online Orders in DB (paymentStatus === 'pending' & paymentMethod !== 'cod')
+    for (const ord of ordersInRange) {
+      const isCod = (ord.paymentMethod || '').toLowerCase() === 'cod';
+      const isUnpaidOnline = !isCod && ord.paymentStatus === 'pending' && ord.status !== 'delivered';
+      if (!isUnpaidOnline) continue;
+
+      const key = `ord_${ord.orderNumber || ord.id}`;
+      const addr = ord.addresses?.[0];
+      const name =
+        ord.customer?.name ||
+        `${ord.customerFirstName || ''} ${ord.customerLastName || ''}`.trim() ||
+        'Guest Shopper';
+      const mobile = String(ord.customerMobile || addr?.phone || ord.customer?.mobile || '')
+        .replace(/\D/g, '')
+        .slice(-10);
+      const email = addr?.email || ord.customer?.email || '';
+      const location = [addr?.city, addr?.postcode].filter(Boolean).join(' - ');
+      const items = (ord.items || []).map((oi: any) => ({
+        name: oi.productName,
+        variantLabel: '',
+        sku: oi.sku,
+        quantity: oi.quantity,
+        unitPrice: Number(oi.unitPrice || 0),
+        total: Number(oi.total || 0),
+      }));
+      const itemSummary = items.map((i: any) => `${i.name}${i.quantity > 1 ? ` ×${i.quantity}` : ''}`).join(', ');
+      const value = Number(ord.grandTotal || 0);
+
+      checkoutRecordsMap.set(key, {
+        id: key,
+        razorpayOrderId: ord.orderNumber,
+        cartId: null,
+        createdAt: ord.createdAt,
+        customerName: name,
+        customerMobile: mobile,
+        customerEmail: email,
+        location,
+        isGuest: !ord.customerId,
+        items,
+        itemSummary: itemSummary || 'FYLEX Timepiece',
+        itemCount: items.reduce((s: number, i: any) => s + Number(i.quantity || 1), 0) || 1,
+        couponCode: ord.couponCode || '',
+        value: Number(value.toFixed(2)),
+        currency: 'INR',
+        stage: ord.status === 'cancelled' ? 'Payment Cancelled' : 'Payment Pending',
+        completed: false,
+        whatsappUrl: buildWhatsappLink(mobile, name, itemSummary, value),
+      });
+    }
+
+    // Deduplicate multiple rapid clicks on the same cart within the unpaid list (keep latest attempt per cart/mobile)
+    const rawAbandoned = Array.from(checkoutRecordsMap.values())
+      .filter((r) => !r.completed)
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
+    const seenAbandonedShoppers = new Set<string>();
+    const abandonedCheckouts: any[] = [];
+    for (const rec of rawAbandoned) {
+      const dedupeKey = rec.cartId
+        ? `cart_${rec.cartId}`
+        : rec.customerMobile
+        ? `mob_${rec.customerMobile}_${Math.round(rec.value)}`
+        : rec.id;
+      if (seenAbandonedShoppers.has(dedupeKey)) continue;
+      seenAbandonedShoppers.add(dedupeKey);
+      abandonedCheckouts.push(rec);
+    }
+
+    // Completed orders in range
+    const completedOrders = ordersInRange.filter(
+      (o) =>
+        o.paymentStatus === 'paid' ||
+        ((o.paymentMethod || '').toLowerCase() === 'cod' && !['cancelled', 'refunded'].includes(o.status)),
+    );
+
+    // ─── 3. Build Active / Shopper Cart Sessions List ───────────────────────────
+    const cartSessions = activeCarts.map((cart) => {
+      const cust = cart.customer;
+      const items = cart.items.map((item) => {
+        const variant = item.productVariant;
+        const product = variant?.product;
+        const belt = item.belt;
+        const attrLabel = (variant?.variantAttributes || [])
+          .map((va: any) => va.attributeValue?.label || va.attributeValue?.value)
+          .filter(Boolean)
+          .join(' • ');
+        return {
+          name: product?.name || belt?.name || 'FYLEX Timepiece',
+          variantLabel: attrLabel || (belt ? 'Strap' : ''),
+          sku: variant?.sku || (belt ? `BELT-${belt.id}` : ''),
+          quantity: item.quantity,
+          unitPrice: Number(item.unitPrice || 0),
+          total: Number(item.total || Number(item.unitPrice || 0) * item.quantity),
+        };
+      });
+
+      const itemSummary = items.map((i) => `${i.name}${i.quantity > 1 ? ` ×${i.quantity}` : ''}`).join(', ');
+      const computedValue =
+        Number(cart.grandTotal) > 0
+          ? Number(cart.grandTotal)
+          : items.reduce((s, i) => s + i.total, 0);
+      const reachedCheckout = Boolean(cart.abandonedAt) || cartsWithUnpaidCheckout.has(cart.id);
+      const mobile = String(cust?.mobile || '').replace(/\D/g, '').slice(-10);
+      const name = cust?.name || 'Guest Visitor';
+
+      return {
+        cartId: cart.id,
+        sessionId: cart.sessionId || `cust_${cart.customerId}`,
+        customerName: name,
+        customerMobile: mobile,
+        customerEmail: cust?.email || '',
+        isGuest: !cart.customerId,
+        items,
+        itemSummary,
+        itemCount: items.reduce((s, i) => s + i.quantity, 0),
+        couponCode: cart.offer?.code || '',
+        value: Number(computedValue.toFixed(2)),
+        currency: 'INR',
+        stage: reachedCheckout ? 'Went to Checkout (Unpaid)' : 'Added to Cart Only',
+        updatedAt: cart.updatedAt || cart.createdAt,
+        createdAt: cart.createdAt,
+        whatsappUrl: buildWhatsappLink(mobile, name, itemSummary, computedValue),
+      };
+    });
+
+    // Ensure uniqueCartUsersSet also counts anyone who initiated or completed checkout in range
+    abandonedCheckouts.forEach((ac) => {
+      uniqueCartUsersSet.add(ac.cartId ? `cart_${ac.cartId}` : `ab_${ac.id}`);
+    });
+    completedOrders.forEach((co) => {
+      uniqueCartUsersSet.add(co.customerId ? `cust_${co.customerId}` : `ord_${co.id}`);
+    });
+
+    const totalItemsAddedToCart = productsAddedToCart.reduce((s, p) => s + p.totalQty, 0);
+    const addToCartValue = productsAddedToCart.reduce((s, p) => s + p.value, 0);
+    const activeCartsValue = cartSessions.reduce((s, c) => s + c.value, 0);
+    const checkoutsAbandonedCount = abandonedCheckouts.length;
+    const checkoutsAbandonedValue = abandonedCheckouts.reduce((s, c) => s + c.value, 0);
+    const checkoutsCompletedCount = completedOrders.length;
+    const checkoutsCompletedValue = completedOrders.reduce((s, o) => s + Number(o.grandTotal || 0), 0);
+    const checkoutsInitiatedCount = checkoutsAbandonedCount + checkoutsCompletedCount;
+    const checkoutsInitiatedValue = checkoutsAbandonedValue + checkoutsCompletedValue;
+
+    const checkoutAbandonmentRate =
+      checkoutsInitiatedCount > 0
+        ? Number(((checkoutsAbandonedCount / checkoutsInitiatedCount) * 100).toFixed(1))
+        : 0;
+    const cartConversionRate =
+      uniqueCartUsersSet.size > 0
+        ? Number(((checkoutsCompletedCount / uniqueCartUsersSet.size) * 100).toFixed(1))
+        : 0;
+
+    return {
+      rangeLabel,
+      currency: 'INR',
+      metaPixelId: '1035472045697724',
+      summary: {
+        usersAddedToCart: uniqueCartUsersSet.size,
+        totalItemsAddedToCart,
+        addToCartValue: Number(addToCartValue.toFixed(2)),
+        activeCartsCount: cartSessions.length,
+        activeCartsValue: Number(activeCartsValue.toFixed(2)),
+        checkoutsInitiatedCount,
+        checkoutsInitiatedValue: Number(checkoutsInitiatedValue.toFixed(2)),
+        checkoutsAbandonedCount,
+        checkoutsAbandonedValue: Number(checkoutsAbandonedValue.toFixed(2)),
+        checkoutsCompletedCount,
+        checkoutsCompletedValue: Number(checkoutsCompletedValue.toFixed(2)),
+        checkoutAbandonmentRate,
+        cartConversionRate,
+      },
+      productsAddedToCart,
+      abandonedCheckouts,
+      cartSessions,
     };
   }
 

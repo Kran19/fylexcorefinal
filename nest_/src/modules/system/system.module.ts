@@ -6,9 +6,10 @@ import { SettingsController } from './settings.controller';
 import { TaxesController } from './taxes.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AuthModule } from '../auth/auth.module';
+import { PaymentModule } from '../payment/payment.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, PaymentModule],
   controllers: [
     SystemController, 
     DashboardController, 

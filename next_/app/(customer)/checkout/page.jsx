@@ -6,6 +6,7 @@ import { useOrder } from '@/context/OrderContext';
 import { useAuth } from '@/context/AuthContext';
 import { addAddressApi, initiatePaymentApi, verifyPaymentApi, calculateTotalApi } from '@/lib/api';
 import { getFileUrl } from '@/lib/utils';
+import { trackMetaInitiateCheckout, trackMetaPurchase, savePendingMetaPurchaseSnapshot } from '@/lib/metaPixel';
 import Swal from 'sweetalert2';
 
 const CheckoutContent = () => {
@@ -246,6 +247,12 @@ const CheckoutContent = () => {
 
       if (!addrRes.success) throw new Error(addrRes.error);
 
+      trackMetaInitiateCheckout({
+        items,
+        value: Number(totals.total || 0),
+        coupon: (!couponErrorMsg && formData.couponCode) ? formData.couponCode : '',
+      });
+
       if (totals.total <= 0) {
         await finalizeOrder(addrRes.data.id, 'online', 'free_coupon');
       } else if (formData.paymentMethod === 'razorpay') {
@@ -320,6 +327,15 @@ const CheckoutContent = () => {
     });
 
     if (orderRes.success) {
+      const snapshot = {
+        orderId: orderRes.data?.id || '',
+        orderNumber: orderRes.data?.orderNumber || '',
+        value: Number(orderRes.data?.grandTotal ?? totals.total ?? 0),
+        items,
+        coupon: activeCoupon,
+      };
+      savePendingMetaPurchaseSnapshot(snapshot);
+      trackMetaPurchase(snapshot);
       clearCart();
       navigate.push('/thank-you');
     } else {

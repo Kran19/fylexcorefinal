@@ -15,6 +15,7 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useDesignSystem } from '@/context/DesignSystemContext';
 import { getFileUrl, resolveProductImage, getDisplayData, getPageTheme, cleanConfigName } from '@/lib/utils';
+import { trackMetaViewContent } from '@/lib/metaPixel';
 import localProductsData from '../../../data/productsData';
 import Footer from '@/components/Footer';
 import { gsap } from 'gsap';
@@ -475,6 +476,41 @@ export function DiscoverContent({ isConfiguredMode = false }) {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [watchId]);
+
+  // Fire Meta Pixel ViewContent with INR value when timepiece loads or switches
+  const viewedKeyRef = useRef('');
+  useEffect(() => {
+    if (loading || !productsData || productsData.length === 0) return;
+    const curProduct =
+      productsData.find(
+        (p) =>
+          p.id === watchId ||
+          p.slug === watchId ||
+          (p.id !== undefined && p.id !== null && watchId !== undefined && watchId !== null && p.id.toString() === watchId.toString()),
+      ) || productsData[0];
+    if (!curProduct) return;
+
+    const vParam = searchParams?.get ? searchParams.get('variant') : null;
+    const variantsList = curProduct.variants || [];
+    const matchedVar = vParam
+      ? variantsList.find((v) => String(v.id) === String(vParam))
+      : variantsList[0];
+
+    const rawPrice =
+      Number(matchedVar?.price || matchedVar?.sellingPrice || curProduct.rawPrice || curProduct.sellingPrice || 0) ||
+      Number(String(curProduct.price || '').replace(/[^\d.]/g, '')) ||
+      0;
+    const key = `${curProduct.id}_${matchedVar?.id || 'default'}`;
+    if (viewedKeyRef.current === key) return;
+    viewedKeyRef.current = key;
+
+    trackMetaViewContent({
+      id: matchedVar?.id || curProduct.id,
+      sku: matchedVar?.sku || curProduct.sku || `FYLEX-${curProduct.id}`,
+      name: curProduct.title || curProduct.name || 'FYLEX Timepiece',
+      value: rawPrice,
+    });
+  }, [loading, productsData, watchId, searchParams]);
 
   // Synchronize swiper position if activeVariant changes externally or product loads
   useEffect(() => {

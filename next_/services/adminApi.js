@@ -126,7 +126,17 @@ export const adminLogout = () => {
 };
 
 // ─── Dashboard ────────────────────────────────────────────────
-export const getDashboard = () => get('/dashboard');
+const toQueryString = (params = {}) => {
+  const qs = new URLSearchParams();
+  Object.entries(params || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+  });
+  const str = qs.toString();
+  return str ? `?${str}` : '';
+};
+
+export const getDashboard = (params) => get(`/dashboard${toQueryString(params)}`);
+export const getCartCheckoutFunnel = (params) => get(`/dashboard/cart-checkout-funnel${toQueryString(params)}`);
 
 // ─── Reports ────────────────────────────────────────────────────
 export const getDashboardReports = () => get('/reports/dashboard');

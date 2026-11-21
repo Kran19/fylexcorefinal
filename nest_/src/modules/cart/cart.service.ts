@@ -172,7 +172,7 @@ export class CartService {
   async addItem(customerId: string, dto: AddToCartDto) {
     try {
       if (!dto.variantId) throw new BadRequestException('variantId is mandatory for all cart operations');
-      const cart = await this.getOrCreateCart(customerId);
+      const cart: any = await this.getOrCreateCart(customerId);
       const isBelt = String(dto.variantId).startsWith('belt-');
 
       if (isBelt) {
@@ -181,6 +181,26 @@ export class CartService {
         if (!belt) throw new NotFoundException('Belt not found');
 
         const existingItem = (cart.items as any[]).find((item) => item.beltId === beltId);
+        const unitPrice = Number(belt.price || 0);
+        const addedValue = Number((unitPrice * Number(dto.quantity || 1)).toFixed(2));
+
+        this.logAddToCartEvent({
+          cartId: cart.id,
+          customerId: cart.customerId || null,
+          sessionId: cart.sessionId || String(customerId),
+          entityType: 'belt',
+          entityId: beltId,
+          productId: null,
+          variantId: `belt-${beltId}`,
+          beltId,
+          productName: belt.name || 'Watch Strap',
+          variantLabel: 'Strap',
+          sku: `BELT-${beltId}`,
+          quantity: Number(dto.quantity || 1),
+          unitPrice,
+          value: addedValue,
+        });
+
         if (existingItem) {
           return this.updateItem(customerId, existingItem.id.toString(), {
             userId: customerId,
@@ -203,9 +223,15 @@ export class CartService {
 
       const variantId = Number(dto.variantId);
 
-      // Validate variant exists
+      // Validate variant exists (include product & attributes for marketing analytics)
       const variant = await this.prisma.productVariant.findUnique({
         where: { id: variantId },
+        include: {
+          product: { select: { id: true, name: true, sku: true } },
+          variantAttributes: {
+            include: { attributeValue: { select: { label: true, value: true } } },
+          },
+        },
       });
       if (!variant) {
         throw new NotFoundException('Product variant not found');
@@ -214,6 +240,40 @@ export class CartService {
       // Check if item already in cart
       const existingItem = (cart.items as any[]).find((item) => item.productVariantId === variantId);
 
+      // Validate stock before logging or updating
+      const targetQty = existingItem ? existingItem.quantity + dto.quantity : dto.quantity;
+      if (variant.manageStock) {
+        if (!variant.inStock || variant.qty < targetQty) {
+          throw new BadRequestException(`Not enough stock available for this item.`);
+        }
+      }
+
+      const variantLabel = (variant.variantAttributes || [])
+        .map((va: any) => va.attributeValue?.label || va.attributeValue?.value)
+        .filter(Boolean)
+        .join(' • ');
+      const unitPrice = Number(variant.sellingPrice || variant.price || 0) > 0
+        ? Number(variant.price || variant.sellingPrice || 0)
+        : Number(variant.price || 0);
+      const addedValue = Number(((Number(variant.price || 0)) * Number(dto.quantity || 1)).toFixed(2));
+
+      this.logAddToCartEvent({
+        cartId: cart.id,
+        customerId: cart.customerId || null,
+        sessionId: cart.sessionId || String(customerId),
+        entityType: 'product',
+        entityId: variant.productId,
+        productId: variant.productId,
+        variantId: variant.id,
+        beltId: null,
+        productName: variant.product?.name || 'FYLEX Timepiece',
+        variantLabel,
+        sku: variant.sku,
+        quantity: Number(dto.quantity || 1),
+        unitPrice: Number(variant.price || 0),
+        value: addedValue,
+      });
+
       if (existingItem) {
         return this.updateItem(customerId, existingItem.id.toString(), {
           userId: customerId,
@@ -221,17 +281,11 @@ export class CartService {
         });
       }
 
-      // Validate stock for new item
-      if (variant.manageStock) {
-        if (!variant.inStock || variant.qty < dto.quantity) {
-          throw new BadRequestException(`Not enough stock available for this item.`);
-        }
-      }
-
       // Create new item
       const newItem = await this.prisma.cartItem.create({
         data: {
           cart: { connect: { id: cart.id } },
+          Product: variant.productId ? { connect: { id: variant.productId } } : undefined,
           productVariant: { connect: { id: variantId } },
           quantity: dto.quantity,
           unitPrice: variant.price || Number(0),
@@ -469,6 +523,45 @@ export class CartService {
         grandTotal: Number(subtotal - discount),
       },
     });
+  }
+
+  private logAddToCartEvent(payload: {
+    cartId: number;
+    customerId: number | null;
+    sessionId: string;
+    entityType: string;
+    entityId: number;
+    productId: number | null;
+    variantId: number | string;
+    beltId: number | null;
+    productName: string;
+    variantLabel: string;
+    sku: string;
+    quantity: number;
+    unitPrice: number;
+    value: number;
+  }) {
+    const now = new Date();
+    this.prisma.activityLog
+      .create({
+        data: {
+          customerId: payload.customerId,
+          action: 'ADD_TO_CART',
+          entityType: payload.entityType,
+          entityId: payload.entityId,
+          oldData: payload.sessionId || null,
+          newData: JSON.stringify({
+            ...payload,
+            currency: 'INR',
+            timestamp: now.toISOString(),
+          }),
+          createdAt: now,
+          updatedAt: now,
+        },
+      })
+      .catch((err) => {
+        console.warn('Non-blocking ADD_TO_CART log failed:', err?.message || err);
+      });
   }
 }
 

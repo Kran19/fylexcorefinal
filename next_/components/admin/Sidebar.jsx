@@ -19,6 +19,12 @@ const navItems = [
     path: '/admin/dashboard',
   },
   {
+    key: 'cart-analytics',
+    title: 'Cart & Checkout',
+    icon: 'fas fa-cart-arrow-down',
+    path: '/admin/cart-analytics',
+  },
+  {
     key: 'reports',
     title: 'Reports',
     icon: 'fas fa-chart-line',

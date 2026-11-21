@@ -32,6 +32,7 @@ export class PaymentController {
     if (totals.total <= 0) throw new BadRequestException('Invalid order total');
     
     const order = await this.paymentService.createOrder(totals.total, 'INR', body.receipt);
+    this.orderService.recordClassicCheckoutInitiated(body.customerId, order.id, totals);
     return { ...order, key: this.paymentService.getKeyId() };
   }
 

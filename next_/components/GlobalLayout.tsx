@@ -1,8 +1,9 @@
 "use client";
-import React from 'react';
+import React, { Suspense } from 'react';
 import Header from './Header';
 import Footer from './Footer';
 import SmoothScroll from './SmoothScroll';
+import MetaPixelTracker from './MetaPixelTracker';
 import { usePathname } from 'next/navigation';
 
 export default function GlobalLayout({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,9 @@ export default function GlobalLayout({ children }: { children: React.ReactNode }
 
   return (
     <SmoothScroll>
+      <Suspense fallback={null}>
+        <MetaPixelTracker />
+      </Suspense>
       {!hideHeader && <Header />}
       {children}
       {!hideFooter && <Footer />}

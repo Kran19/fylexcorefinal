@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { SystemService } from './system.service';
 
 @Controller('dashboard')
@@ -6,13 +6,30 @@ export class DashboardController {
   constructor(private readonly systemService: SystemService) {}
 
   @Get('stats')
-  async getStats() {
-    return this.systemService.getDashboardStats();
+  async getStats(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('preset') preset?: string,
+  ) {
+    return this.systemService.getDashboardStats({ startDate, endDate, preset });
+  }
+
+  @Get('cart-checkout-funnel')
+  async getCartCheckoutFunnel(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('preset') preset?: string,
+  ) {
+    return this.systemService.getCartCheckoutFunnel({ startDate, endDate, preset });
   }
 
   @Get()
-  async getDashboard() {
-    return this.systemService.getDashboardStats();
+  async getDashboard(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('preset') preset?: string,
+  ) {
+    return this.systemService.getDashboardStats({ startDate, endDate, preset });
   }
 }
 

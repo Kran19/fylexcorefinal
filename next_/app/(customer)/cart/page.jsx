@@ -14,6 +14,11 @@ import {
   completeFreeMagicOrderApi,
 } from '@/lib/api';
 import { getFileUrl } from '@/lib/utils';
+import {
+  trackMetaInitiateCheckout,
+  trackMetaPurchase,
+  savePendingMetaPurchaseSnapshot,
+} from '@/lib/metaPixel';
 
 function ensureRazorpayScript() {
   return new Promise((resolve) => {
@@ -296,6 +301,24 @@ function CartContent() {
 
   const handleFinalizeSuccess = useCallback(
     (resultData) => {
+      // Fire Meta Pixel Purchase event with exact INR value & order ID
+      try {
+        const ord = resultData?.order;
+        const orderValue = Number(ord?.grandTotal ?? serverTotals.total ?? itemsFallbackSubtotal ?? 0);
+        const orderItems = Array.isArray(ord?.items) && ord.items.length > 0 ? ord.items : items;
+        const snapshot = {
+          orderId: ord?.id || '',
+          orderNumber: ord?.orderNumber || '',
+          value: orderValue,
+          items: orderItems,
+          coupon: ord?.couponCode || appliedCoupon || '',
+        };
+        savePendingMetaPurchaseSnapshot(snapshot);
+        trackMetaPurchase(snapshot);
+      } catch (e) {
+        console.warn('Meta Purchase tracking skipped:', e);
+      }
+
       if (resultData?.access_token && resultData?.user) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('fylexx_guest_id');
@@ -311,7 +334,7 @@ function CartContent() {
       clearCart();
       navigate.push('/thank-you');
     },
-    [setSession, prependRawOrder, refreshOrders, clearCart, navigate],
+    [setSession, prependRawOrder, refreshOrders, clearCart, navigate, serverTotals.total, itemsFallbackSubtotal, items, appliedCoupon],
   );
 
   // Core 1-Click Magic Checkout Launcher
@@ -325,6 +348,14 @@ function CartContent() {
     try {
       const activeId = getEffectiveUserId();
       const validCoupon = !couponErrorMsg && appliedCoupon ? appliedCoupon : '';
+
+      // Fire Meta Pixel InitiateCheckout with INR value parameter
+      trackMetaInitiateCheckout({
+        items,
+        value: Number(serverTotals.total ?? itemsFallbackSubtotal ?? 0),
+        coupon: validCoupon,
+      });
+
       const initRes = await initiateMagicPaymentApi(activeId, validCoupon, useCredits, `fyl_${Date.now()}`);
 
       if (!initRes?.success || !initRes?.data) {

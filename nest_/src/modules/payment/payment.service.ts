@@ -8,6 +8,7 @@ export class PaymentService {
   private razorpay: any;
   private readonly keyId: string;
   private readonly keySecret: string;
+  private recentOrdersCache: Map<string, { expiresAt: number; items: any[] }> = new Map();
 
   constructor() {
     this.keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder';
@@ -126,6 +127,33 @@ export class PaymentService {
     } catch (error: any) {
       this.logger.warn(`Could not fetch payments list for Razorpay order ${razorpayOrderId}: ${error?.message || error}`);
       return { items: [] };
+    }
+  }
+
+  /**
+   * Lists recent Razorpay orders within an optional Unix-seconds window (cached 45s)
+   * so the Admin Cart & Checkout Funnel panel also captures gateway-level Magic Checkout drop-offs.
+   */
+  async listRecentOrders(fromUnix?: number, toUnix?: number, count: number = 100): Promise<any[]> {
+    if (!this.razorpay || this.keyId === 'rzp_test_placeholder') return [];
+    const cacheKey = `${fromUnix || 0}_${toUnix || 0}_${count}`;
+    const cached = this.recentOrdersCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.items;
+    }
+
+    try {
+      const query: any = { count: Math.min(100, Math.max(10, count)) };
+      if (fromUnix && fromUnix > 0) query.from = Math.floor(fromUnix);
+      if (toUnix && toUnix > 0) query.to = Math.floor(toUnix);
+
+      const res = await this.razorpay.orders.all(query);
+      const items = Array.isArray(res?.items) ? res.items : [];
+      this.recentOrdersCache.set(cacheKey, { expiresAt: Date.now() + 45_000, items });
+      return items;
+    } catch (error: any) {
+      this.logger.warn(`Could not list recent Razorpay orders for funnel analytics: ${error?.message || error}`);
+      return [];
     }
   }
 
