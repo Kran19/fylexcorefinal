@@ -254,6 +254,24 @@ export class InvoiceService {
     
     doc.font('Helvetica-Bold').fillColor('#000000').fontSize(12);
     this.generateSummaryRow(doc, currentPos + 15, 'GRAND TOTAL', this.formatCurrency(total));
+
+    const paymentsList: any[] = Array.isArray(order.payments) ? order.payments : [];
+    const paidOnline = paymentsList
+      .filter((p) => ['paid', 'success'].includes((p.status || '').toLowerCase()))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    const isPartialCod =
+      (order.paymentMethod || '').toLowerCase() === 'partial_cod' ||
+      (order.paymentStatus || '').toLowerCase() === 'partially_paid';
+
+    if (isPartialCod && paidOnline > 0 && paidOnline < total) {
+      const balanceDue = Math.max(0, total - paidOnline);
+      currentPos += 36;
+      doc.font('Helvetica').fontSize(9.5).fillColor('#047857');
+      this.generateSummaryRow(doc, currentPos, 'Advance Paid Online:', this.formatCurrency(paidOnline));
+      currentPos += 18;
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#c2410c');
+      this.generateSummaryRow(doc, currentPos, 'Balance Due (COD):', this.formatCurrency(balanceDue));
+    }
   }
 
   private generateFooter(doc: PDFKit.PDFDocument) {

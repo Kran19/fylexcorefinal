@@ -120,15 +120,15 @@ export class SystemService {
     const orderDateWhere = createdAtFilter ? { createdAt: createdAtFilter } : {};
     const paidOrderWhere: any = {
       OR: [
-        { paymentStatus: 'paid' },
-        { paymentMethod: 'cod', status: { notIn: ['cancelled', 'refunded'] } },
+        { paymentStatus: { in: ['paid', 'partially_paid'] }, status: { notIn: ['cancelled', 'refunded'] } },
+        { paymentMethod: { in: ['cod', 'partial_cod'] }, status: { notIn: ['cancelled', 'refunded'] } },
       ],
       ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
     };
     const prevPaidOrderWhere: any = {
       OR: [
-        { paymentStatus: 'paid' },
-        { paymentMethod: 'cod', status: { notIn: ['cancelled', 'refunded'] } },
+        { paymentStatus: { in: ['paid', 'partially_paid'] }, status: { notIn: ['cancelled', 'refunded'] } },
+        { paymentMethod: { in: ['cod', 'partial_cod'] }, status: { notIn: ['cancelled', 'refunded'] } },
       ],
       createdAt: { gte: prevStart, lte: prevEnd },
     };
@@ -793,7 +793,7 @@ export class SystemService {
 
     // Source 2C: Legacy unpaid online Orders in DB (paymentStatus === 'pending' & paymentMethod !== 'cod')
     for (const ord of ordersInRange) {
-      const isCod = (ord.paymentMethod || '').toLowerCase() === 'cod';
+      const isCod = ['cod', 'partial_cod'].includes((ord.paymentMethod || '').toLowerCase());
       const isUnpaidOnline = !isCod && ord.paymentStatus === 'pending' && ord.status !== 'delivered';
       if (!isUnpaidOnline) continue;
 
@@ -862,8 +862,8 @@ export class SystemService {
     // Completed orders in range
     const completedOrders = ordersInRange.filter(
       (o) =>
-        o.paymentStatus === 'paid' ||
-        ((o.paymentMethod || '').toLowerCase() === 'cod' && !['cancelled', 'refunded'].includes(o.status)),
+        (['paid', 'partially_paid'].includes(o.paymentStatus) && !['cancelled', 'refunded'].includes(o.status)) ||
+        (['cod', 'partial_cod'].includes((o.paymentMethod || '').toLowerCase()) && !['cancelled', 'refunded'].includes(o.status)),
     );
 
     // ─── 3. Build Active / Shopper Cart Sessions List ───────────────────────────

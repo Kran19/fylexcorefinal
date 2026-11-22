@@ -167,15 +167,62 @@ export class ShiprocketService {
 
     const addr = shippingAddr || order.addresses?.find((a: any) => a.type === 'shipping') || order.addresses?.[0] || order.shipping_address || order.shippingAddress;
 
-    const items = (order.items || []).map((item: any) => ({
+    const methodLower = (order.paymentMethod || '').toLowerCase();
+    const payStatusLower = (order.paymentStatus || '').toLowerCase();
+    const isPartialCod = methodLower === 'partial_cod' || payStatusLower === 'partially_paid';
+    const isFullCod = methodLower === 'cod';
+
+    const paymentsList: any[] = Array.isArray(order.payments) ? order.payments : [];
+    const onlinePaidAmount = paymentsList
+      .filter((p) => ['paid', 'success'].includes((p.status || '').toLowerCase()))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    const pendingCodPayment = paymentsList.find(
+      (p) => (p.paymentMethod || '').toLowerCase() === 'cod' && (p.status || '').toLowerCase() === 'pending',
+    );
+
+    const fullGrandTotal = Math.max(0, Math.round(Number(order.grandTotal || order.subtotal || 0)));
+    const codCollectable = isPartialCod
+      ? Math.max(
+          0,
+          Math.round(
+            pendingCodPayment ? Number(pendingCodPayment.amount) : Math.max(0, fullGrandTotal - onlinePaidAmount),
+          ),
+        )
+      : isFullCod
+      ? fullGrandTotal
+      : 0;
+
+    const shouldShipAsCod = (isFullCod || isPartialCod) && codCollectable > 0;
+
+    let items = (order.items || []).map((item: any) => ({
       name: (item.productName || item.productVariant?.product?.name || item.name || 'FYLEX Luxury Timepiece').slice(0, 100),
       sku: item.sku || item.productVariant?.sku || `FYL-${item.id || 'WATCH'}`,
-      units: Number(item.quantity || item.qty || 1),
+      units: Math.max(1, Number(item.quantity || item.qty || 1)),
       selling_price: Math.round(Number(item.unitPrice || item.subtotal || item.price || 0)),
       discount: Math.round(Number(item.discountAmount || 0)),
     }));
 
-    const isCod = (order.paymentMethod || '').toLowerCase() === 'cod';
+    // If Partial COD, calibrate item selling_price/sub_total so Shiprocket courier collects ONLY codCollectable at doorstep
+    if (isPartialCod && codCollectable > 0) {
+      if (items.length === 1 && items[0].units === 1) {
+        items[0].selling_price = codCollectable;
+        items[0].discount = 0;
+      } else if (items.length > 0) {
+        const rawSum = items.reduce((s: number, it: any) => s + (it.selling_price - it.discount) * it.units, 0);
+        if (rawSum > 0) {
+          let allocated = 0;
+          items = items.map((it: any, idx: number) => {
+            const isLast = idx === items.length - 1;
+            const lineShare = isLast
+              ? Math.max(1, codCollectable - allocated)
+              : Math.max(1, Math.round((((it.selling_price - it.discount) * it.units) / rawSum) * codCollectable));
+            const unitSelling = Math.max(1, Math.floor(lineShare / it.units));
+            allocated += unitSelling * it.units;
+            return { ...it, selling_price: unitSelling, discount: 0 };
+          });
+        }
+      }
+    }
 
     // Parse names cleanly
     let firstName = (addr?.firstName || addr?.first_name || order.customerFirstName || '').trim();
@@ -195,12 +242,16 @@ export class ShiprocketService {
     const rawPincode = addr?.postcode || addr?.pincode || addr?.zip || process.env.SHIPROCKET_PICKUP_PINCODE || '380001';
     const cleanPincode = String(rawPincode).replace(/\D/g, '').slice(0, 6) || '380001';
 
+    const effectiveSubTotal = shouldShipAsCod ? codCollectable : fullGrandTotal;
+
     const payload = {
       order_id: String(order.orderNumber || `ORD-${order.id}`),
       order_date: dateStr,
       pickup_location: pickupLocation,
       channel_id: '',
-      comment: 'FYLEX Bespoke Luxury Watch Order',
+      comment: isPartialCod
+        ? `FYLEX Partial COD — Advance Paid Online: Rs.${Math.round(onlinePaidAmount)} | Collect Balance on Delivery: Rs.${codCollectable}`
+        : 'FYLEX Bespoke Luxury Watch Order',
       billing_customer_name: firstName,
       billing_last_name: lastName,
       billing_address: addr?.address1 || addr?.address || addr?.line1 || 'FYLEX Atelier, Ground Floor',
@@ -216,11 +267,11 @@ export class ShiprocketService {
         name: 'FYLEX Luxury Timepiece',
         sku: 'FYLEX-TIMEPIECE',
         units: 1,
-        selling_price: Math.round(Number(order.grandTotal || 10000)),
+        selling_price: Math.round(Number(effectiveSubTotal || 10000)),
         discount: 0,
       }],
-      payment_method: isCod ? 'COD' : 'Prepaid',
-      sub_total: Math.round(Number(order.subtotal || order.grandTotal || 0)),
+      payment_method: shouldShipAsCod ? 'COD' : 'Prepaid',
+      sub_total: effectiveSubTotal,
       length: 15,
       breadth: 15,
       height: 10,

@@ -34,6 +34,7 @@ const shippingStatusColors = {
 
 const paymentStatusColors = {
   pending:            { bg: '#fef3c7', color: '#92400e' },
+  partially_paid:     { bg: '#fff7ed', color: '#c2410c' },
   paid:               { bg: '#f0fdf4', color: '#166534' },
   failed:             { bg: '#fef2f2', color: '#991b1b' },
   partially_refunded: { bg: '#eff6ff', color: '#1d4ed8' },
@@ -146,7 +147,11 @@ const OrderDetailPage = () => {
   };
 
   const handleCancelAndFullRefund = async () => {
-    const grandTotal = Math.round(Number(order?.grandTotal || order?.total || 0));
+    const onlinePaidAmt = Array.isArray(order?.payments)
+      ? order.payments.filter(p => ['paid', 'success'].includes((p.status || '').toLowerCase())).reduce((s, p) => s + Number(p.amount || 0), 0)
+      : 0;
+    const isPartCod = (order?.paymentStatus || '').toLowerCase() === 'partially_paid' || (order?.paymentMethod || '').toLowerCase() === 'partial_cod';
+    const grandTotal = Math.round(Number(isPartCod && onlinePaidAmt > 0 ? onlinePaidAmt : (order?.grandTotal || order?.total || 0)));
     const { value: reason, isConfirmed } = await Swal.fire({
       title: `Cancel & Full Refund (₹${grandTotal.toLocaleString('en-IN')})?`,
       html: `<div style="font-size:13px;color:#cbd5e1;text-align:left;line-height:1.5">
@@ -487,6 +492,26 @@ const OrderDetailPage = () => {
                     ₹{Math.round(Number(order.grandTotal || order.total || 0)).toLocaleString('en-IN')}
                   </span>
                 </div>
+                {(() => {
+                  const isPartial = (order.paymentMethod || '').toLowerCase() === 'partial_cod' || (order.paymentStatus || '').toLowerCase() === 'partially_paid';
+                  if (!isPartial) return null;
+                  const paidAmt = (order.payments || [])
+                    .filter(p => ['paid', 'success'].includes((p.status || '').toLowerCase()))
+                    .reduce((s, p) => s + Number(p.amount || 0), 0);
+                  const dueAmt = Math.max(0, Math.round(Number(order.grandTotal || 0) - paidAmt));
+                  return (
+                    <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: '#047857', marginBottom: 4 }}>
+                        <span>✓ Advance Paid Online (Razorpay)</span>
+                        <span>₹{Math.round(paidAmt).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 800, color: '#c2410c' }}>
+                        <span>⏳ Balance Collectable on Delivery (Shiprocket COD)</span>
+                        <span>₹{dueAmt.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

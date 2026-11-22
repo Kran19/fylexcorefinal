@@ -104,6 +104,7 @@ const OrdersPage = () => {
         const v = (cell.getValue() || '').toLowerCase();
         const colors = {
           paid: { bg: '#f0fdf4', text: '#166534', border: '#bbf7d0' },
+          partially_paid: { bg: '#fff7ed', text: '#c2410c', border: '#fed7aa' },
           pending: { bg: '#fffbeb', text: '#92400e', border: '#fde68a' },
           failed: { bg: '#fef2f2', text: '#991b1b', border: '#fecaca' },
           partially_refunded: { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' },
@@ -128,8 +129,12 @@ const OrdersPage = () => {
         if (e.target.closest('.style-btn-edit')) {
           router.push(`/admin/orders/${d.id}`);
         } else if (e.target.closest('.style-btn-cancel-order')) {
-          const isPaid = (d.paymentStatus || '').toLowerCase() === 'paid';
-          const grandTotal = Math.round(Number(d.grandTotal || d.total || 0));
+          const pStatus = (d.paymentStatus || '').toLowerCase();
+          const isPaid = pStatus === 'paid' || pStatus === 'partially_paid';
+          const onlinePaidAmt = Array.isArray(d.payments)
+            ? d.payments.filter(p => ['paid', 'success'].includes((p.status || '').toLowerCase())).reduce((s, p) => s + Number(p.amount || 0), 0)
+            : 0;
+          const grandTotal = Math.round(Number(pStatus === 'partially_paid' && onlinePaidAmt > 0 ? onlinePaidAmt : (d.grandTotal || d.total || 0)));
 
           const result = await Swal.fire({
             title: `Cancel Order #${d.orderNumber || d.id}?`,

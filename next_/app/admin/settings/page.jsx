@@ -46,6 +46,9 @@ const defaultFormState = {
   codEnabled: true,
   codCharge: 0,
   codMaxAmount: 50000,
+  partialCodEnabled: true,
+  partialCodType: "fixed",
+  partialCodValue: 500,
   shiprocketPickupPincode: "380001",
   freeShippingThreshold: 5000,
 };
@@ -167,9 +170,12 @@ const SettingsPage = () => {
         seoIndexing: remoteSettings.seoIndexing !== undefined ? !!remoteSettings.seoIndexing : prev.seoIndexing,
         razorpayKey: remoteSettings.razorpayKey || remoteSettings.razorpay_key || prev.razorpayKey,
         razorpaySecret: remoteSettings.razorpaySecret || remoteSettings.razorpay_secret || prev.razorpaySecret,
-        codEnabled: remoteSettings.codEnabled !== undefined ? !!remoteSettings.codEnabled : prev.codEnabled,
+        codEnabled: remoteSettings.codEnabled !== undefined ? String(remoteSettings.codEnabled) !== "false" : prev.codEnabled,
         codCharge: remoteSettings.codCharge !== undefined ? parseFloat(remoteSettings.codCharge) : prev.codCharge,
         codMaxAmount: remoteSettings.codMaxAmount !== undefined ? parseFloat(remoteSettings.codMaxAmount) : prev.codMaxAmount,
+        partialCodEnabled: remoteSettings.partialCodEnabled !== undefined ? String(remoteSettings.partialCodEnabled) !== "false" : prev.partialCodEnabled,
+        partialCodType: remoteSettings.partialCodType || prev.partialCodType,
+        partialCodValue: remoteSettings.partialCodValue !== undefined ? parseFloat(remoteSettings.partialCodValue) || 500 : prev.partialCodValue,
         shiprocketPickupPincode: remoteSettings.shiprocketPickupPincode || remoteSettings.shiprocket_pickup_pincode || prev.shiprocketPickupPincode,
         freeShippingThreshold: remoteSettings.freeShippingThreshold !== undefined ? parseFloat(remoteSettings.freeShippingThreshold) : prev.freeShippingThreshold,
       }));
@@ -503,6 +509,58 @@ const SettingsPage = () => {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", paddingTop: 12, borderTop: "1px dashed #cbd5e1" }}>
                           <FormField label="COD Handling Fee (₹)" name="codCharge" type="number" value={s.codCharge} onChange={handleChange} placeholder="0" />
                           <FormField label="Maximum Order Limit (₹)" name="codMaxAmount" type="number" value={s.codMaxAmount} onChange={handleChange} placeholder="50000" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 1-Click Partial COD Box */}
+                    <div style={{ background: "#fffbeb", borderRadius: 12, border: "1px solid #fde68a", padding: 20 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <i className="fas fa-bolt" style={{ color: "#d97706", fontSize: 18 }} />
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1e293b" }}>
+                              1-Click Partial COD (Magic Checkout + Shiprocket)
+                            </h4>
+                            <p style={{ margin: "2px 0 0", fontSize: 11, color: "#92400e" }}>
+                              Collect an upfront online deposit via 1-Click Magic Checkout and collect the remaining balance on delivery via Shiprocket COD.
+                            </p>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          name="partialCodEnabled"
+                          checked={s.partialCodEnabled}
+                          onChange={handleChange}
+                          style={{ width: 18, height: 18, cursor: "pointer" }}
+                        />
+                      </div>
+
+                      {s.partialCodEnabled && (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", paddingTop: 12, borderTop: "1px dashed #fcd34d" }}>
+                          <div>
+                            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 6 }}>
+                              Upfront Deposit Type
+                            </label>
+                            <select
+                              name="partialCodType"
+                              value={s.partialCodType}
+                              onChange={handleChange}
+                              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #cbd5e1", fontSize: 13, background: "#fff", fontWeight: 600 }}
+                            >
+                              <option value="fixed">Fixed Amount (₹)</option>
+                              <option value="percentage">Percentage of Cart Total (%)</option>
+                            </select>
+                          </div>
+                          <FormField
+                            label={s.partialCodType === "percentage" ? "Upfront Percentage (%)" : "Upfront Deposit Amount (₹)"}
+                            name="partialCodValue"
+                            type="number"
+                            value={s.partialCodValue}
+                            onChange={handleChange}
+                            placeholder={s.partialCodType === "percentage" ? "10" : "500"}
+                            hint={s.partialCodType === "percentage" ? "e.g. 10 = 10% paid online now, 90% on delivery" : "e.g. 500 = ₹500 paid online now, rest on delivery"}
+                          />
                         </div>
                       )}
                     </div>

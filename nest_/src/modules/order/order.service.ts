@@ -295,6 +295,7 @@ export class OrderService {
         where: { id: order.id },
         include: {
           addresses: true,
+          payments: true,
           items: {
             include: {
               product: true,
@@ -422,6 +423,7 @@ export class OrderService {
         addresses: true,
         customer: true,
         shipments: true,
+        payments: true,
       }
     });
 
@@ -993,6 +995,13 @@ export class OrderService {
         }
       }
       updateData.shippingStatus = 'delivered';
+      if (order.paymentStatus === 'partially_paid' || order.paymentMethod === 'partial_cod' || order.paymentMethod === 'cod') {
+        updateData.paymentStatus = 'paid';
+        this.prisma.payment.updateMany({
+          where: { orderId: oId, status: 'pending' },
+          data: { status: 'paid', paidAt: now },
+        }).catch(() => {});
+      }
     } else if (cleanStatus === 'cancelled') {
       if (!order.cancelledAt) updateData.cancelledAt = now;
       updateData.shippingStatus = 'cancelled';
@@ -1115,12 +1124,12 @@ export class OrderService {
     let razorpayRefundResult: any = null;
     const paidPayment = order.payments?.find(p => p.status === 'success' || p.status === 'paid') || order.payments?.[0];
     const razorpayPaymentId = paidPayment?.transactionId || (order as any).paymentId;
-    const isOnlinePaid = order.paymentStatus === 'paid' && razorpayPaymentId?.startsWith('pay_');
+    const isOnlinePaid = ['paid', 'partially_paid'].includes(order.paymentStatus) && razorpayPaymentId?.startsWith('pay_');
+    const actualOnlinePaidAmount = Number(paidPayment?.amount || order.grandTotal || 0);
 
-    if (isOnlinePaid) {
+    if (isOnlinePaid && actualOnlinePaidAmount > 0) {
       try {
-        const refundAmt = Number(order.grandTotal || 0);
-        razorpayRefundResult = await this.paymentService.refundPayment(razorpayPaymentId, refundAmt, { reason });
+        razorpayRefundResult = await this.paymentService.refundPayment(razorpayPaymentId, actualOnlinePaidAmount, { reason });
         this.logger.log(`Razorpay refund triggered for cancelled order #${oId}: ${razorpayRefundResult?.id}`);
       } catch (err: any) {
         this.logger.warn(`Razorpay refund failed on cancellation for order #${oId}: ${err.message}`);
@@ -1265,6 +1274,7 @@ export class OrderService {
           select: { name: true, email: true }
         },
         shipments: true,
+        payments: true,
         returns: true,
         statusHistory: { orderBy: { createdAt: 'desc' } }
       },
@@ -1278,6 +1288,7 @@ export class OrderService {
       where: { customerId: Number(customerId) },
       orderBy: { createdAt: 'desc' },
       include: {
+        payments: true,
         shipments: {
           orderBy: { id: 'desc' },
         },
@@ -1351,6 +1362,7 @@ export class OrderService {
         customer: { select: { id: true, name: true, email: true, mobile: true } },
         statusHistory: { orderBy: { createdAt: 'desc' } },
         shipments: true,
+        payments: true,
         returns: true
       },
     });
@@ -1504,6 +1516,7 @@ export class OrderService {
 
     const totalDiscount = couponDiscount + creditDiscount;
     const finalTotal = Math.max(0, subtotal - totalDiscount);
+    const partialCod = await this.computePartialCodBreakdown(finalTotal);
 
     return {
       subtotal,
@@ -1517,8 +1530,76 @@ export class OrderService {
       total: finalTotal,
       message: 'Free Shipping All Over India',
       couponError,
-      offerDescription: appliedOffer?.description || appliedOffer?.name || ''
+      offerDescription: appliedOffer?.description || appliedOffer?.name || '',
+      ...partialCod,
     };
+  }
+
+  private async computePartialCodBreakdown(finalTotal: number) {
+    try {
+      const rows = await this.prisma.setting.findMany({
+        where: {
+          key: {
+            in: ['partialCodEnabled', 'partialCodType', 'partialCodValue', 'codMaxAmount'],
+          },
+        },
+      });
+      const map: Record<string, string> = {};
+      rows.forEach((r) => {
+        if (r.key && r.value !== null && r.value !== undefined) map[r.key] = String(r.value);
+      });
+
+      const enabled = map.partialCodEnabled !== undefined
+        ? map.partialCodEnabled === 'true' || map.partialCodEnabled === '1'
+        : true; // Default ON for Path 2 Partial COD
+      const type = map.partialCodType === 'percentage' ? 'percentage' : 'fixed';
+      const rawVal = map.partialCodValue !== undefined ? Number(map.partialCodValue) : 500;
+      const configValue = Number.isFinite(rawVal) && rawVal > 0 ? rawVal : 500;
+      const maxCod = map.codMaxAmount !== undefined && Number(map.codMaxAmount) > 0 ? Number(map.codMaxAmount) : 250000;
+
+      if (!enabled || finalTotal <= 0 || finalTotal > maxCod) {
+        return {
+          partialCodEnabled: false,
+          partialCodType: type,
+          partialCodValue: configValue,
+          partialCodAdvance: 0,
+          partialCodBalance: 0,
+        };
+      }
+
+      const advance =
+        type === 'percentage'
+          ? Math.max(100, Math.round((finalTotal * Math.min(90, configValue)) / 100))
+          : Math.round(configValue);
+
+      if (advance <= 0 || advance >= finalTotal) {
+        return {
+          partialCodEnabled: false,
+          partialCodType: type,
+          partialCodValue: configValue,
+          partialCodAdvance: 0,
+          partialCodBalance: 0,
+        };
+      }
+
+      return {
+        partialCodEnabled: true,
+        partialCodType: type,
+        partialCodValue: configValue,
+        partialCodAdvance: advance,
+        partialCodBalance: Math.max(0, Math.round(finalTotal - advance)),
+      };
+    } catch {
+      const fallbackAdvance = 500;
+      const canUse = finalTotal > fallbackAdvance;
+      return {
+        partialCodEnabled: canUse,
+        partialCodType: 'fixed',
+        partialCodValue: fallbackAdvance,
+        partialCodAdvance: canUse ? fallbackAdvance : 0,
+        partialCodBalance: canUse ? Math.round(finalTotal - fallbackAdvance) : 0,
+      };
+    }
   }
 
   async calculateShipping(customerId: string, pincode: string) {
@@ -1622,10 +1703,12 @@ export class OrderService {
     // Check if order was paid online via Razorpay payment ID
     const paidPayment = order.payments?.find(p => p.status === 'success' || p.status === 'paid') || order.payments?.[0];
     const razorpayPaymentId = paidPayment?.transactionId || (order as any).paymentId;
+    const maxGatewayRefundable = Number(paidPayment?.amount || refundAmt);
+    const gatewayRefundAmt = Math.min(refundAmt, maxGatewayRefundable > 0 ? maxGatewayRefundable : refundAmt);
 
-    if (razorpayPaymentId && razorpayPaymentId.startsWith('pay_')) {
+    if (razorpayPaymentId && razorpayPaymentId.startsWith('pay_') && gatewayRefundAmt > 0) {
       try {
-        razorpayRefundResult = await this.paymentService.refundPayment(razorpayPaymentId, refundAmt, { reason });
+        razorpayRefundResult = await this.paymentService.refundPayment(razorpayPaymentId, gatewayRefundAmt, { reason });
         this.logger.log(`Razorpay refund triggered for order #${oId}: ${razorpayRefundResult?.id}`);
       } catch (err: any) {
         this.logger.warn(`Razorpay automated refund call failed/skipped for order #${oId}: ${err.message}`);
@@ -1637,8 +1720,10 @@ export class OrderService {
       .reduce((sum, r) => sum + Number(r.refundAmount || 0), 0);
 
     const totalRefunded = previousRefundTotal + refundAmt;
-    const grandTotal = Number(order.grandTotal || 0);
-    const isFullRefund = totalRefunded >= grandTotal;
+    const effectivePaidCap = order.paymentStatus === 'partially_paid' && maxGatewayRefundable > 0
+      ? maxGatewayRefundable
+      : Number(order.grandTotal || 0);
+    const isFullRefund = totalRefunded >= effectivePaidCap;
 
     const isDelivered = (order.status || '').toLowerCase() === 'delivered' || (order.shippingStatus || '').toLowerCase() === 'delivered';
 
@@ -1920,8 +2005,10 @@ export class OrderService {
     useCredits?: boolean;
     receipt?: string;
     publicOrigin?: string;
+    paymentMode?: string;
   }) {
-    const { userId, couponCode, useCredits = true, receipt, publicOrigin } = params;
+    const { userId, couponCode, useCredits = true, receipt, publicOrigin, paymentMode = 'prepaid' } = params;
+    const isPartialCod = String(paymentMode || '').toLowerCase() === 'partial_cod';
     if (!userId) throw new BadRequestException('Cart session or userId is required');
 
     const cart = await this.findActiveCartWithDetails(userId);
@@ -1973,6 +2060,12 @@ export class OrderService {
       };
     }
 
+    if (isPartialCod) {
+      if (!totals.partialCodEnabled || Number(totals.partialCodAdvance) <= 0 || Number(totals.partialCodBalance) <= 0) {
+        throw new BadRequestException('Partial COD is not available for this cart total. Please proceed with Full Prepaid.');
+      }
+    }
+
     const totalDiscountPaise = Math.max(0, Math.round(Number(totals.discount || 0) * 100));
     const rawItemsPaise = cart.items.map((item) => {
       let livePrice = Number(item.unitPrice || 0);
@@ -1987,10 +2080,14 @@ export class OrderService {
     });
 
     const subtotalPaise = rawItemsPaise.reduce((s, r) => s + r.lineSubtotalPaise, 0);
-    const targetPayablePaise = Math.max(100, subtotalPaise - totalDiscountPaise);
+    const fullPayablePaise = Math.max(100, subtotalPaise - totalDiscountPaise);
+    const targetPayablePaise = isPartialCod
+      ? Math.max(100, Math.round(Number(totals.partialCodAdvance) * 100))
+      : fullPayablePaise;
 
-    // Distribute any pre-applied discount cleanly across line_items so sum(offer_price * quantity) === amount
-    let remainingDiscountPaise = Math.min(totalDiscountPaise, Math.max(0, subtotalPaise - 100));
+    // Distribute pre-applied discount (or COD deferred balance on Partial COD) across line_items so sum(offer_price * quantity) === amount
+    const effectiveReductionPaise = Math.max(0, subtotalPaise - targetPayablePaise);
+    let remainingDiscountPaise = Math.min(effectiveReductionPaise, Math.max(0, subtotalPaise - 100));
     const lineItems: any[] = [];
 
     rawItemsPaise.forEach((entry, idx) => {
@@ -2001,7 +2098,7 @@ export class OrderService {
       if (remainingDiscountPaise > 0 && subtotalPaise > 0) {
         itemDiscountPaise = isLast
           ? remainingDiscountPaise
-          : Math.min(remainingDiscountPaise, Math.round((lineSubtotalPaise / subtotalPaise) * totalDiscountPaise));
+          : Math.min(remainingDiscountPaise, Math.round((lineSubtotalPaise / subtotalPaise) * effectiveReductionPaise));
         itemDiscountPaise = Math.min(itemDiscountPaise, lineSubtotalPaise);
         remainingDiscountPaise -= itemDiscountPaise;
       }
@@ -2012,13 +2109,19 @@ export class OrderService {
 
       const sku = (variant?.sku || (belt ? `BELT-${belt.id}` : `FYL-${item.id}`)).slice(0, 64);
       const variantIdStr = String(item.productVariantId || (belt ? `belt-${belt.id}` : item.id));
-      const itemName = (product?.name || belt?.name || 'FYLEX Luxury Timepiece').slice(0, 120);
+      const baseName = product?.name || belt?.name || 'FYLEX Luxury Timepiece';
+      const itemName = (isPartialCod ? `${baseName} (Partial COD Booking)` : baseName).slice(0, 120);
 
       const attrLabels = (variant?.variantAttributes || [])
         .map((va: any) => va.attributeValue?.label || va.attributeValue?.value)
         .filter(Boolean)
         .join(' • ');
-      const itemDesc = (attrLabels || (belt ? 'Compatible Watch Strap' : product?.subtitle || 'Handcrafted Timepiece')).slice(0, 200);
+      const baseDesc = attrLabels || (belt ? 'Compatible Watch Strap' : product?.subtitle || 'Handcrafted Timepiece');
+      const itemDesc = (
+        isPartialCod
+          ? `Pay ₹${Math.round(totals.partialCodAdvance)} now • ₹${Math.round(totals.partialCodBalance)} on delivery`
+          : baseDesc
+      ).slice(0, 200);
 
       const rawImg =
         variant?.variantImages?.[0]?.media?.filePath ||
@@ -2074,6 +2177,10 @@ export class OrderService {
       lineItemsTotalPaise: finalAmountPaise,
       notes: {
         source: 'fylex_magic_checkout',
+        paymentMode: isPartialCod ? 'partial_cod' : 'prepaid',
+        fullOrderTotal: String(Math.round(Number(totals.total || 0))),
+        advanceAmount: String(isPartialCod ? Math.round(Number(totals.partialCodAdvance || 0)) : Math.round(finalAmountPaise / 100)),
+        codBalanceDue: String(isPartialCod ? Math.round(Number(totals.partialCodBalance || 0)) : 0),
         cartId: String(cart.id),
         userId: String(userId),
         preAppliedCoupon: appliedCouponCode,
@@ -2087,9 +2194,9 @@ export class OrderService {
       userId: String(userId),
       subtotal: Number(totals.subtotal || 0),
       discount: Number(totals.discount || 0),
-      value: Number((finalAmountPaise / 100).toFixed(2)),
+      value: Number(totals.total || (finalAmountPaise / 100)),
       couponCode: appliedCouponCode,
-      mode: 'magic_checkout',
+      mode: isPartialCod ? 'partial_cod_magic' : 'magic_checkout',
     });
 
     return {
@@ -2173,8 +2280,8 @@ export class OrderService {
           email: payload?.email,
         });
         const notes = rzpOrder?.notes || {};
-        if (notes.preAppliedCoupon) {
-          // A coupon was already applied on /cart before launching Magic Checkout; prevent double-stacking
+        if (notes.preAppliedCoupon || notes.paymentMode === 'partial_cod') {
+          // Coupon already applied on /cart or Partial COD advance locked; prevent in-modal stacking
           return { promotions: [] };
         }
         userId = notes.userId || '';
@@ -2225,6 +2332,12 @@ export class OrderService {
         email: payload?.email,
       });
       const notes = rzpOrder?.notes || {};
+      if (notes.paymentMode === 'partial_cod') {
+        throw new BadRequestException({
+          failure_reason: 'Please apply promo codes in your Shopping Cart before booking Partial COD',
+          failure_code: 'COUPON_APPLY_IN_CART',
+        });
+      }
       if (notes.preAppliedCoupon) {
         throw new BadRequestException({
           failure_reason: `Coupon ${notes.preAppliedCoupon} is already applied to your cart`,
@@ -2747,12 +2860,34 @@ export class OrderService {
       redeemPoints = Math.min(redeemPoints, avail);
     }
 
+    // Detect Partial COD (either FYLEX 1-Click Partial COD via notes.paymentMode or native Razorpay partial_payment)
+    const isPartialCod =
+      !isCod &&
+      (notes.paymentMode === 'partial_cod' ||
+        (Number(rzpOrder?.amount_due || 0) > 0 &&
+          Number(winningPayment.amount || 0) > 0 &&
+          Number(winningPayment.amount) < Number(rzpOrder?.amount || 0)));
+
     // Trust Razorpay's final payable amount (in paise -> rupees) so in-modal Magic promotions are respected
     const rzpPayablePaise = Number(winningPayment.amount || rzpOrder?.amount_due || rzpOrder?.amount || 0);
     const rzpFeePaise = Number(rzpOrder?.shipping_fee || 0) + Number(rzpOrder?.cod_fee || 0);
-    const grandTotal = rzpPayablePaise > 0
+
+    const computedFallbackTotal = Math.max(
+      0,
+      subtotal - (appliedOffer ? await this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0) - redeemPoints,
+    );
+
+    const advancePaidRupees = isPartialCod
+      ? Math.max(1, Math.round((Number(winningPayment.amount || 0) - rzpFeePaise) / 100) || Number(notes.advanceAmount || 500))
+      : 0;
+
+    const grandTotal = isPartialCod
+      ? Math.max(advancePaidRupees, Number(notes.fullOrderTotal) > 0 ? Math.round(Number(notes.fullOrderTotal)) : computedFallbackTotal)
+      : rzpPayablePaise > 0
       ? Math.max(0, Math.round((rzpPayablePaise - rzpFeePaise) / 100))
-      : Math.max(0, subtotal - (appliedOffer ? await this.marketingService.calculateDiscount(appliedOffer, subtotal, cart.items) : 0) - redeemPoints);
+      : computedFallbackTotal;
+
+    const codBalanceDue = isPartialCod ? Math.max(0, grandTotal - advancePaidRupees) : 0;
 
     const totalDiscount = Math.max(0, subtotal - grandTotal);
     const couponDiscountAmount = Math.max(0, totalDiscount - redeemPoints);
@@ -2762,6 +2897,9 @@ export class OrderService {
     const firstName = nameParts[0] || 'Customer';
     const lastName = nameParts.slice(1).join(' ') || 'Fylex';
 
+    const resolvedPaymentMethod = isPartialCod ? 'partial_cod' : isCod ? 'cod' : 'online';
+    const resolvedPaymentStatus = isPartialCod && codBalanceDue > 0 ? 'partially_paid' : isCod ? 'pending' : 'paid';
+
     // 6. Atomic Order Creation Transaction (Identical Relational Integrity to Standard Checkout)
     const createdOrder = await this.prisma.$transaction(async (tx) => {
       const order = await tx.order.create({
@@ -2769,15 +2907,18 @@ export class OrderService {
           customer: { connect: { id: customer.id } },
           offer: appliedOffer ? { connect: { id: appliedOffer.id } } : undefined,
           status: 'pending',
-          paymentStatus: isCod ? 'pending' : 'paid',
+          paymentStatus: resolvedPaymentStatus,
           shippingStatus: 'pending',
-          paymentMethod: isCod ? 'cod' : 'online',
+          paymentMethod: resolvedPaymentMethod,
           subtotal: Number(subtotal),
           shippingTotal: 0,
           taxTotal: 0,
           discountTotal: Number(totalDiscount),
           grandTotal: Number(grandTotal),
           couponCode: appliedOffer?.code || (rzpPromoCode || null),
+          adminNote: isPartialCod
+            ? `Partial COD: ₹${advancePaidRupees} Paid Online | ₹${codBalanceDue} Collectable on Delivery`
+            : null,
           customerFirstName: firstName,
           customerLastName: lastName,
           customerMobile: cleanPhone || customer.mobile || '',
@@ -2792,37 +2933,73 @@ export class OrderService {
       await tx.paymentAttempt.create({
         data: {
           orderId: order.id,
-          paymentMethod: isCod ? 'cod' : 'online',
+          paymentMethod: resolvedPaymentMethod,
           attemptId: razorpayOrderId,
-          amount: Number(grandTotal),
-          status: isCod ? 'cod_confirmed' : 'captured',
+          amount: Number(isPartialCod ? advancePaidRupees : grandTotal),
+          status: isPartialCod ? 'partial_advance_captured' : isCod ? 'cod_confirmed' : 'captured',
           gatewayResponse: JSON.stringify({
             razorpayOrderId,
             razorpayPaymentId: winningPayment.id,
             method: winningPayment.method,
+            isPartialCod,
+            advancePaidRupees,
+            codBalanceDue,
           }),
           createdAt: new Date(),
         },
       });
 
-      await tx.payment.create({
-        data: {
-          orderId: order.id,
-          paymentMethod: isCod ? 'cod' : 'online',
-          paymentGateway: 'razorpay',
-          transactionId: winningPayment.id || razorpayOrderId,
-          amount: Number(grandTotal),
-          status: isCod ? 'pending' : 'paid',
-          paidAt: isCod ? null : new Date(),
-          createdAt: new Date(),
-        },
-      });
+      if (isPartialCod) {
+        // 1. Record Online Advance Deposit Paid
+        await tx.payment.create({
+          data: {
+            orderId: order.id,
+            paymentMethod: 'online',
+            paymentGateway: 'razorpay',
+            transactionId: winningPayment.id || razorpayOrderId,
+            amount: Number(advancePaidRupees),
+            status: 'paid',
+            paidAt: new Date(),
+            createdAt: new Date(),
+          },
+        });
+        // 2. Record Remaining COD Balance Due on Delivery
+        if (codBalanceDue > 0) {
+          await tx.payment.create({
+            data: {
+              orderId: order.id,
+              paymentMethod: 'cod',
+              paymentGateway: 'cod_on_delivery',
+              transactionId: null,
+              amount: Number(codBalanceDue),
+              status: 'pending',
+              paidAt: null,
+              createdAt: new Date(),
+            },
+          });
+        }
+      } else {
+        await tx.payment.create({
+          data: {
+            orderId: order.id,
+            paymentMethod: isCod ? 'cod' : 'online',
+            paymentGateway: 'razorpay',
+            transactionId: winningPayment.id || razorpayOrderId,
+            amount: Number(grandTotal),
+            status: isCod ? 'pending' : 'paid',
+            paidAt: isCod ? null : new Date(),
+            createdAt: new Date(),
+          },
+        });
+      }
 
       await tx.orderStatusHistory.create({
         data: {
           orderId: order.id,
           status: 'pending',
-          notes: `Order placed via 1-Click Magic Checkout (${isCod ? 'Magic COD' : 'Prepaid'})`,
+          notes: isPartialCod
+            ? `Order placed via 1-Click Partial COD (₹${advancePaidRupees} Paid Online · ₹${codBalanceDue} Due on Delivery)`
+            : `Order placed via 1-Click Magic Checkout (${isCod ? 'Magic COD' : 'Prepaid'})`,
         },
       });
 
@@ -2965,6 +3142,7 @@ export class OrderService {
         where: { id: order.id },
         include: {
           addresses: true,
+          payments: true,
           items: {
             include: {
               product: true,

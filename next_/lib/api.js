@@ -170,13 +170,14 @@ export const initiatePaymentApi = (userId, pincode, receipt, couponCode, useCred
 };
 export const verifyPaymentApi = (paymentData) => request('POST', '/payments/verify', paymentData);
 
-// 1-Click Razorpay Magic Checkout API (Supports Guest 'gst_*' & Logged-In Customers)
-export const initiateMagicPaymentApi = (userId, couponCode = '', useCredits = true, receipt = '') => {
+// 1-Click Razorpay Magic Checkout API (Supports Guest 'gst_*', Logged-In, & Partial COD)
+export const initiateMagicPaymentApi = (userId, couponCode = '', useCredits = true, receipt = '', paymentMode = 'prepaid') => {
     return request('POST', '/payments/magic/create-order', {
         userId,
         couponCode,
         useCredits,
         receipt: receipt || `fyl_${Date.now()}`,
+        paymentMode,
     });
 };
 

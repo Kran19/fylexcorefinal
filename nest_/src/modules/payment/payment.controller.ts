@@ -68,6 +68,7 @@ export class PaymentController {
       useCredits: body?.useCredits !== false,
       receipt: body?.receipt,
       publicOrigin,
+      paymentMode: body?.paymentMode,
     });
   }
 
