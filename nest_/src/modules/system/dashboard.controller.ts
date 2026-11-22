@@ -1,7 +1,9 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { SystemService } from './system.service';
+import { AdminRoleGuard } from '../../common/guards/admin-role.guard';
 
 @Controller('dashboard')
+@UseGuards(AdminRoleGuard)
 export class DashboardController {
   constructor(private readonly systemService: SystemService) {}
 
@@ -32,5 +34,3 @@ export class DashboardController {
     return this.systemService.getDashboardStats({ startDate, endDate, preset });
   }
 }
-
-

@@ -1,7 +1,9 @@
 import { Controller, Get, Param, Post, Put, Delete, Body, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
+import { AdminRoleGuard } from '../../common/guards/admin-role.guard';
 
 @Controller('users')
+@UseGuards(AdminRoleGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -30,4 +32,3 @@ export class UserController {
     return this.userService.remove(id);
   }
 }
-

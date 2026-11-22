@@ -981,13 +981,39 @@ export class SystemService {
     return { success: true, data: report };
   }
 
-  // System Settings
-  async getSettings() {
-    const settings = await this.prisma.setting.findMany({ orderBy: { sortOrder: 'asc' } });
-    return { success: true, data: settings };
+  // System Settings (with secret redaction on public reads & fast in-memory cache)
+  private settingsCache: { all: any[]; expiresAt: number } | null = null;
+
+  private isSensitiveSettingKey(key: string): boolean {
+    const k = String(key || '').toLowerCase();
+    return (
+      k.includes('secret') ||
+      k.includes('password') ||
+      k.includes('private_key') ||
+      k.includes('api_token') ||
+      k.includes('access_token') ||
+      k.includes('smtp_pass')
+    );
+  }
+
+  async getSettings(includeSecrets = false) {
+    let settings: any[];
+    if (this.settingsCache && Date.now() < this.settingsCache.expiresAt) {
+      settings = this.settingsCache.all;
+    } else {
+      settings = await this.prisma.setting.findMany({ orderBy: { sortOrder: 'asc' } });
+      this.settingsCache = { all: settings, expiresAt: Date.now() + 30_000 };
+    }
+
+    const filtered = includeSecrets
+      ? settings
+      : settings.filter((s) => !this.isSensitiveSettingKey(s.key));
+
+    return { success: true, data: filtered };
   }
 
   async updateSettings(data: any) {
+    this.settingsCache = null;
     const groupName = data._group || 'shop_page';
     const settingsData = { ...data };
     delete settingsData._group;

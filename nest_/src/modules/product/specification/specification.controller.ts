@@ -1,13 +1,13 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { SpecificationService } from './specification.service';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { AdminRoleGuard } from '../../../common/guards/admin-role.guard';
 
 @ApiTags('Specifications')
 @Controller('specifications')
 export class SpecificationController {
   constructor(private readonly specificationService: SpecificationService) {}
 
-  // ─── 1. Specification Groups Routes (MUST BE BEFORE :id) ───
   @Get('groups')
   @ApiOperation({ summary: 'Get all specification groups' })
   findAllGroups() {
@@ -21,26 +21,29 @@ export class SpecificationController {
   }
 
   @Post('groups')
+  @UseGuards(AdminRoleGuard)
   @ApiOperation({ summary: 'Create a new specification group' })
   createGroup(@Body() data: any) {
     return this.specificationService.createGroup(data);
   }
 
   @Put('groups/:id')
+  @UseGuards(AdminRoleGuard)
   @ApiOperation({ summary: 'Update a specification group' })
   updateGroup(@Param('id') id: string, @Body() data: any) {
     return this.specificationService.updateGroup(id, data);
   }
 
   @Delete('groups/:id')
+  @UseGuards(AdminRoleGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a specification group' })
   removeGroup(@Param('id') id: string) {
     return this.specificationService.removeGroup(id);
   }
 
-  // --- Group-Specification Mapping ---
   @Post('groups/:groupId/:specId')
+  @UseGuards(AdminRoleGuard)
   @ApiOperation({ summary: 'Add specification to group' })
   addSpecToGroup(
     @Param('groupId') groupId: string,
@@ -51,29 +54,27 @@ export class SpecificationController {
   }
 
   @Delete('groups/:groupId/:specId')
+  @UseGuards(AdminRoleGuard)
   @ApiOperation({ summary: 'Remove specification from group' })
-  removeSpecFromGroup(
-    @Param('groupId') groupId: string,
-    @Param('specId') specId: string,
-  ) {
+  removeSpecFromGroup(@Param('groupId') groupId: string, @Param('specId') specId: string) {
     return this.specificationService.removeSpecFromGroup(groupId, specId);
   }
 
-  // ─── 2. Specification Values Routes (MUST BE BEFORE :id) ───
   @Put('values/:id')
+  @UseGuards(AdminRoleGuard)
   @ApiOperation({ summary: 'Update a specification value' })
   updateValue(@Param('id') id: string, @Body() data: any) {
     return this.specificationService.updateValue(id, data);
   }
 
   @Delete('values/:id')
+  @UseGuards(AdminRoleGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a specification value' })
   removeValue(@Param('id') id: string) {
     return this.specificationService.removeValue(id);
   }
 
-  // ─── 3. Specification Generic Routes ───
   @Get()
   @ApiOperation({ summary: 'Get all specifications' })
   findAll() {
@@ -81,6 +82,7 @@ export class SpecificationController {
   }
 
   @Post()
+  @UseGuards(AdminRoleGuard)
   @ApiOperation({ summary: 'Create a new specification' })
   create(@Body() data: any) {
     return this.specificationService.create(data);
@@ -93,6 +95,7 @@ export class SpecificationController {
   }
 
   @Post(':id/values')
+  @UseGuards(AdminRoleGuard)
   @ApiOperation({ summary: 'Create a new specification value' })
   createValue(@Param('id') id: string, @Body() data: any) {
     return this.specificationService.createValue(id, data);
@@ -105,12 +108,14 @@ export class SpecificationController {
   }
 
   @Put(':id')
+  @UseGuards(AdminRoleGuard)
   @ApiOperation({ summary: 'Update a specification' })
   update(@Param('id') id: string, @Body() data: any) {
     return this.specificationService.update(id, data);
   }
 
   @Delete(':id')
+  @UseGuards(AdminRoleGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a specification' })
   remove(@Param('id') id: string) {

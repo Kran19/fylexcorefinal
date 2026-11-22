@@ -1,13 +1,13 @@
-import { Controller, Get, Post, Body, Put, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards } from '@nestjs/common';
 import { ProductCareService } from './product-care.service';
-import { CreateProductCareDto } from './dto/create-product-care.dto';
-import { UpdateProductCareDto } from './dto/update-product-care.dto';
+import { AdminRoleGuard } from '../../../common/guards/admin-role.guard';
 
 @Controller('product-care')
 export class ProductCareController {
   constructor(private readonly productCareService: ProductCareService) {}
 
   @Post()
+  @UseGuards(AdminRoleGuard)
   create(@Body() createProductCareDto: any) {
     return this.productCareService.create(createProductCareDto);
   }
@@ -28,11 +28,13 @@ export class ProductCareController {
   }
 
   @Put(':id')
+  @UseGuards(AdminRoleGuard)
   update(@Param('id') id: string, @Body() updateProductCareDto: any) {
     return this.productCareService.update(+id, updateProductCareDto);
   }
 
   @Delete(':id')
+  @UseGuards(AdminRoleGuard)
   remove(@Param('id') id: string) {
     return this.productCareService.remove(+id);
   }

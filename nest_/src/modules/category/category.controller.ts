@@ -2,13 +2,14 @@ import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards } from '@nes
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminRoleGuard } from '../../common/guards/admin-role.guard';
 
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
+  @UseGuards(AdminRoleGuard)
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.categoryService.createCategory(createCategoryDto);
   }
@@ -33,14 +34,14 @@ export class CategoryController {
   }
 
   @Put(':id')
+  @UseGuards(AdminRoleGuard)
   update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
     return this.categoryService.updateCategory(id, updateCategoryDto);
   }
 
   @Delete(':id')
+  @UseGuards(AdminRoleGuard)
   remove(@Param('id') id: string) {
     return this.categoryService.deleteCategory(id);
   }
 }
-
-

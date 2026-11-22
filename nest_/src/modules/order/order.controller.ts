@@ -1,15 +1,32 @@
-import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Query, Res, UseGuards, Request, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Res,
+  UseGuards,
+  Request,
+  UnauthorizedException,
+  ForbiddenException,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { OrderService } from './order.service';
 import { InvoiceService } from './invoice.service';
+import { AdminRoleGuard, extractVerifiedJwtUser } from '../../common/guards/admin-role.guard';
 
 @Controller('orders')
 export class OrderController {
   constructor(
     private readonly orderService: OrderService,
-    private readonly invoiceService: InvoiceService
-  ) { }
+    private readonly invoiceService: InvoiceService,
+  ) {}
 
   @Post()
   async createOrder(@Body('customerId') customerId: string, @Body() createOrderDto: any) {
@@ -17,14 +34,26 @@ export class OrderController {
   }
 
   @Get()
-  async getAllOrders(@Query('customerId') customerId?: string) {
+  async getAllOrders(@Request() req: any, @Query('customerId') customerId?: string) {
     if (customerId) {
+      // If querying a registered numeric customer ID, require matching JWT or Admin
+      if (/^\d+$/.test(String(customerId).trim())) {
+        const user = extractVerifiedJwtUser(req);
+        if (!user || (user.role !== 'admin' && String(user.userId) !== String(customerId).trim())) {
+          throw new UnauthorizedException('Authentication required to view customer order history.');
+        }
+      }
       return this.orderService.getOrders(customerId);
+    }
+
+    // Listing ALL store orders requires Administrator JWT
+    const user = extractVerifiedJwtUser(req);
+    if (!user || user.role !== 'admin') {
+      throw new ForbiddenException('Administrator privileges required to list all orders.');
     }
     return this.orderService.getAllOrders();
   }
 
-  // Static routes MUST come before :id param routes
   @Post('calculate-shipping')
   async calculateShipping(@Body('customerId') customerId: string, @Body('pincode') pincode: string) {
     return this.orderService.calculateShipping(customerId, pincode);
@@ -32,10 +61,10 @@ export class OrderController {
 
   @Post('calculate-total')
   async calculateTotal(
-    @Body('customerId') customerId: string, 
+    @Body('customerId') customerId: string,
     @Body('pincode') pincode?: string,
     @Body('couponCode') couponCode?: string,
-    @Body('useCredits') useCredits?: boolean
+    @Body('useCredits') useCredits?: boolean,
   ) {
     return this.orderService.calculateOrderTotal(customerId, pincode, couponCode, useCredits);
   }
@@ -46,13 +75,11 @@ export class OrderController {
     return this.orderService.handleShiprocketWebhook(payload);
   }
 
-  // Zaple WhatsApp Chatbot Track Order API
   @Get('track')
   async trackOrder(@Query('order_id') orderId: string, @Query('mobile') mobile: string) {
     return this.orderService.trackOrder(orderId, mobile);
   }
 
-  // Zaple WhatsApp Chatbot Customer Orders API
   @Get('by-mobile')
   async getOrdersByMobile(@Query('mobile') mobile: string, @Query('type') type?: string) {
     return this.orderService.getOrdersByMobile(mobile, type);
@@ -63,23 +90,30 @@ export class OrderController {
     return this.orderService.getOrderById(customerId, id);
   }
 
-  // @UseGuards(JwtAuthGuard)
   @Get(':id/invoice')
   async downloadInvoice(
     @Request() req: any,
     @Query('download') download: string,
+    @Query('customerId') queryCustomerId: string,
     @Param('id') id: string,
-    @Res() res: Response
+    @Res() res: Response,
   ) {
-    // Verify access
     const orderRes = await this.orderService.getOrderById('', id);
     const order = orderRes.data;
-    
-    // if (req.user.role !== 'ADMIN' && order.customerId !== req.user.id) {
-    //   throw new ForbiddenException('You do not have access to this invoice');
-    // }
-    
-    // Set headers
+
+    // Prevent sequential IDOR invoice enumeration (/api/orders/1/invoice, /api/orders/2/invoice)
+    const user = extractVerifiedJwtUser(req);
+    const isAdmin = user?.role === 'admin';
+    const isOwnerJwt = Boolean(user && order?.customerId && String(order.customerId) === String(user.userId));
+    const isOrderNumberLookup = !/^\d+$/.test(String(id)); // Non-sequential orderNumber e.g. ORD-179...
+    const matchesGuestQuery = Boolean(
+      queryCustomerId && order?.customerId && String(order.customerId) === String(queryCustomerId),
+    );
+
+    if (!isAdmin && !isOwnerJwt && !isOrderNumberLookup && !matchesGuestQuery) {
+      throw new ForbiddenException('You do not have permission to access this invoice.');
+    }
+
     res.setHeader('Content-Type', 'application/pdf');
     if (download === 'true') {
       res.setHeader('Content-Disposition', `attachment; filename="Invoice-ORD-${order.orderNumber || id}.pdf"`);
@@ -87,38 +121,46 @@ export class OrderController {
       res.setHeader('Content-Disposition', `inline; filename="Invoice-ORD-${order.orderNumber || id}.pdf"`);
     }
 
-    // Generate PDF and pipe directly
     await this.invoiceService.generateInvoicePdf(id, res);
   }
 
-  // Send order to Shiprocket (Admin Fulfillment Action)
   @Post(':id/send-to-shiprocket')
+  @UseGuards(AdminRoleGuard)
   async sendToShiprocket(@Param('id') id: string, @Request() req: any) {
     const adminId = req?.user?.userId || req?.user?.id;
     return this.orderService.sendToShiprocket(id, adminId);
   }
 
-  // Sync tracking status with Shiprocket (Admin / System Action)
   @Get(':id/shiprocket-sync')
+  @UseGuards(AdminRoleGuard)
   async syncShiprocket(@Param('id') id: string) {
     return this.orderService.syncShiprocketTracking(id);
   }
 
-  // Update order status (used by admin)
   @Put(':id/status')
-  async updateOrderStatus(@Param('id') id: string, @Body('status') status: string, @Body('notes') notes?: string, @Request() req?: any) {
+  @UseGuards(AdminRoleGuard)
+  async updateOrderStatus(
+    @Param('id') id: string,
+    @Body('status') status: string,
+    @Body('notes') notes?: string,
+    @Request() req?: any,
+  ) {
     const adminId = req?.user?.userId || req?.user?.id;
     return this.orderService.updateStatus(id, status, notes, adminId);
   }
 
-  // Update payment status (used by admin)
   @Put(':id/payment-status')
-  async updatePaymentStatus(@Param('id') id: string, @Body('payment_status') paymentStatus: string, @Body('notes') notes?: string) {
+  @UseGuards(AdminRoleGuard)
+  async updatePaymentStatus(
+    @Param('id') id: string,
+    @Body('payment_status') paymentStatus: string,
+    @Body('notes') notes?: string,
+  ) {
     return this.orderService.updatePaymentStatus(id, paymentStatus, notes);
   }
 
-  // Legacy: also allow PUT :id for backwards compatibility
   @Put(':id')
+  @UseGuards(AdminRoleGuard)
   async updateOrder(@Param('id') id: string, @Body('status') status: string, @Request() req?: any) {
     const adminId = req?.user?.userId || req?.user?.id;
     return this.orderService.updateStatus(id, status, undefined, adminId);
@@ -130,20 +172,20 @@ export class OrderController {
   }
 
   @Post(':id/tracking')
+  @UseGuards(AdminRoleGuard)
   async updateTracking(@Param('id') id: string, @Body() trackingData: any) {
     return this.orderService.updateTracking(id, trackingData);
   }
 
   @Post(':id/refund')
+  @UseGuards(AdminRoleGuard)
   async processRefund(@Param('id') id: string, @Body() refundData: any) {
     return this.orderService.processRefund(id, refundData);
   }
 
   @Delete(':id')
+  @UseGuards(AdminRoleGuard)
   async deleteOrder(@Param('id') id: string) {
     return this.orderService.deleteOrder(id);
   }
 }
-
-
-

@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Param, Body, Put, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Put, Query, UseGuards } from '@nestjs/common';
 import { MediaOptimizationService } from './media-optimization.service';
+import { AdminRoleGuard } from '../../../common/guards/admin-role.guard';
 
 @Controller('media/optimization')
+@UseGuards(AdminRoleGuard)
 export class MediaOptimizationController {
   constructor(private readonly service: MediaOptimizationService) {}
 
@@ -30,9 +32,9 @@ export class MediaOptimizationController {
     @Param('id') id: string,
     @Body('format') format: 'webp' | 'avif' | 'jpeg' = 'webp',
     @Body('quality') quality: number = 80,
-    @Body('preset') preset: string = 'balanced'
+    @Body('preset') preset: string = 'web_fast',
   ) {
-    return this.service.optimizeMediaAsset(Number(id), format, quality, preset);
+    return this.service.optimizeMediaAsset(Number(id), format, Number(quality) || 80, preset || 'web_fast');
   }
 
   @Post('accept/:id')
@@ -48,9 +50,10 @@ export class MediaOptimizationController {
   @Post('bulk')
   async bulkOptimize(
     @Body('format') format: 'webp' | 'avif' = 'webp',
-    @Body('quality') quality: number = 80
+    @Body('quality') quality: number = 80,
+    @Body('preset') preset: string = 'web_fast',
   ) {
-    return this.service.bulkOptimize(format, quality);
+    return this.service.bulkOptimize(format, Number(quality) || 80, preset || 'web_fast');
   }
 
   @Get('compare/:id')
@@ -61,7 +64,7 @@ export class MediaOptimizationController {
   @Post('merge-duplicates')
   async mergeDuplicates(
     @Body('masterId') masterId: number,
-    @Body('duplicateIds') duplicateIds: number[]
+    @Body('duplicateIds') duplicateIds: number[],
   ) {
     return this.service.mergeDuplicates(masterId, duplicateIds);
   }
@@ -77,10 +80,7 @@ export class MediaOptimizationController {
   }
 
   @Put('serve-mode/:id')
-  async updateServeMode(
-    @Param('id') id: string,
-    @Body('serveMode') serveMode: string
-  ) {
+  async updateServeMode(@Param('id') id: string, @Body('serveMode') serveMode: string) {
     return this.service.updateServeMode(Number(id), serveMode);
   }
 }

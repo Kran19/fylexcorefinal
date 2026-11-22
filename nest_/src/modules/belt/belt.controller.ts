@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
 import { BeltService } from './belt.service';
+import { AdminRoleGuard } from '../../common/guards/admin-role.guard';
 
 @Controller('belts')
 export class BeltController {
@@ -16,16 +17,19 @@ export class BeltController {
   }
 
   @Post()
+  @UseGuards(AdminRoleGuard)
   create(@Body() data: any) {
     return this.beltService.create(data);
   }
 
   @Put(':id')
+  @UseGuards(AdminRoleGuard)
   update(@Param('id') id: string, @Body() data: any) {
     return this.beltService.update(+id, data);
   }
 
   @Delete(':id')
+  @UseGuards(AdminRoleGuard)
   remove(@Param('id') id: string) {
     return this.beltService.remove(+id);
   }

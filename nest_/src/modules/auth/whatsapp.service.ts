@@ -1,5 +1,6 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import * as https from 'https';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { FYLEX_LOGO_BASE64 } from './whatsapp.constants';
@@ -7,6 +8,10 @@ import { FYLEX_LOGO_BASE64 } from './whatsapp.constants';
 interface OtpEntry {
   otp: string;
   expiresAt: number;
+  attempts: number;
+  lastSentAt: number;
+  hourlyCount: number;
+  hourlyResetAt: number;
 }
 
 @Injectable()
@@ -32,28 +37,55 @@ export class WhatsappService {
     : ['917069211020', '918511113623']).map(m => m.trim());
 
   /**
-   * Generates a 6-digit OTP, stores it with 10-minute validity, and sends it via Zaple.ai WhatsApp API.
+   * Generates a cryptographically secure 6-digit OTP with per-mobile cooldown & hourly quota,
+   * stores it with 10-minute validity, and dispatches via Zaple.ai WhatsApp API.
    */
   async sendOtp(mobile: string): Promise<{ success: boolean; message: string }> {
-    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    const cleanMobile = String(mobile || '').replace(/\D/g, '').slice(-10);
     if (cleanMobile.length !== 10) {
       throw new BadRequestException('Invalid mobile number');
     }
 
-    // Generate random 6-digit OTP
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    const now = Date.now();
+    const existing = this.otpStore.get(cleanMobile);
 
-    this.otpStore.set(cleanMobile, { otp: generatedOtp, expiresAt });
-    this.logger.log(`Generated OTP for mobile ${cleanMobile}: ${generatedOtp}`);
+    // 45-second per-mobile cooldown to prevent WhatsApp OTP bombing
+    if (existing && now - existing.lastSentAt < 45_000) {
+      const waitSec = Math.ceil((45_000 - (now - existing.lastSentAt)) / 1000);
+      throw new HttpException(
+        `Please wait ${waitSec} seconds before requesting another OTP.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
 
-    // Dispatch via Zaple.ai WhatsApp API
+    const hourlyResetAt = existing && now < existing.hourlyResetAt ? existing.hourlyResetAt : now + 60 * 60_000;
+    const hourlyCount = existing && now < existing.hourlyResetAt ? existing.hourlyCount : 0;
+
+    if (hourlyCount >= 5) {
+      throw new HttpException(
+        'Maximum OTP limit reached for this mobile number. Please try again in an hour.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const generatedOtp = crypto.randomInt(100000, 1000000).toString();
+    const expiresAt = now + 10 * 60 * 1000; // 10 minutes
+
+    this.otpStore.set(cleanMobile, {
+      otp: generatedOtp,
+      expiresAt,
+      attempts: 0,
+      lastSentAt: now,
+      hourlyCount: hourlyCount + 1,
+      hourlyResetAt,
+    });
+    this.logger.log(`Dispatched 6-digit OTP challenge for mobile ***${cleanMobile.slice(-4)}`);
+
     try {
-      const apiResult = await this.dispatchZapleTemplate(cleanMobile, this.otpTemplateId, [generatedOtp]);
-      this.logger.log(`Zaple WhatsApp OTP API response for ${cleanMobile}: ${JSON.stringify(apiResult)}`);
+      await this.dispatchZapleTemplate(cleanMobile, this.otpTemplateId, [generatedOtp]);
       return { success: true, message: 'OTP sent successfully via WhatsApp' };
-    } catch (error) {
-      this.logger.error(`Zaple WhatsApp OTP API error for ${cleanMobile}: ${error.message}`);
+    } catch (error: any) {
+      this.logger.error(`Zaple WhatsApp OTP API error for ***${cleanMobile.slice(-4)}: ${error.message}`);
       return { success: true, message: 'OTP generated and dispatched' };
     }
   }
@@ -317,30 +349,42 @@ export class WhatsappService {
   }
 
   /**
-   * Verifies submitted OTP against stored value.
+   * Verifies submitted OTP with constant-time comparison and 5-attempt anti-brute-force burn.
    */
   verifyOtp(mobile: string, inputOtp: string): boolean {
-    const cleanMobile = mobile.replace(/\D/g, '').slice(-10);
+    const cleanMobile = String(mobile || '').replace(/\D/g, '').slice(-10);
     const entry = this.otpStore.get(cleanMobile);
 
-    if (!entry) {
-      this.logger.warn(`No OTP found for mobile ${cleanMobile}`);
+    if (!entry || !entry.otp) {
       return false;
     }
 
     if (Date.now() > entry.expiresAt) {
-      this.logger.warn(`OTP expired for mobile ${cleanMobile}`);
       this.otpStore.delete(cleanMobile);
       return false;
     }
 
-    if (entry.otp !== inputOtp.trim()) {
-      this.logger.warn(`Invalid OTP input for mobile ${cleanMobile}: expected ${entry.otp}, got ${inputOtp}`);
+    const candidate = String(inputOtp || '').trim();
+    const expectedBuf = Buffer.from(entry.otp, 'utf8');
+    const candidateBuf = Buffer.from(candidate, 'utf8');
+    const isMatch =
+      expectedBuf.length === candidateBuf.length &&
+      crypto.timingSafeEqual(expectedBuf, candidateBuf);
+
+    if (!isMatch) {
+      entry.attempts = (entry.attempts || 0) + 1;
+      if (entry.attempts >= 5) {
+        this.logger.warn(`OTP invalidated after 5 failed attempts for ***${cleanMobile.slice(-4)}`);
+        // Preserve hourly quota counters while burning the active OTP code
+        entry.otp = '';
+        entry.expiresAt = 0;
+      }
       return false;
     }
 
-    // Clear after successful validation
-    this.otpStore.delete(cleanMobile);
+    // Clear active OTP code while preserving hourly send quota
+    entry.otp = '';
+    entry.expiresAt = 0;
     return true;
   }
 

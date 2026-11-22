@@ -1,123 +1,240 @@
 "use client";
-import React, { useState } from 'react';
-import '@/app/admin/css/datatable.css';
-import '@/app/admin/css/custom.css';
+import React, { useState, useEffect } from "react";
+import * as api from "@/services/adminApi";
+import { getFileUrl } from "@/lib/utils";
+import Swal from "sweetalert2";
+
+function formatMb(bytes) {
+  const n = Number(bytes || 0);
+  if (!n) return "0 MB";
+  return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
 
 export default function VideoOptimizationSuite() {
-  const [resolution, setResolution] = useState('1080p');
-  const [crf, setCrf] = useState(24);
-  const [fastStart, setFastStart] = useState(true);
-  const [statusMsg, setStatusMsg] = useState(null);
-  const [isEncoding, setIsEncoding] = useState(false);
+  const [preset, setPreset] = useState("web_fast");
+  const [quality, setQuality] = useState(78);
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState(null);
+  const [batchBusy, setBatchBusy] = useState(false);
 
-  const handleTranscodeVideo = async () => {
-    setIsEncoding(true);
-    setStatusMsg(null);
-    setTimeout(() => {
-      setStatusMsg(`FFmpeg re-encoding complete with FastStart headers. Reduced video file size from 82.4 MB to 14.1 MB (82.8% reduction).`);
-      setIsEncoding(false);
-    }, 1500);
+  const loadVideos = async () => {
+    setLoading(true);
+    try {
+      const res = await api.getOptimizationAssets("size_desc");
+      const all = Array.isArray(res?.data) ? res.data : [];
+      const onlyVids = all.filter((a) => {
+        const name = String(a.originalFilename || a.fileName || a.filePath || "").toLowerCase();
+        return a.fileType === "video" || a.mimeType?.includes("video") || /\.(mp4|mov|webm|m4v|avi)$/i.test(name);
+      });
+      setVideos(onlyVids);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    loadVideos();
+  }, []);
+
+  const transcodeOne = async (video) => {
+    setBusyId(video.id);
+    try {
+      const res = await api.optimizeSingleAsset(video.id, { format: "webp", quality, preset });
+      if (res?.error) throw new Error(res.error);
+      await loadVideos();
+      Swal.fire({
+        icon: "success",
+        title: "Video Transcoded!",
+        text: res?.message || `Compressed ${video.originalFilename || video.fileName} with FastStart headers.`,
+        timer: 2500,
+        showConfirmButton: false,
+      });
+    } catch (e) {
+      Swal.fire({ icon: "error", title: "Transcode Error", text: e?.message || "FFmpeg transcode failed." });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const transcodeAllHeavy = async () => {
+    const targets = videos.filter((v) => !v.isOptimized || Number(v.optimizedSize || 0) > 5.5 * 1024 * 1024);
+    const list = targets.length > 0 ? targets : videos;
+    if (list.length === 0) return;
+
+    setBatchBusy(true);
+    let ok = 0;
+    for (const v of list) {
+      setBusyId(v.id);
+      const res = await api.optimizeSingleAsset(v.id, { format: "webp", quality, preset });
+      if (!res?.error) ok++;
+    }
+    setBusyId(null);
+    setBatchBusy(false);
+    await loadVideos();
+    Swal.fire({
+      icon: "success",
+      title: "All Videos Compressed!",
+      text: `Transcoded ${ok} video(s) with H.264 FastStart streaming headers.`,
+    });
+  };
+
+  const totalOrigBytes = videos.reduce((s, v) => s + Number(v.originalSize || 0), 0);
+  const totalOptBytes = videos.reduce((s, v) => s + Number(v.optimizedSize || v.originalSize || 0), 0);
+
   return (
-    <div className="admin-root p-6 max-w-7xl mx-auto" style={{ background: '#09090b', color: '#f4f4f5', minHeight: '100vh', padding: '30px' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#eab308' }}>
-          ⚡ SPEED BOOSTER
-        </span>
-        <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#ffffff', marginTop: '4px' }}>
-          FFmpeg Video Transcoding & Compression
-        </h1>
-        <p style={{ color: '#a1a1aa', fontSize: '14px', marginTop: '4px' }}>
-          Compress MP4, MOV, AVI, and WebM marketing videos, inject FastStart streaming metadata, and generate animated cover thumbnails.
-        </p>
-      </div>
-
-      {statusMsg && (
-        <div style={{ background: '#166534', color: '#f0fdf4', padding: '14px 20px', borderRadius: '8px', marginBottom: '24px', fontSize: '14px' }}>
-          ✓ {statusMsg}
-        </div>
-      )}
-
-      {/* Video Statistics Card */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-        <div style={{ background: '#18181b', borderRadius: '12px', padding: '20px', border: '1px solid #27272a' }}>
-          <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 600, textTransform: 'uppercase' }}>Videos Total</span>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#ffffff', marginTop: '6px' }}>14 Videos</div>
-        </div>
-
-        <div style={{ background: '#18181b', borderRadius: '12px', padding: '20px', border: '1px solid #27272a' }}>
-          <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 600, textTransform: 'uppercase' }}>Video Storage</span>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#eab308', marginTop: '6px' }}>82.4 GB</div>
-        </div>
-
-        <div style={{ background: '#18181b', borderRadius: '12px', padding: '20px', border: '1px solid #27272a' }}>
-          <span style={{ fontSize: '12px', color: '#a1a1aa', fontWeight: 600, textTransform: 'uppercase' }}>FastStart Status</span>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: '#22c55e', marginTop: '6px' }}>Enabled</div>
-        </div>
-      </div>
-
-      {/* Video Transcoder Controls */}
-      <div style={{ background: '#18181b', borderRadius: '16px', padding: '28px', border: '1px solid #27272a' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff', marginBottom: '20px' }}>🎬 Video Encoding Parameters</h2>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '24px' }}>
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#a1a1aa', display: 'block', marginBottom: '8px' }}>Target Resolution</label>
-            <select
-              value={resolution}
-              onChange={(e) => setResolution(e.target.value)}
-              style={{ width: '100%', background: '#09090b', border: '1px solid #3f3f46', color: '#fff', padding: '10px 14px', borderRadius: '8px', fontSize: '14px' }}
-            >
-              <option value="1080p">1080p Full HD (1920x1080)</option>
-              <option value="720p">720p HD (1280x720)</option>
-              <option value="480p">480p SD (854x480)</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#a1a1aa', display: 'block', marginBottom: '8px' }}>Constant Rate Factor (CRF: {crf})</label>
-            <input
-              type="range"
-              min="18"
-              max="32"
-              value={crf}
-              onChange={(e) => setCrf(Number(e.target.value))}
-              style={{ width: '100%', accentColor: '#eab308' }}
-            />
-            <span style={{ fontSize: '11px', color: '#71717a' }}>Lower = Higher Quality / Larger File</span>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#a1a1aa', display: 'block', marginBottom: '8px' }}>FastStart Web Headers</label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#fff', cursor: 'pointer', marginTop: '8px' }}>
-              <input
-                type="checkbox"
-                checked={fastStart}
-                onChange={(e) => setFastStart(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: '#eab308' }}
-              />
-              Inject FastStart Metadata (`-movflags +faststart`)
-            </label>
-          </div>
+    <div style={{ padding: "8px 4px 40px", maxWidth: "1360px", margin: "0 auto", fontFamily: "var(--font-inter), Inter, sans-serif" }}>
+      <div
+        style={{
+          background: "#ffffff",
+          border: "1px solid #e2e8f0",
+          borderRadius: "16px",
+          padding: "22px 26px",
+          marginBottom: "20px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+        }}
+      >
+        <div>
+          <span style={{ fontSize: "11px", fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", color: "#4f46e5" }}>
+            ⚡ LIVE FFMPEG VIDEO ENGINE
+          </span>
+          <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", margin: "4px 0" }}>
+            Storefront Video Transcoder &amp; FastStart Optimizer
+          </h1>
+          <p style={{ fontSize: "13px", color: "#475569", margin: 0 }}>
+            Converts raw 4K/MOV/MP4 uploads (50–250 MB) into ~2–3.5 MB H.264 FastStart streams with automatic WebP poster frames.
+          </p>
         </div>
 
         <button
-          onClick={handleTranscodeVideo}
-          disabled={isEncoding}
+          type="button"
+          disabled={batchBusy || videos.length === 0}
+          onClick={transcodeAllHeavy}
           style={{
-            background: '#eab308',
-            color: '#000000',
+            background: "#4f46e5",
+            color: "#ffffff",
             fontWeight: 700,
-            fontSize: '14px',
-            padding: '12px 24px',
-            borderRadius: '8px',
-            border: 'none',
-            cursor: 'pointer'
+            fontSize: "13px",
+            padding: "11px 20px",
+            borderRadius: "10px",
+            border: "none",
+            cursor: batchBusy ? "wait" : "pointer",
           }}
         >
-          {isEncoding ? 'Transcoding with FFmpeg Worker...' : '🎬 Run FFmpeg Video Transcoder'}
+          {batchBusy ? "⚡ Transcoding Videos..." : "🎬 Transcode All Heavy Videos Now"}
         </button>
+      </div>
+
+      {/* Live Video KPIs */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px", marginBottom: "20px" }}>
+        <div style={{ background: "#ffffff", borderRadius: "14px", padding: "18px 20px", border: "1px solid #e2e8f0" }}>
+          <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Uploaded Videos</span>
+          <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>{videos.length} Videos</div>
+        </div>
+
+        <div style={{ background: "#ffffff", borderRadius: "14px", padding: "18px 20px", border: "1px solid #e2e8f0" }}>
+          <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Raw Master Total</span>
+          <div style={{ fontSize: "26px", fontWeight: 800, color: "#64748b", marginTop: "6px" }}>{formatMb(totalOrigBytes)}</div>
+        </div>
+
+        <div style={{ background: "#ffffff", borderRadius: "14px", padding: "18px 20px", border: "1px solid #e2e8f0" }}>
+          <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Active Streaming Total</span>
+          <div style={{ fontSize: "26px", fontWeight: 800, color: "#16a34a", marginTop: "6px" }}>{formatMb(totalOptBytes)}</div>
+        </div>
+
+        <div style={{ background: "#ffffff", borderRadius: "14px", padding: "18px 20px", border: "1px solid #e2e8f0" }}>
+          <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Encoding Preset</span>
+          <select
+            value={preset}
+            onChange={(e) => setPreset(e.target.value)}
+            style={{ marginTop: "8px", width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12.5px", fontWeight: 700, color: "#0f172a" }}
+          >
+            <option value="web_fast">720p Web Fast (1.8 Mbps max • &lt;3.5 MB)</option>
+            <option value="1080p">1080p Full HD (3.0 Mbps max • &lt;6 MB)</option>
+            <option value="480p">480p Mobile Ultra-Light (&lt;1.2 MB)</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Live Videos Table */}
+      <div style={{ background: "#ffffff", borderRadius: "16px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+          <thead>
+            <tr style={{ background: "#f1f5f9", borderBottom: "1px solid #e2e8f0" }}>
+              <th style={{ padding: "12px 20px", fontSize: "11px", fontWeight: 800, color: "#475569", textTransform: "uppercase" }}>Video Asset</th>
+              <th style={{ padding: "12px 16px", fontSize: "11px", fontWeight: 800, color: "#475569", textTransform: "uppercase" }}>Original Size</th>
+              <th style={{ padding: "12px 16px", fontSize: "11px", fontWeight: 800, color: "#475569", textTransform: "uppercase" }}>Active Stream Size</th>
+              <th style={{ padding: "12px 16px", fontSize: "11px", fontWeight: 800, color: "#475569", textTransform: "uppercase" }}>Reduction</th>
+              <th style={{ padding: "12px 20px", fontSize: "11px", fontWeight: 800, color: "#475569", textTransform: "uppercase", textAlign: "right" }}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>Loading videos...</td>
+              </tr>
+            ) : videos.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ padding: "40px", textAlign: "center", color: "#64748b" }}>No video assets uploaded yet.</td>
+              </tr>
+            ) : (
+              videos.map((v) => {
+                const heavy = Number(v.optimizedSize || v.originalSize || 0) > 5.5 * 1024 * 1024;
+                const isRunning = busyId === v.id;
+                return (
+                  <tr key={v.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "14px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <video
+                          src={getFileUrl(v.bestVariant?.filePath || v.filePath)}
+                          muted
+                          preload="metadata"
+                          style={{ width: 72, height: 44, objectFit: "cover", borderRadius: "8px", background: "#0f172a" }}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: "13.5px", color: "#0f172a" }}>
+                            {v.originalFilename || v.fileName || `Video #${v.id}`}
+                          </div>
+                          <div style={{ fontSize: "11.5px", color: "#64748b" }}>
+                            ID #{v.id} {v.bestVariant?.width ? `• ${v.bestVariant.width}×${v.bestVariant.height}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: "14px 16px", fontSize: "13px", fontWeight: 700, color: "#64748b" }}>{formatMb(v.originalSize)}</td>
+                    <td style={{ padding: "14px 16px", fontSize: "13.5px", fontWeight: 800, color: heavy ? "#dc2626" : "#16a34a" }}>
+                      {v.isOptimized ? formatMb(v.optimizedSize) : "Uncompressed"}
+                    </td>
+                    <td style={{ padding: "14px 16px", fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>{v.savedRatio}</td>
+                    <td style={{ padding: "14px 20px", textAlign: "right" }}>
+                      <button
+                        type="button"
+                        disabled={isRunning || batchBusy}
+                        onClick={() => transcodeOne(v)}
+                        style={{
+                          background: heavy ? "#dc2626" : "#4f46e5",
+                          color: "#ffffff",
+                          border: "none",
+                          padding: "8px 14px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          cursor: isRunning ? "wait" : "pointer",
+                        }}
+                      >
+                        {isRunning ? "Transcoding..." : heavy ? "⚡ Shrink (<3.5 MB)" : "Re-Transcode"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

@@ -1,23 +1,14 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Delete, UseGuards } from '@nestjs/common';
 import { TagService } from './tag.service';
 import { CreateTagDto, UpdateTagDto } from './dto/tag.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminRoleGuard } from '../../common/guards/admin-role.guard';
 
 @Controller('tags')
 export class TagController {
   constructor(private readonly tagService: TagService) {}
 
   @Post()
+  @UseGuards(AdminRoleGuard)
   create(@Body() createTagDto: CreateTagDto) {
     return this.tagService.createTag(createTagDto);
   }
@@ -37,14 +28,14 @@ export class TagController {
   }
 
   @Put(':id')
+  @UseGuards(AdminRoleGuard)
   update(@Param('id') id: string, @Body() updateTagDto: UpdateTagDto) {
     return this.tagService.updateTag(id, updateTagDto);
   }
 
   @Delete(':id')
+  @UseGuards(AdminRoleGuard)
   remove(@Param('id') id: string) {
     return this.tagService.deleteTag(id);
   }
 }
-
-

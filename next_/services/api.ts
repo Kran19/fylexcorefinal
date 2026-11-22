@@ -17,7 +17,7 @@ const api: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // Request Interceptor
@@ -33,7 +33,10 @@ api.interceptors.request.use(
         }
       } catch (e) {}
 
-      const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
+      const token =
+        localStorage.getItem('admin_token') ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('fylexx_token');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }

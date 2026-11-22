@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Param, UploadedFiles, UseInterceptors, Delete, Body, Put, UseGuards } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
 import { MediaService } from './media.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminRoleGuard } from '../../common/guards/admin-role.guard';
+import { createSafeDiskStorage, safeMediaFileFilter } from '../../common/utils/upload-filter';
 
 @Controller('media')
+@UseGuards(AdminRoleGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
@@ -15,21 +15,17 @@ export class MediaController {
   }
 
   @Post('upload')
-  @UseGuards(JwtAuthGuard)
-  @UseInterceptors(FilesInterceptor('file', 500, {
-    limits: { fileSize: 700 * 1024 * 1024 },
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
-        cb(null, `${randomName}${extname(file.originalname)}`);
-      },
+  @UseInterceptors(
+    FilesInterceptor('file', 500, {
+      limits: { fileSize: 700 * 1024 * 1024 },
+      fileFilter: safeMediaFileFilter,
+      storage: createSafeDiskStorage('./uploads'),
     }),
-  }))
+  )
   async uploadMedia(
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Param('category') category?: string,
-    @Body('paths') pathsStr?: string
+    @Body('paths') pathsStr?: string,
   ) {
     let paths: string[] = [];
     if (pathsStr) {
@@ -48,18 +44,12 @@ export class MediaController {
   }
 
   @Post('folder/rename')
-  async renameFolder(
-    @Body('oldPath') oldPath: string,
-    @Body('newPath') newPath: string
-  ) {
+  async renameFolder(@Body('oldPath') oldPath: string, @Body('newPath') newPath: string) {
     return this.mediaService.renameFolder(oldPath, newPath);
   }
 
   @Put(':id')
-  async updateMedia(
-    @Param('id') id: string,
-    @Body() dto: any
-  ) {
+  async updateMedia(@Param('id') id: string, @Body() dto: any) {
     return this.mediaService.updateMedia(id, dto);
   }
 
@@ -68,5 +58,3 @@ export class MediaController {
     return this.mediaService.deleteMedia(id);
   }
 }
-
-

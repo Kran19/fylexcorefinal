@@ -7,10 +7,34 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ProductService {
+  private productCache = new Map<string, { data: any; expiresAt: number }>();
+  private readonly CACHE_TTL_MS = 60_000; // 60s in-memory cache, invalidated immediately on any write
+
   constructor(
     private prisma: PrismaService,
     private mediaService: MediaService,
   ) {}
+
+  public invalidateProductCache() {
+    this.productCache.clear();
+  }
+
+  private getCached<T>(key: string): T | null {
+    const entry = this.productCache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.productCache.delete(key);
+      return null;
+    }
+    return entry.data as T;
+  }
+
+  private setCached(key: string, data: any, ttlMs = this.CACHE_TTL_MS) {
+    if (this.productCache.size > 200) {
+      this.productCache.clear();
+    }
+    this.productCache.set(key, { data, expiresAt: Date.now() + ttlMs });
+  }
 
   private safeNumber(value: any, name: string, required = false): number | null {
     if (value === null || value === undefined || value === 'null' || value === '') {
@@ -398,6 +422,7 @@ export class ProductService {
           }
         }
 
+        this.invalidateProductCache();
         return { ...product, images: this.parseJson(product.images) };
       });
     } catch (error) {
@@ -406,6 +431,10 @@ export class ProductService {
   }
 
   async getAllProducts(filters: any = {}) {
+    const cacheKey = `all:${JSON.stringify(filters || {})}`;
+    const hit = this.getCached<any>(cacheKey);
+    if (hit) return hit;
+
     try {
       const {
         search,
@@ -414,9 +443,11 @@ export class ProductService {
         maxPrice,
         sort,
         status,
+        light,
         page = 1,
         limit = 100, // Increased default limit for admin lists
       } = filters;
+      const isLightMode = light === '1' || light === 'true' || light === true;
 
     const where: Prisma.ProductWhereInput = {};
     
@@ -469,111 +500,126 @@ export class ProductService {
       this.prisma.product.findMany({
         where,
         orderBy,
-        skip,
-        take: limit,
-        include: {
-
-          mainCategory: true,
-          taxClass: true,
-          variants: {
-            include: {
-              variantAttributes: {
-                include: {
-                  attributeValue: {
-                    include: {
-                      attribute: true
-                    }
-                  }
-                }
+        skip: Number(skip) || 0,
+        take: Number(limit) || 100,
+        include: isLightMode
+          ? {
+              mainCategory: true,
+              taxClass: true,
+              productMedia: { include: { media: true } },
+              _count: {
+                select: {
+                  variants: true,
+                  productMedia: true,
+                  orderItems: true,
+                },
               },
-              variantImages: {
-                include: {
-                  media: true
-                }
-              }
             }
-          },
-          specifications: {
-            include: {
-              specification: {
+          : {
+              mainCategory: true,
+              taxClass: true,
+              variants: {
                 include: {
-                  groups: {
-                    include: {
-                      group: true
-                    }
-                  }
-                }
-              }
-            }
-          },
-          _count: {
-            select: { 
-              variants: true,
-              productMedia: true,
-              orderItems: true
-            }
-          },
-          orderItems: {
-            include: {
-              productVariant: {
-                include: {
-                  variantImages: {
-                    include: {
-                      media: true
-                    }
-                  },
                   variantAttributes: {
                     include: {
                       attributeValue: {
                         include: {
-                          attribute: true
-                        }
-                      }
-                    }
-                  }
-                }
-              }
+                          attribute: true,
+                        },
+                      },
+                    },
+                  },
+                  variantImages: {
+                    include: {
+                      media: true,
+                    },
+                  },
+                },
+              },
+              specifications: {
+                include: {
+                  specification: {
+                    include: {
+                      groups: {
+                        include: {
+                          group: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              _count: {
+                select: {
+                  variants: true,
+                  productMedia: true,
+                  orderItems: true,
+                },
+              },
+              orderItems: {
+                take: 30,
+                include: {
+                  productVariant: {
+                    include: {
+                      variantImages: {
+                        include: {
+                          media: true,
+                        },
+                      },
+                      variantAttributes: {
+                        include: {
+                          attributeValue: {
+                            include: {
+                              attribute: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
+              productMedia: {
+                include: {
+                  media: true,
+                },
+              },
+              productBelts: {
+                include: {
+                  belt: {
+                    include: {
+                      image: true,
+                    },
+                  },
+                },
+              },
+              productBoxes: {
+                include: {
+                  box: {
+                    include: {
+                      image: true,
+                    },
+                  },
+                },
+              },
             },
-            orderBy: {
-              createdAt: 'desc'
-            }
-          },
-          productMedia: {
-            include: {
-              media: true
-            }
-          },
-          productBelts: {
-            include: {
-              belt: {
-                include: {
-                  image: true
-                }
-              }
-            }
-          },
-          productBoxes: {
-            include: {
-              box: {
-                include: {
-                  image: true
-                }
-              }
-            }
-          },
-        },
       }),
     ]);
 
-    const mappedProducts = products.map(p => ({
+    const mappedProducts = products.map((p: any) => ({
       ...p,
       images: this.parseJson(p.images),
       isActive: p.status === 'active' || p.status === '1',
-      stock: p.qty, // Map qty to stock for frontend consistency
-      soldCount: (p as any).orderItems?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0,
+      stock: p.qty,
+      soldCount: p.orderItems
+        ? p.orderItems.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0)
+        : p._count?.orderItems || 0,
     }));
 
-      return {
+      const responsePayload = {
         success: true,
         data: mappedProducts,
         meta: {
@@ -582,6 +628,8 @@ export class ProductService {
           lastPage: Math.ceil(total / limit),
         },
       };
+      this.setCached(cacheKey, responsePayload);
+      return responsePayload;
     } catch (error) {
       this.handlePrismaError(error, 'Get All Products');
     }
@@ -602,6 +650,7 @@ export class ProductService {
       });
 
       await this.prisma.$transaction(updates);
+      this.invalidateProductCache();
       return { success: true, message: 'Products reordered successfully' };
     } catch (error) {
       this.handlePrismaError(error, 'Reorder Products');
@@ -609,6 +658,9 @@ export class ProductService {
   }
 
   async getFeaturedProducts() {
+    const hit = this.getCached<any>('featured');
+    if (hit) return hit;
+
     const products = await this.prisma.product.findMany({
       where: { isFeatured: true, status: 'active' },
       take: 10,
@@ -646,7 +698,7 @@ export class ProductService {
       },
     });
 
-    return {
+    const featuredRes = {
       success: true,
       data: products.map(p => ({ 
         ...p, 
@@ -654,9 +706,15 @@ export class ProductService {
         isActive: true 
       })),
     };
+    this.setCached('featured', featuredRes);
+    return featuredRes;
   }
 
   async getProductById(idOrSlug: string) {
+    const cacheKey = `one:${idOrSlug}`;
+    const hit = this.getCached<any>(cacheKey);
+    if (hit) return hit;
+
     const isId = /^\d+$/.test(idOrSlug);
     
     const product = await this.prisma.product.findUnique({
@@ -783,7 +841,7 @@ export class ProductService {
       }
     } catch (e) {}
 
-    return {
+    const productPayload = {
       ...product,
       configuredImageCount,
       images: this.parseJson(product.images),
@@ -792,6 +850,8 @@ export class ProductService {
       reviewCount: stats._count.rating || 0,
       soldCount: (product as any).orderItems?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0,
     };
+    this.setCached(cacheKey, productPayload);
+    return productPayload;
   }
 
   async getProductsByCategory(categorySlug: string, filters: any = {}) {
@@ -1196,6 +1256,7 @@ export class ProductService {
           }
         }
 
+        this.invalidateProductCache();
         return { ...product, images: this.parseJson(product.images) };
       });
     } catch (error) {
@@ -1208,6 +1269,7 @@ export class ProductService {
       await this.prisma.product.delete({
         where: { id: Number(id) },
       });
+      this.invalidateProductCache();
       return { success: true };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1282,6 +1344,7 @@ export class ProductService {
         where: { id: Number(id) },
         data,
       });
+      this.invalidateProductCache();
       return { success: true, data: variant };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -1400,6 +1463,7 @@ export class ProductService {
       }),
     ]);
 
+    this.invalidateProductCache();
     return { success: true, data: updated };
   }
 

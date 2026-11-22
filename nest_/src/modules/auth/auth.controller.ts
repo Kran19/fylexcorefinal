@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UnauthorizedException, Get, Req, UseGuards, Logger } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UnauthorizedException, HttpException, Get, Req, UseGuards, Logger } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -6,6 +6,38 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { LoginOtpDto } from './dto/login-otp.dto';
 import { ChangeAdminPasswordDto } from './dto/change-admin-password.dto';
+
+interface LoginAttemptRecord {
+  failures: number;
+  lockedUntil: number;
+}
+
+const loginLockoutStore = new Map<string, LoginAttemptRecord>();
+
+function assertNotLockedOut(key: string) {
+  const rec = loginLockoutStore.get(key);
+  if (rec && Date.now() < rec.lockedUntil) {
+    const mins = Math.max(1, Math.ceil((rec.lockedUntil - Date.now()) / 60_000));
+    throw new HttpException(
+      `Account temporarily locked due to repeated failed login attempts. Try again in ${mins} minute(s).`,
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
+  }
+}
+
+function recordAuthFailure(key: string, maxFailures = 8) {
+  const rec = loginLockoutStore.get(key) || { failures: 0, lockedUntil: 0 };
+  rec.failures += 1;
+  if (rec.failures >= maxFailures) {
+    rec.lockedUntil = Date.now() + 15 * 60_000;
+    rec.failures = 0;
+  }
+  loginLockoutStore.set(key, rec);
+}
+
+function clearAuthFailures(key: string) {
+  loginLockoutStore.delete(key);
+}
 
 @Controller('auth')
 export class AuthController {
@@ -24,14 +56,18 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
+    const lockKey = `cust:${String(loginDto?.email || '').toLowerCase().trim()}`;
+    assertNotLockedOut(lockKey);
     this.logger.log(`Customer login attempt for email=${loginDto.email}`);
     const user = await this.authService.validateCustomer(loginDto.email, loginDto.password);
 
     if (!user) {
+      recordAuthFailure(lockKey, 8);
       this.logger.warn(`Customer login failed for email=${loginDto.email}`);
       throw new UnauthorizedException('Invalid customer credentials');
     }
 
+    clearAuthFailures(lockKey);
     const result = await this.authService.login(user);
     this.logger.log(`Customer login success for email=${loginDto.email}`);
     return result;
@@ -89,10 +125,18 @@ export class AuthController {
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
   async adminLogin(@Body() loginDto: LoginDto) {
+    const lockKey = `admin:${String(loginDto?.email || '').toLowerCase().trim()}`;
+    assertNotLockedOut(lockKey);
     this.logger.log(`Admin login attempt for email=${loginDto.email}`);
-    const result = await this.authService.validateAdmin(loginDto);
-    this.logger.log(`Admin login success for email=${loginDto.email}`);
-    return result;
+    try {
+      const result = await this.authService.validateAdmin(loginDto);
+      clearAuthFailures(lockKey);
+      this.logger.log(`Admin login success for email=${loginDto.email}`);
+      return result;
+    } catch (err) {
+      recordAuthFailure(lockKey, 6);
+      throw err;
+    }
   }
 
   @Post('admin/change-password')

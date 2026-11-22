@@ -90,36 +90,10 @@ log_success "Updated to commit: $LATEST_COMMIT"
 log_info "Building and starting Docker containers..."
 $COMPOSE_CMD up -d --build
 
-# 6. Verify container status
+# 6. Verify container status (Note: fylex-backend auto-heals & compresses >5.5MB videos asynchronously in background on boot)
 log_info "Checking container status..."
 sleep 3
 $COMPOSE_CMD ps
-
-# 6b. Optimize oversized hero/legacy videos & extract lightweight WebP poster inside fylex-backend (idempotent)
-log_info "Checking storefront video assets for WebP poster & faststart H.264 compression..."
-docker exec fylex-backend sh -c '
-  mkdir -p /app/uploads/archive /app/uploads/optimized/video
-  HERO_VID="/app/uploads/optimized/video/938_1787214131119_optimized.mp4"
-  HERO_POSTER="/app/uploads/optimized/hero-poster.webp"
-  if [ -f "$HERO_VID" ]; then
-    if [ ! -f "$HERO_POSTER" ]; then
-      ffmpeg -y -ss 0.1 -i "$HERO_VID" -frames:v 1 -vf "scale=1280:-2" -c:v libwebp -quality 78 "$HERO_POSTER" </dev/null >/dev/null 2>&1 || true
-    fi
-    VID_SIZE=$(wc -c < "$HERO_VID" 2>/dev/null || echo 0)
-    if [ "$VID_SIZE" -gt 6000000 ]; then
-      cp -n "$HERO_VID" "/app/uploads/archive/938_1787214131119_pre_pagespeed.mp4" || true
-      ffmpeg -y -i "$HERO_VID" -vf "scale='\''min(1280,iw)'\'':-2" -c:v libx264 -crf 28 -preset fast -pix_fmt yuv420p -movflags +faststart -an "${HERO_VID}.tmp.mp4" </dev/null >/dev/null 2>&1 && mv "${HERO_VID}.tmp.mp4" "$HERO_VID" || rm -f "${HERO_VID}.tmp.mp4"
-    fi
-  fi
-  for MOV_FILE in /app/uploads/*.MOV /app/uploads/*.mov; do
-    [ -e "$MOV_FILE" ] || continue
-    BASE_NAME=$(basename "$MOV_FILE")
-    MP4_OUT="/app/uploads/optimized/video/${BASE_NAME%.*}.mp4"
-    if [ ! -f "$MP4_OUT" ]; then
-      ffmpeg -y -i "$MOV_FILE" -vf "scale='\''min(1280,iw)'\'':-2" -c:v libx264 -crf 28 -preset fast -pix_fmt yuv420p -movflags +faststart -an "$MP4_OUT" </dev/null >/dev/null 2>&1 || rm -f "$MP4_OUT"
-    fi
-  done
-' || log_warn "Video optimization step skipped (non-fatal)."
 
 # 7. Cleanup dangling docker images to prevent VPS disk bloat
 log_info "Pruning dangling Docker images to free disk space..."
