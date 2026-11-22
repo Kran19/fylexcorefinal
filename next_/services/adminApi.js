@@ -323,6 +323,7 @@ export const deletePolicy = (id) => request(`/policies/${id}`, { method: 'DELETE
 // ─── Speed Booster & Media Optimization ───────────────────────
 export const getOptimizationStats = () => get('/media/optimization/dashboard');
 export const getOptimizationAssets = (sort = 'size_desc') => get(`/media/optimization/list?sort=${sort}`);
+export const getOptimizationJobStatus = () => get('/media/optimization/job-status');
 export const optimizeSingleAsset = (id, data) => post(`/media/optimization/process/${id}`, data);
 export const acceptOptimizationVariant = (id) => post(`/media/optimization/accept/${id}`);
 export const rejectOptimizationVariant = (id) => post(`/media/optimization/reject/${id}`);

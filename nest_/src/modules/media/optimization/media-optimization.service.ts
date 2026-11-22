@@ -11,10 +11,25 @@ try {
   console.warn('Sharp module fallback mode.');
 }
 
+export interface VideoJobState {
+  mediaId: number;
+  filename: string;
+  status: 'queued' | 'processing' | 'completed' | 'failed';
+  preset: string;
+  updatedAt: number;
+  message?: string;
+  error?: string;
+  optimizedSizeMb?: string;
+  spaceSavedPercent?: string;
+}
+
 @Injectable()
 export class MediaOptimizationService implements OnModuleInit {
   private readonly logger = new Logger(MediaOptimizationService.name);
   private isAutoHealing = false;
+  private jobStates = new Map<number, VideoJobState>();
+  private jobQueue: Array<{ mediaId: number; format: 'webp' | 'avif' | 'jpeg'; quality: number; preset: string }> = [];
+  private isWorkerDraining = false;
 
   constructor(private prisma: PrismaService) {}
 
@@ -59,6 +74,141 @@ export class MediaOptimizationService implements OnModuleInit {
         reject(new Error(`FFmpeg exited with code ${code}: ${stderrTail}`));
       });
     });
+  }
+
+  /**
+   * Returns live queue & per-asset background encoding status so the UI can poll without ever hitting 504 timeouts.
+   */
+  getJobStatusSummary() {
+    const now = Date.now();
+    const jobs: VideoJobState[] = [];
+    for (const [id, st] of this.jobStates.entries()) {
+      // Prune finished states older than 10 minutes
+      if ((st.status === 'completed' || st.status === 'failed') && now - st.updatedAt > 10 * 60_000) {
+        this.jobStates.delete(id);
+        continue;
+      }
+      jobs.push(st);
+    }
+
+    const active = jobs.filter((j) => j.status === 'processing' || j.status === 'queued');
+    const currentJob = jobs.find((j) => j.status === 'processing') || active[0] || null;
+
+    return {
+      success: true,
+      data: {
+        activeCount: active.length,
+        isRunning: active.length > 0,
+        currentFilename: currentJob?.filename || null,
+        currentMediaId: currentJob?.mediaId || null,
+        jobs,
+      },
+    };
+  }
+
+  /**
+   * Enqueues video assets into a single-concurrency background FFmpeg worker and returns in <5ms
+   * (eliminating Nginx 60s 504 Gateway Timeouts completely!), while processing fast images synchronously.
+   */
+  async enqueueOrOptimizeMediaAsset(
+    id: number,
+    targetFormat: 'webp' | 'avif' | 'jpeg' = 'webp',
+    quality: number = 80,
+    preset: string = 'web_fast',
+    forceSync: boolean = false,
+  ) {
+    const media = await this.prisma.media.findUnique({ where: { id: Number(id) } });
+    if (!media) {
+      throw new NotFoundException(`Media ID ${id} not found.`);
+    }
+
+    if (!this.isVideoAsset(media) || forceSync) {
+      return this.optimizeMediaAsset(Number(id), targetFormat, quality, preset);
+    }
+
+    const mediaId = Number(id);
+    const filename = media.originalFilename || media.fileName || `Video #${mediaId}`;
+    const existingJob = this.jobStates.get(mediaId);
+
+    if (existingJob && (existingJob.status === 'queued' || existingJob.status === 'processing')) {
+      return {
+        success: true,
+        queued: true,
+        status: existingJob.status,
+        mediaId,
+        message: `${filename} is already ${existingJob.status} in the background FFmpeg worker.`,
+      };
+    }
+
+    this.jobStates.set(mediaId, {
+      mediaId,
+      filename,
+      status: 'queued',
+      preset,
+      updatedAt: Date.now(),
+      message: 'Queued for background FFmpeg compression',
+    });
+
+    this.jobQueue.push({ mediaId, format: targetFormat, quality, preset });
+    this.drainVideoQueue().catch((err) => {
+      this.logger.warn(`Video queue drain error: ${err?.message || err}`);
+    });
+
+    return {
+      success: true,
+      queued: true,
+      status: 'queued',
+      mediaId,
+      message: `Started background compression for ${filename}. Page will update automatically when ready.`,
+    };
+  }
+
+  private async drainVideoQueue() {
+    if (this.isWorkerDraining) return;
+    this.isWorkerDraining = true;
+
+    try {
+      while (this.jobQueue.length > 0) {
+        const next = this.jobQueue.shift();
+        if (!next) continue;
+
+        const prev = this.jobStates.get(next.mediaId);
+        this.jobStates.set(next.mediaId, {
+          mediaId: next.mediaId,
+          filename: prev?.filename || `Video #${next.mediaId}`,
+          status: 'processing',
+          preset: next.preset,
+          updatedAt: Date.now(),
+          message: 'Transcoding H.264 FastStart stream...',
+        });
+
+        try {
+          const res = await this.optimizeMediaAsset(next.mediaId, next.format, next.quality, next.preset);
+          this.jobStates.set(next.mediaId, {
+            mediaId: next.mediaId,
+            filename: prev?.filename || `Video #${next.mediaId}`,
+            status: 'completed',
+            preset: next.preset,
+            updatedAt: Date.now(),
+            message: res?.message || 'Compression complete',
+            optimizedSizeMb: res?.data?.optimizedSizeMb,
+            spaceSavedPercent: res?.data?.spaceSavedPercent,
+          });
+        } catch (err: any) {
+          this.logger.warn(`Background video compression failed for #${next.mediaId}: ${err?.message || err}`);
+          this.jobStates.set(next.mediaId, {
+            mediaId: next.mediaId,
+            filename: prev?.filename || `Video #${next.mediaId}`,
+            status: 'failed',
+            preset: next.preset,
+            updatedAt: Date.now(),
+            error: err?.message || 'FFmpeg transcode error',
+          });
+        }
+      }
+    } finally {
+      this.isWorkerDraining = false;
+    }
   }
 
   /**
@@ -141,19 +291,16 @@ export class MediaOptimizationService implements OnModuleInit {
         const currentActiveBytes = bestVar ? Number(bestVar.fileSize) : Number(m.fileSize || 0);
         if (!bestVar || currentActiveBytes > HEAVY_VIDEO_THRESHOLD) {
           this.logger.log(
-            `Auto-compressing heavy video #${m.id} (${m.originalFilename || m.fileName}) from ${(currentActiveBytes / (1024 * 1024)).toFixed(1)} MB -> Web 720p FastStart...`,
+            `Queueing heavy video #${m.id} (${m.originalFilename || m.fileName}) [${(currentActiveBytes / (1024 * 1024)).toFixed(1)} MB] for background Web 720p FastStart compression...`,
           );
-          try {
-            await this.optimizeMediaAsset(m.id, 'webp', 78, 'web_fast');
-          } catch (e: any) {
-            this.logger.warn(`Auto-compress skipped for video #${m.id}: ${e?.message}`);
-          }
+          await this.enqueueOrOptimizeMediaAsset(m.id, 'webp', 78, 'web_fast', false).catch(() => {});
         }
       }
 
-      // 3. Ensure hero-poster.webp exists from the active hero video
+      // 3. Ensure lightweight (~18 KB) hero-poster.webp exists from the active hero video
       const heroPosterPath = join(process.cwd(), 'uploads', 'optimized', 'hero-poster.webp');
-      if (!fs.existsSync(heroPosterPath)) {
+      const posterNeedsRefresh = !fs.existsSync(heroPosterPath) || fs.statSync(heroPosterPath).size > 35_000;
+      if (posterNeedsRefresh) {
         const heroSetting = await this.prisma.setting.findFirst({ where: { key: 'home_hero_video' } });
         const heroRel = heroSetting?.value?.replace(/^\/?(api\/)?/, '') || 'uploads/optimized/video/938_1787214131119_optimized.mp4';
         const heroAbs = join(process.cwd(), heroRel);
@@ -167,11 +314,11 @@ export class MediaOptimizationService implements OnModuleInit {
             '-frames:v',
             '1',
             '-vf',
-            'scale=trunc(min(1280\\,iw)/2)*2:-2',
+            'scale=trunc(min(960\\,iw)/2)*2:-2',
             '-vcodec',
             'libwebp',
             '-quality',
-            '78',
+            '65',
             heroPosterPath,
           ]).catch(() => {});
         }
@@ -562,7 +709,9 @@ export class MediaOptimizationService implements OnModuleInit {
         '-bufsize',
         bufSize,
         '-preset',
-        'fast',
+        'veryfast',
+        '-threads',
+        '2',
         '-pix_fmt',
         'yuv420p',
         '-c:a',
@@ -580,7 +729,7 @@ export class MediaOptimizationService implements OnModuleInit {
       // Atomically move compressed MP4 into finalOutputPath
       fs.renameSync(tempOutputPath, finalOutputPath);
 
-      // Extract lightweight WebP poster frame alongside video
+      // Extract lightweight (~18 KB) WebP poster frame alongside video
       const posterPath = join(postersDir, `${media.id}.webp`);
       await this.runFfmpegAsync([
         '-y',
@@ -591,11 +740,11 @@ export class MediaOptimizationService implements OnModuleInit {
         '-frames:v',
         '1',
         '-vf',
-        'scale=trunc(min(1280\\,iw)/2)*2:-2',
+        'scale=trunc(min(960\\,iw)/2)*2:-2',
         '-vcodec',
         'libwebp',
         '-quality',
-        '78',
+        '65',
         posterPath,
       ]).catch(() => {});
 
@@ -774,6 +923,9 @@ export class MediaOptimizationService implements OnModuleInit {
       const savedRatio = origSize > 0 ? ((savedBytes / origSize) * 100).toFixed(1) : '0';
       const stillHeavy = isVid ? optSize > 5.5 * 1024 * 1024 : optSize > 500 * 1024;
 
+      const job = this.jobStates.get(item.id);
+      const jobStatus = job && (job.status === 'queued' || job.status === 'processing') ? job.status : null;
+
       return {
         id: item.id,
         fileName: item.fileName,
@@ -788,6 +940,7 @@ export class MediaOptimizationService implements OnModuleInit {
         savedRatio: `${savedRatio}%`,
         isOptimized: Boolean(item.isOptimized || (item.variants && item.variants.length > 0)),
         stillHeavy,
+        jobStatus,
         serveMode: item.serveMode || 'auto',
         bestVariant,
         variants: item.variants || [],

@@ -27,14 +27,26 @@ export class MediaOptimizationController {
     return this.service.getOptimizationLogs();
   }
 
+  @Get('job-status')
+  async getJobStatus() {
+    return this.service.getJobStatusSummary();
+  }
+
   @Post('process/:id')
   async optimizeSingle(
     @Param('id') id: string,
     @Body('format') format: 'webp' | 'avif' | 'jpeg' = 'webp',
     @Body('quality') quality: number = 80,
     @Body('preset') preset: string = 'web_fast',
+    @Body('sync') sync: boolean = false,
   ) {
-    return this.service.optimizeMediaAsset(Number(id), format, Number(quality) || 80, preset || 'web_fast');
+    return this.service.enqueueOrOptimizeMediaAsset(
+      Number(id),
+      format,
+      Number(quality) || 80,
+      preset || 'web_fast',
+      Boolean(sync),
+    );
   }
 
   @Post('accept/:id')

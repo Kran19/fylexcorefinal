@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import * as api from "@/services/adminApi";
 import { getFileUrl } from "@/lib/utils";
 import Swal from "sweetalert2";
@@ -12,46 +12,58 @@ function formatMb(bytes) {
 
 export default function VideoOptimizationSuite() {
   const [preset, setPreset] = useState("web_fast");
-  const [quality, setQuality] = useState(78);
+  const [quality] = useState(78);
   const [videos, setVideos] = useState([]);
+  const [worker, setWorker] = useState({ activeCount: 0, isRunning: false, currentFilename: null });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [batchBusy, setBatchBusy] = useState(false);
 
-  const loadVideos = async () => {
-    setLoading(true);
+  const loadVideos = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const res = await api.getOptimizationAssets("size_desc");
+      const [res, jobRes] = await Promise.all([
+        api.getOptimizationAssets("size_desc"),
+        api.getOptimizationJobStatus(),
+      ]);
       const all = Array.isArray(res?.data) ? res.data : [];
       const onlyVids = all.filter((a) => {
         const name = String(a.originalFilename || a.fileName || a.filePath || "").toLowerCase();
         return a.fileType === "video" || a.mimeType?.includes("video") || /\.(mp4|mov|webm|m4v|avi)$/i.test(name);
       });
       setVideos(onlyVids);
+      if (jobRes?.data) setWorker(jobRes.data);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadVideos();
-  }, []);
+    loadVideos(false);
+  }, [loadVideos]);
+
+  useEffect(() => {
+    if (!worker?.isRunning) return;
+    const t = setInterval(() => loadVideos(true), 3000);
+    return () => clearInterval(t);
+  }, [worker?.isRunning, worker?.activeCount, loadVideos]);
 
   const transcodeOne = async (video) => {
     setBusyId(video.id);
     try {
       const res = await api.optimizeSingleAsset(video.id, { format: "webp", quality, preset });
       if (res?.error) throw new Error(res.error);
-      await loadVideos();
+      await loadVideos(true);
+      setWorker((prev) => ({ ...prev, isRunning: true, activeCount: Math.max(1, prev.activeCount) }));
       Swal.fire({
-        icon: "success",
-        title: "Video Transcoded!",
-        text: res?.message || `Compressed ${video.originalFilename || video.fileName} with FastStart headers.`,
-        timer: 2500,
+        icon: "info",
+        title: "Queued in Background Worker!",
+        text: `${video.originalFilename || video.fileName} is now encoding on the server without timeout limits. Watch its size turn green automatically!`,
+        timer: 3000,
         showConfirmButton: false,
       });
     } catch (e) {
-      Swal.fire({ icon: "error", title: "Transcode Error", text: e?.message || "FFmpeg transcode failed." });
+      Swal.fire({ icon: "error", title: "Transcode Notice", text: e?.message || "Could not queue video." });
     } finally {
       setBusyId(null);
     }
@@ -65,17 +77,18 @@ export default function VideoOptimizationSuite() {
     setBatchBusy(true);
     let ok = 0;
     for (const v of list) {
-      setBusyId(v.id);
       const res = await api.optimizeSingleAsset(v.id, { format: "webp", quality, preset });
       if (!res?.error) ok++;
     }
-    setBusyId(null);
     setBatchBusy(false);
-    await loadVideos();
+    await loadVideos(true);
+    setWorker((prev) => ({ ...prev, isRunning: true, activeCount: Math.max(1, prev.activeCount) }));
     Swal.fire({
-      icon: "success",
-      title: "All Videos Compressed!",
-      text: `Transcoded ${ok} video(s) with H.264 FastStart streaming headers.`,
+      icon: "info",
+      title: `Queued ${ok} Video(s)!`,
+      text: "FFmpeg is compressing your videos sequentially in the background. Status updates automatically every 3 seconds.",
+      timer: 3200,
+      showConfirmButton: false,
     });
   };
 
@@ -84,6 +97,30 @@ export default function VideoOptimizationSuite() {
 
   return (
     <div style={{ padding: "8px 4px 40px", maxWidth: "1360px", margin: "0 auto", fontFamily: "var(--font-inter), Inter, sans-serif" }}>
+      {worker?.isRunning && (
+        <div
+          style={{
+            background: "linear-gradient(90deg, #1e1b4b 0%, #312e81 100%)",
+            color: "#ffffff",
+            borderRadius: "14px",
+            padding: "14px 20px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "13.5px" }}>
+            <i className="fas fa-circle-notch fa-spin" style={{ fontSize: "18px", color: "#38bdf8" }} />
+            <span>
+              <strong>FFmpeg Worker Active ({worker.activeCount} remaining):</strong> Encoding{" "}
+              <strong>{worker.currentFilename || "video"}</strong> — auto-refreshing every 3s!
+            </span>
+          </div>
+        </div>
+      )}
+
       <div
         style={{
           background: "#ffffff",
@@ -106,30 +143,29 @@ export default function VideoOptimizationSuite() {
             Storefront Video Transcoder &amp; FastStart Optimizer
           </h1>
           <p style={{ fontSize: "13px", color: "#475569", margin: 0 }}>
-            Converts raw 4K/MOV/MP4 uploads (50–250 MB) into ~2–3.5 MB H.264 FastStart streams with automatic WebP poster frames.
+            Converts raw 4K/MOV/MP4 uploads (50–250 MB) into ~2–3.5 MB H.264 FastStart streams via a zero-timeout background queue.
           </p>
         </div>
 
         <button
           type="button"
-          disabled={batchBusy || videos.length === 0}
+          disabled={batchBusy || worker?.isRunning || videos.length === 0}
           onClick={transcodeAllHeavy}
           style={{
-            background: "#4f46e5",
+            background: worker?.isRunning ? "#312e81" : "#4f46e5",
             color: "#ffffff",
             fontWeight: 700,
             fontSize: "13px",
             padding: "11px 20px",
             borderRadius: "10px",
             border: "none",
-            cursor: batchBusy ? "wait" : "pointer",
+            cursor: batchBusy || worker?.isRunning ? "default" : "pointer",
           }}
         >
-          {batchBusy ? "⚡ Transcoding Videos..." : "🎬 Transcode All Heavy Videos Now"}
+          {worker?.isRunning ? `⚡ Encoding (${worker.activeCount} Left)...` : "🎬 Transcode All Heavy Videos Now"}
         </button>
       </div>
 
-      {/* Live Video KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px", marginBottom: "20px" }}>
         <div style={{ background: "#ffffff", borderRadius: "14px", padding: "18px 20px", border: "1px solid #e2e8f0" }}>
           <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>Uploaded Videos</span>
@@ -160,7 +196,6 @@ export default function VideoOptimizationSuite() {
         </div>
       </div>
 
-      {/* Live Videos Table */}
       <div style={{ background: "#ffffff", borderRadius: "16px", border: "1px solid #e2e8f0", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
           <thead>
@@ -184,9 +219,10 @@ export default function VideoOptimizationSuite() {
             ) : (
               videos.map((v) => {
                 const heavy = Number(v.optimizedSize || v.originalSize || 0) > 5.5 * 1024 * 1024;
-                const isRunning = busyId === v.id;
+                const jobStatus = v.jobStatus;
+                const isRunning = busyId === v.id || Boolean(jobStatus);
                 return (
-                  <tr key={v.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <tr key={v.id} style={{ borderBottom: "1px solid #f1f5f9", background: jobStatus ? "#eef2ff" : "#ffffff" }}>
                     <td style={{ padding: "14px 20px" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <video
@@ -206,8 +242,8 @@ export default function VideoOptimizationSuite() {
                       </div>
                     </td>
                     <td style={{ padding: "14px 16px", fontSize: "13px", fontWeight: 700, color: "#64748b" }}>{formatMb(v.originalSize)}</td>
-                    <td style={{ padding: "14px 16px", fontSize: "13.5px", fontWeight: 800, color: heavy ? "#dc2626" : "#16a34a" }}>
-                      {v.isOptimized ? formatMb(v.optimizedSize) : "Uncompressed"}
+                    <td style={{ padding: "14px 16px", fontSize: "13.5px", fontWeight: 800, color: jobStatus ? "#4f46e5" : heavy ? "#dc2626" : "#16a34a" }}>
+                      {jobStatus ? (jobStatus === "processing" ? "⚡ Encoding..." : "Queued") : v.isOptimized ? formatMb(v.optimizedSize) : "Uncompressed"}
                     </td>
                     <td style={{ padding: "14px 16px", fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>{v.savedRatio}</td>
                     <td style={{ padding: "14px 20px", textAlign: "right" }}>
@@ -216,17 +252,17 @@ export default function VideoOptimizationSuite() {
                         disabled={isRunning || batchBusy}
                         onClick={() => transcodeOne(v)}
                         style={{
-                          background: heavy ? "#dc2626" : "#4f46e5",
-                          color: "#ffffff",
+                          background: jobStatus ? "#e0e7ff" : heavy ? "#dc2626" : "#4f46e5",
+                          color: jobStatus ? "#3730a3" : "#ffffff",
                           border: "none",
                           padding: "8px 14px",
                           borderRadius: "8px",
                           fontSize: "12px",
                           fontWeight: 700,
-                          cursor: isRunning ? "wait" : "pointer",
+                          cursor: isRunning ? "default" : "pointer",
                         }}
                       >
-                        {isRunning ? "Transcoding..." : heavy ? "⚡ Shrink (<3.5 MB)" : "Re-Transcode"}
+                        {jobStatus === "processing" ? "Encoding..." : jobStatus === "queued" ? "Queued" : busyId === v.id ? "Starting..." : heavy ? "⚡ Shrink (<3.5 MB)" : "Re-Transcode"}
                       </button>
                     </td>
                   </tr>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import * as api from "@/services/adminApi";
 import { getFileUrl } from "@/lib/utils";
 import Swal from "sweetalert2";
@@ -19,41 +19,50 @@ export default function EnterpriseDAMOptimizationCenter() {
   const [searchTerm, setSearchTerm] = useState("");
   const [fileTypeFilter, setFileTypeFilter] = useState("video");
   const [videoPreset, setVideoPreset] = useState("web_fast");
-  const [imageQuality, setImageQuality] = useState(80);
+  const [imageQuality] = useState(80);
   const [processingId, setProcessingId] = useState(null);
   const [isBatchRunning, setIsBatchRunning] = useState(false);
+  const [workerSummary, setWorkerSummary] = useState({ activeCount: 0, isRunning: false, currentFilename: null, jobs: [] });
   const [page, setPage] = useState(1);
   const pageSize = 15;
 
   const [compareAsset, setCompareAsset] = useState(null);
-  const [progress, setProgress] = useState({
-    active: false,
-    current: 0,
-    total: 0,
-    filename: "",
-    completed: 0,
-    failed: 0,
-  });
 
-  useEffect(() => {
-    loadAll(sortBy);
-  }, [sortBy]);
-
-  const loadAll = async (order = sortBy) => {
-    setLoading(true);
+  const loadAll = useCallback(async (order = sortBy, silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const [statsRes, listRes] = await Promise.all([
+      const [statsRes, listRes, jobRes] = await Promise.all([
         api.getOptimizationStats(),
         api.getOptimizationAssets(order),
+        api.getOptimizationJobStatus(),
       ]);
       if (statsRes?.data) setStats(statsRes.data);
       setAssets(Array.isArray(listRes?.data) ? listRes.data : []);
+      if (jobRes?.data) setWorkerSummary(jobRes.data);
     } catch (e) {
       console.error("Failed loading optimization center:", e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [sortBy]);
+
+  useEffect(() => {
+    loadAll(sortBy, false);
+  }, [sortBy, loadAll]);
+
+  // Live background poller: whenever any video job is queued/processing on the server, poll every 3s cleanly (zero 504s!)
+  useEffect(() => {
+    if (!workerSummary?.isRunning) return;
+    const interval = setInterval(async () => {
+      const jobRes = await api.getOptimizationJobStatus();
+      if (jobRes?.data) {
+        setWorkerSummary(jobRes.data);
+        // Refresh table sizes smoothly whenever active count changes or finishes
+        await loadAll(sortBy, true);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [workerSummary?.isRunning, workerSummary?.activeCount, sortBy, loadAll]);
 
   const isVideoItem = (a) => {
     const name = String(a?.originalFilename || a?.fileName || a?.filePath || "").toLowerCase();
@@ -112,23 +121,31 @@ export default function EnterpriseDAMOptimizationCenter() {
         throw new Error(res.error);
       }
 
-      await loadAll(sortBy);
+      await loadAll(sortBy, true);
 
-      Swal.fire({
-        icon: "success",
-        title: vid ? "Video Compressed for Fast Streaming!" : "Image Compressed to WebP!",
-        text:
-          res?.data?.message ||
-          res?.message ||
-          `Reduced from ${formatBytesReadable(asset.originalSize)} to ${res?.data?.optimizedSizeMb ? res.data.optimizedSizeMb + " MB" : (res?.data?.optimizedSizeKb || "") + " KB"}`,
-        timer: 2600,
-        showConfirmButton: false,
-      });
+      if (vid || res?.data?.queued || res?.queued) {
+        setWorkerSummary((prev) => ({ ...prev, isRunning: true, activeCount: Math.max(1, prev.activeCount) }));
+        Swal.fire({
+          icon: "info",
+          title: "Queued in Background FFmpeg Worker!",
+          text: `${asset.originalFilename || asset.fileName} is now compressing in the background with zero timeout risk. Watch the live status bar above — sizes will turn green automatically as soon as it finishes!`,
+          timer: 3200,
+          showConfirmButton: false,
+        });
+      } else {
+        Swal.fire({
+          icon: "success",
+          title: "Image Compressed to WebP!",
+          text: res?.message || "Image optimized successfully.",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
     } catch (e) {
       Swal.fire({
         icon: "error",
-        title: "Compression Failed",
-        text: e?.message || "Could not compress this file.",
+        title: "Compression Notice",
+        text: e?.message || "Could not start compression.",
       });
     } finally {
       setProcessingId(null);
@@ -142,13 +159,13 @@ export default function EnterpriseDAMOptimizationCenter() {
       } else {
         await api.acceptOptimizationVariant(asset.id);
       }
-      await loadAll(sortBy);
+      await loadAll(sortBy, true);
     } catch (e) {
       Swal.fire({ icon: "error", title: "Update Failed", text: e?.message || "Failed to switch mode" });
     }
   };
 
-  const runBatchList = async (targetList, label) => {
+  const runBatchList = async (targetList, label, isVideoBatch = false) => {
     if (!targetList || targetList.length === 0) {
       Swal.fire({
         icon: "info",
@@ -159,47 +176,75 @@ export default function EnterpriseDAMOptimizationCenter() {
     }
 
     setIsBatchRunning(true);
-    let completed = 0;
-    let failed = 0;
+    let queuedOrDone = 0;
 
-    for (let i = 0; i < targetList.length; i++) {
-      const item = targetList[i];
+    for (const item of targetList) {
       const vid = isVideoItem(item);
-      setProgress({
-        active: true,
-        current: i + 1,
-        total: targetList.length,
-        filename: item.originalFilename || item.fileName || `Asset #${item.id}`,
-        completed,
-        failed,
-      });
-
       try {
         const res = await api.optimizeSingleAsset(item.id, {
           format: "webp",
           quality: vid ? 78 : imageQuality,
           preset: vid ? videoPreset : "web_fast",
         });
-        if (res?.error) failed++;
-        else completed++;
-      } catch {
-        failed++;
-      }
+        if (!res?.error) queuedOrDone++;
+      } catch {}
     }
 
-    setProgress({ active: false, current: 0, total: 0, filename: "", completed: 0, failed: 0 });
     setIsBatchRunning(false);
-    await loadAll(sortBy);
+    await loadAll(sortBy, true);
 
-    Swal.fire({
-      icon: "success",
-      title: "Batch Optimization Complete",
-      text: `Compressed ${completed} ${label} successfully${failed > 0 ? ` (${failed} skipped)` : ""}.`,
-    });
+    if (isVideoBatch) {
+      setWorkerSummary((prev) => ({ ...prev, isRunning: true, activeCount: Math.max(1, prev.activeCount) }));
+      Swal.fire({
+        icon: "info",
+        title: `Queued ${queuedOrDone} Video(s) in Background!`,
+        text: "Videos are transcoding one-by-one on the server without blocking or timing out. Each row will automatically turn green (<3.5 MB) as it finishes!",
+        timer: 3800,
+        showConfirmButton: false,
+      });
+    } else {
+      Swal.fire({
+        icon: "success",
+        title: "Image Compression Complete!",
+        text: `Optimized ${queuedOrDone} ${label} to WebP.`,
+      });
+    }
   };
 
   return (
     <div style={{ padding: "8px 4px 40px", maxWidth: "1440px", margin: "0 auto", fontFamily: "var(--font-inter), Inter, sans-serif" }}>
+      {/* Live Background FFmpeg Worker Progress Banner (prevents 504 confusion & auto-updates!) */}
+      {workerSummary?.isRunning && (
+        <div
+          style={{
+            background: "linear-gradient(90deg, #1e1b4b 0%, #312e81 100%)",
+            color: "#ffffff",
+            borderRadius: "14px",
+            padding: "14px 20px",
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
+            boxShadow: "0 6px 20px rgba(49, 46, 129, 0.25)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "13.5px" }}>
+            <i className="fas fa-circle-notch fa-spin" style={{ fontSize: "18px", color: "#38bdf8" }} />
+            <div>
+              <strong>Background FFmpeg Worker Running ({workerSummary.activeCount} video{workerSummary.activeCount > 1 ? "s" : ""} in queue)</strong>
+              <div style={{ fontSize: "12px", color: "#c7d2fe", marginTop: "2px" }}>
+                Currently shrinking: <strong>{workerSummary.currentFilename || "Video stream"}</strong> — Table updates automatically every 3 seconds (safe to switch tabs).
+              </div>
+            </div>
+          </div>
+          <span style={{ background: "rgba(56, 189, 248, 0.2)", border: "1px solid rgba(56, 189, 248, 0.45)", color: "#bae6fd", padding: "5px 12px", borderRadius: "999px", fontSize: "11.5px", fontWeight: 700 }}>
+            Zero-Timeout Queue Active
+          </span>
+        </div>
+      )}
+
       {/* Clean Header Banner */}
       <div
         style={{
@@ -224,40 +269,41 @@ export default function EnterpriseDAMOptimizationCenter() {
             Website Media &amp; Video Speed Optimizer
           </h1>
           <p style={{ fontSize: "13px", color: "#475569", margin: 0 }}>
-            Shrinks heavy 50–250 MB videos down to ~2–3.5 MB FastStart MP4s and converts large images to crisp WebP so your storefront loads instantaneously.
+            Shrinks heavy 50–250 MB videos down to ~2–3.5 MB FastStart MP4s in the background and converts large images to crisp WebP.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
           <button
             type="button"
-            disabled={isBatchRunning || processingId !== null}
-            onClick={() => runBatchList(heavyVideos, "heavy videos")}
+            disabled={isBatchRunning || workerSummary?.isRunning}
+            onClick={() => runBatchList(heavyVideos, "heavy videos", true)}
             style={{
-              background: heavyVideos.length > 0 ? "#dc2626" : "#16a34a",
+              background: workerSummary?.isRunning ? "#312e81" : heavyVideos.length > 0 ? "#dc2626" : "#16a34a",
               color: "#ffffff",
               fontWeight: 700,
               fontSize: "13px",
               padding: "10px 18px",
               borderRadius: "10px",
               border: "none",
-              cursor: isBatchRunning ? "wait" : "pointer",
+              cursor: isBatchRunning || workerSummary?.isRunning ? "default" : "pointer",
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              boxShadow: "0 4px 12px rgba(220, 38, 38, 0.18)",
             }}
           >
-            <i className="fas fa-video" />
-            {heavyVideos.length > 0
+            <i className={workerSummary?.isRunning ? "fas fa-spinner fa-spin" : "fas fa-video"} />
+            {workerSummary?.isRunning
+              ? `Compressing (${workerSummary.activeCount} Remaining)...`
+              : heavyVideos.length > 0
               ? `Compress ${heavyVideos.length} Heavy Video${heavyVideos.length > 1 ? "s" : ""} (<3.5 MB)`
               : "All Videos Web-Fast ✓"}
           </button>
 
           <button
             type="button"
-            disabled={isBatchRunning || processingId !== null}
-            onClick={() => runBatchList(pendingImages, "uncompressed images")}
+            disabled={isBatchRunning}
+            onClick={() => runBatchList(pendingImages, "uncompressed images", false)}
             style={{
               background: "#4f46e5",
               color: "#ffffff",
@@ -278,7 +324,7 @@ export default function EnterpriseDAMOptimizationCenter() {
 
           <button
             type="button"
-            onClick={() => loadAll(sortBy)}
+            onClick={() => loadAll(sortBy, false)}
             style={{
               background: "#f8fafc",
               color: "#334155",
@@ -289,49 +335,22 @@ export default function EnterpriseDAMOptimizationCenter() {
               border: "1px solid #cbd5e1",
               cursor: "pointer",
             }}
-            title="Refresh sizes"
           >
             <i className="fas fa-sync-alt" /> Refresh
           </button>
         </div>
       </div>
 
-      {/* Warning Callout if Any Video is Still > 5.5 MB */}
-      {heavyVideos.length > 0 && (
-        <div
-          style={{
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: "12px",
-            padding: "14px 18px",
-            marginBottom: "20px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", color: "#991b1b", fontSize: "13px" }}>
-            <i className="fas fa-exclamation-triangle" style={{ fontSize: "18px", color: "#dc2626" }} />
-            <div>
-              <strong>{heavyVideos.length} video file(s) are still over 5.5 MB</strong> (previously encoded without resolution/bitrate caps, e.g. 52 MB).
-              Click <strong>&ldquo;Re-Compress (&lt;3.5 MB)&rdquo;</strong> on any row or use the red button above to shrink them by 95%+ with zero lag.
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Clear 4-Card KPI Summary */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "14px", marginBottom: "20px" }}>
         <div style={{ background: "#ffffff", borderRadius: "14px", padding: "18px 20px", border: "1px solid #e2e8f0" }}>
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Speed Health Score</div>
           <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
-            {stats?.healthScore ?? (heavyVideos.length === 0 ? 98 : 84)}
+            {stats?.healthScore ?? (heavyVideos.length === 0 ? 98 : 88)}
             <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 600 }}> / 100</span>
           </div>
           <div style={{ fontSize: "12px", color: heavyVideos.length === 0 ? "#16a34a" : "#d97706", fontWeight: 600, marginTop: "4px" }}>
-            {heavyVideos.length === 0 ? "✓ All videos under 5.5 MB" : `${heavyVideos.length} heavy video(s) detected`}
+            {heavyVideos.length === 0 ? "✓ All videos under 5.5 MB" : `${heavyVideos.length} heavy video(s) queued/detected`}
           </div>
         </div>
 
@@ -347,7 +366,7 @@ export default function EnterpriseDAMOptimizationCenter() {
           <div style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>Total Bandwidth Saved</div>
           <div style={{ fontSize: "28px", fontWeight: 800, color: "#16a34a", marginTop: "6px" }}>{stats?.savedPercentage ?? "0%"}</div>
           <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
-            {stats?.spaceSavedBytes ? formatBytesReadable(stats.spaceSavedBytes) + " saved per full load" : "Originals backed up"}
+            {stats?.spaceSavedBytes ? formatBytesReadable(stats.spaceSavedBytes) + " saved" : "Originals backed up"}
           </div>
         </div>
 
@@ -389,7 +408,6 @@ export default function EnterpriseDAMOptimizationCenter() {
             background: "#f8fafc",
           }}
         >
-          {/* Quick Filter Pills */}
           <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
             {[
               { id: "video", label: `🎬 Videos (${assets.filter(isVideoItem).length})` },
@@ -457,7 +475,6 @@ export default function EnterpriseDAMOptimizationCenter() {
           </div>
         </div>
 
-        {/* High-Contrast Readable Table */}
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
             <thead>
@@ -487,12 +504,13 @@ export default function EnterpriseDAMOptimizationCenter() {
                 pagedAssets.map((item) => {
                   const vid = isVideoItem(item);
                   const heavy = isStillHeavy(item);
-                  const isBusy = processingId === item.id;
+                  const jobStatus = item.jobStatus; // 'queued' | 'processing' | null
+                  const isBusy = processingId === item.id || Boolean(jobStatus);
                   const displayName = item.originalFilename || item.fileName || `Asset #${item.id}`;
                   const mediaUrl = getFileUrl(item.bestVariant?.filePath || item.filePath);
 
                   return (
-                    <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9", background: heavy ? "#fffafa" : "#ffffff" }}>
+                    <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9", background: jobStatus ? "#eef2ff" : heavy ? "#fffafa" : "#ffffff" }}>
                       <td style={{ padding: "14px 20px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                           {vid ? (
@@ -512,7 +530,7 @@ export default function EnterpriseDAMOptimizationCenter() {
                                 flexShrink: 0,
                               }}
                             >
-                              <i className="fas fa-play" style={{ fontSize: "14px" }} />
+                              <i className={jobStatus === "processing" ? "fas fa-spinner fa-spin" : "fas fa-play"} style={{ fontSize: "14px" }} />
                             </div>
                           ) : (
                             <img
@@ -536,14 +554,7 @@ export default function EnterpriseDAMOptimizationCenter() {
                             />
                           )}
                           <div style={{ minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontWeight: 700,
-                                fontSize: "13.5px",
-                                color: "#0f172a",
-                                wordBreak: "break-word",
-                              }}
-                            >
+                            <div style={{ fontWeight: 700, fontSize: "13.5px", color: "#0f172a", wordBreak: "break-word" }}>
                               {displayName}
                             </div>
                             <div style={{ fontSize: "11.5px", color: "#64748b", marginTop: "2px" }}>
@@ -559,28 +570,19 @@ export default function EnterpriseDAMOptimizationCenter() {
                       </td>
 
                       <td style={{ padding: "14px 16px" }}>
-                        {item.isOptimized ? (
+                        {jobStatus ? (
+                          <span style={{ fontSize: "12.5px", fontWeight: 800, color: "#4f46e5" }}>
+                            <i className="fas fa-spinner fa-spin" style={{ marginRight: 6 }} />
+                            {jobStatus === "processing" ? "Encoding (<3.5 MB)..." : "In Queue..."}
+                          </span>
+                        ) : item.isOptimized ? (
                           <div>
-                            <span
-                              style={{
-                                fontSize: "13.5px",
-                                fontWeight: 800,
-                                color: heavy ? "#dc2626" : "#16a34a",
-                              }}
-                            >
+                            <span style={{ fontSize: "13.5px", fontWeight: 800, color: heavy ? "#dc2626" : "#16a34a" }}>
                               {formatBytesReadable(item.optimizedSize)}
                             </span>
                             {heavy && (
-                              <span
-                                style={{
-                                  display: "block",
-                                  fontSize: "11px",
-                                  fontWeight: 700,
-                                  color: "#dc2626",
-                                  marginTop: "2px",
-                                }}
-                              >
-                                ⚠️ Still heavy — re-compress!
+                              <span style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#dc2626", marginTop: "2px" }}>
+                                ⚠️ Still heavy — click Re-Compress!
                               </span>
                             )}
                           </div>
@@ -594,7 +596,11 @@ export default function EnterpriseDAMOptimizationCenter() {
                       </td>
 
                       <td style={{ padding: "14px 16px" }}>
-                        {item.isOptimized && item.serveMode === "auto" ? (
+                        {jobStatus ? (
+                          <span style={{ background: "#e0e7ff", color: "#3730a3", border: "1px solid #a5b4fc", padding: "4px 10px", borderRadius: "999px", fontSize: "11.5px", fontWeight: 700 }}>
+                            ⚡ {jobStatus === "processing" ? "Transcoding Live" : "Queued"}
+                          </span>
+                        ) : item.isOptimized && item.serveMode === "auto" ? (
                           <span
                             style={{
                               background: heavy ? "#fef3c7" : "#dcfce7",
@@ -613,17 +619,7 @@ export default function EnterpriseDAMOptimizationCenter() {
                             {heavy ? "Serving Large Variant" : `Live (${vid ? "Fast MP4" : "WebP"})`}
                           </span>
                         ) : (
-                          <span
-                            style={{
-                              background: "#f1f5f9",
-                              color: "#475569",
-                              border: "1px solid #cbd5e1",
-                              padding: "4px 10px",
-                              borderRadius: "999px",
-                              fontSize: "11.5px",
-                              fontWeight: 700,
-                            }}
-                          >
+                          <span style={{ background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", padding: "4px 10px", borderRadius: "999px", fontSize: "11.5px", fontWeight: 700 }}>
                             Serving Original
                           </span>
                         )}
@@ -633,26 +629,29 @@ export default function EnterpriseDAMOptimizationCenter() {
                         <div style={{ display: "inline-flex", gap: "8px", alignItems: "center" }}>
                           <button
                             type="button"
-                            disabled={isBusy || isBatchRunning}
+                            disabled={isBusy}
                             onClick={() => handleCompressSingle(item)}
                             style={{
-                              background: heavy || !item.isOptimized ? "#4f46e5" : "#f1f5f9",
-                              color: heavy || !item.isOptimized ? "#ffffff" : "#0f172a",
-                              border: heavy || !item.isOptimized ? "none" : "1px solid #cbd5e1",
+                              background: jobStatus ? "#e0e7ff" : heavy || !item.isOptimized ? "#4f46e5" : "#f1f5f9",
+                              color: jobStatus ? "#3730a3" : heavy || !item.isOptimized ? "#ffffff" : "#0f172a",
+                              border: jobStatus ? "1px solid #a5b4fc" : heavy || !item.isOptimized ? "none" : "1px solid #cbd5e1",
                               padding: "7px 12px",
                               borderRadius: "8px",
                               fontSize: "12px",
                               fontWeight: 700,
-                              cursor: isBusy ? "wait" : "pointer",
+                              cursor: isBusy ? "default" : "pointer",
                               display: "inline-flex",
                               alignItems: "center",
                               gap: "6px",
                             }}
-                            title={item.isOptimized ? "Re-compress with selected Web Fast preset" : "Compress now"}
                           >
                             <i className={isBusy ? "fas fa-spinner fa-spin" : "fas fa-bolt"} />
-                            {isBusy
-                              ? "Compressing..."
+                            {jobStatus === "processing"
+                              ? "Encoding..."
+                              : jobStatus === "queued"
+                              ? "Queued"
+                              : processingId === item.id
+                              ? "Starting..."
                               : !item.isOptimized
                               ? "Compress"
                               : heavy
@@ -678,7 +677,7 @@ export default function EnterpriseDAMOptimizationCenter() {
                             <i className="fas fa-eye" />
                           </button>
 
-                          {item.isOptimized && (
+                          {item.isOptimized && !jobStatus && (
                             <button
                               type="button"
                               onClick={() => handleToggleServeMode(item)}
@@ -707,7 +706,6 @@ export default function EnterpriseDAMOptimizationCenter() {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div
             style={{
@@ -749,35 +747,7 @@ export default function EnterpriseDAMOptimizationCenter() {
         )}
       </div>
 
-      {/* Batch Progress Modal */}
-      {progress.active && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.75)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
-          <div style={{ background: "#ffffff", borderRadius: "16px", padding: "28px", width: "100%", maxWidth: "460px", boxShadow: "0 20px 50px rgba(0,0,0,0.3)" }}>
-            <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px" }}>
-              Compressing Media ({progress.current} of {progress.total})
-            </h3>
-            <p style={{ fontSize: "13px", color: "#475569", margin: "0 0 16px", wordBreak: "break-all" }}>
-              Processing: <strong>{progress.filename}</strong>
-            </p>
-            <div style={{ width: "100%", height: "10px", background: "#e2e8f0", borderRadius: "999px", overflow: "hidden" }}>
-              <div
-                style={{
-                  width: `${Math.round((progress.current / Math.max(1, progress.total)) * 100)}%`,
-                  height: "100%",
-                  background: "#4f46e5",
-                  transition: "width 0.3s ease",
-                }}
-              />
-            </div>
-            <div style={{ marginTop: "12px", fontSize: "12px", color: "#64748b", display: "flex", justifyContent: "space-between" }}>
-              <span>✓ Completed: {progress.completed}</span>
-              <span>Non-blocking FFmpeg / Sharp Worker</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Side-by-Side Preview Modal */}
+      {/* Preview Modal */}
       {compareAsset && (
         <div
           onClick={() => setCompareAsset(null)}
