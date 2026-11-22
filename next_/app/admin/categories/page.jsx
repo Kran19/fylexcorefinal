@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import 'tabulator-tables/dist/css/tabulator.min.css';
@@ -143,4 +143,10 @@ const CategoriesPage = () => {
   );
 };
 
-export default CategoriesPage;
+export default function CategoriesPageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <CategoriesPage />
+    </Suspense>
+  );
+}

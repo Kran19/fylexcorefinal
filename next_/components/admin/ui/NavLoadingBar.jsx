@@ -1,5 +1,5 @@
-﻿ "use client";
-import React, { useState, useEffect } from "react";
+﻿"use client";
+import React, { useState, useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
@@ -7,7 +7,7 @@ import { usePathname, useSearchParams } from "next/navigation";
  * Provides immediate visual feedback during route changes in the Admin Panel.
  * Listens to pathname & searchParams changes to clear loading indicator.
  */
-const NavLoadingBar = () => {
+const NavLoadingBarInner = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -103,6 +103,12 @@ const NavLoadingBar = () => {
     </div>
   );
 };
+
+const NavLoadingBar = () => (
+  <Suspense fallback={null}>
+    <NavLoadingBarInner />
+  </Suspense>
+);
 
 export default NavLoadingBar;
 

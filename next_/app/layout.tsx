@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 import GlobalLayout from "@/components/GlobalLayout";
 
-const geistSans = { variable: "--font-geist-sans" };
-const geistMono = { variable: "--font-geist-mono" };
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "FYLEX Premium Watches",
@@ -25,37 +30,53 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       <head>
         <link rel="icon" type="image/png" href="/fylex_logo_name.png" />
         <link rel="shortcut icon" href="/fylex_logo_name.png" />
         <link rel="apple-touch-icon" href="/fylex_logo_name.png" />
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-        />
-        {/* Meta Pixel Code */}
+        <link rel="preconnect" href="https://fonts.cdnfonts.com" crossOrigin="anonymous" />
+        {/* Non-blocking display font stylesheets (Monument Extended & Futura PT) */}
         <Script
-          id="fb-pixel"
+          id="fylex-display-fonts"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
-              !function(f,b,e,v,n,t,s)
-              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              (function(){
+                var urls = [
+                  'https://fonts.cdnfonts.com/css/monument-extended',
+                  'https://fonts.cdnfonts.com/css/futura-pt'
+                ];
+                urls.forEach(function(u){
+                  var l = document.createElement('link');
+                  l.rel = 'stylesheet';
+                  l.href = u;
+                  document.head.appendChild(l);
+                });
+              })();
+            `,
+          }}
+        />
+        {/* Meta Pixel Queue Stub (0B external blocking) + Lazy fbevents.js */}
+        <Script
+          id="fb-pixel-queue"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(f){if(f.fbq)return;var n=f.fbq=function(){n.callMethod?
               n.callMethod.apply(n,arguments):n.queue.push(arguments)};
               if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-              n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];
-              s.parentNode.insertBefore(t,s)}(window, document,'script',
-              'https://connect.facebook.net/en_US/fbevents.js');
+              n.queue=[];}(window);
               fbq('init', '1035472045697724');
               fbq('track', 'PageView');
             `,
           }}
+        />
+        <Script
+          id="fb-pixel-sdk"
+          src="https://connect.facebook.net/en_US/fbevents.js"
+          strategy="lazyOnload"
         />
         <noscript>
           <img
@@ -67,12 +88,6 @@ export default function RootLayout({
           />
         </noscript>
         {/* End Meta Pixel Code */}
-        {/* Preload Razorpay 1-Click Magic Checkout SDK */}
-        <Script
-          id="razorpay-magic-sdk"
-          src="https://checkout.razorpay.com/v1/magic-checkout.js"
-          strategy="lazyOnload"
-        />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>

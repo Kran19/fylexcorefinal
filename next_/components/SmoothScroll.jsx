@@ -1,5 +1,5 @@
 "use client";
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 import Lenis from 'lenis';
@@ -10,16 +10,18 @@ gsap.registerPlugin(ScrollTrigger);
 
 /**
  * SmoothScroll component integrates Lenis for global smooth scrolling.
- * It is conditionally disabled on the Home page ('/') as requested.
+ * Disabled on the Home page ('/') and coarse-pointer touch devices to preserve native 60fps scroll & zero TBT.
  */
 const SmoothScroll = ({ children }) => {
   const location = usePathname();
   const lenisRef = useRef(null);
 
-  useLayoutEffect(() => {
-    // Initialize Lenis for all pages
+  useEffect(() => {
+    if (location === '/') return;
+    if (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches) {
+      return;
+    }
 
-    // Initialize Lenis for other pages
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),

@@ -7,6 +7,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [guestId, setGuestId] = useState(null);
+  const [hasExistingGuestSession, setHasExistingGuestSession] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const clearSession = useCallback(() => {
@@ -55,7 +56,9 @@ export const AuthProvider = ({ children }) => {
     void bootstrap();
 
     let gid = localStorage.getItem('fylexx_guest_id');
-    if (!gid) {
+    if (gid) {
+      setHasExistingGuestSession(true);
+    } else {
       gid = `gst_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
       localStorage.setItem('fylexx_guest_id', gid);
     }
@@ -121,8 +124,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, guestId, login, loginOtp, logout, signup, loading, verifySession, setSession: persistSession, isAuthenticated: !!user }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, guestId, hasExistingGuestSession, login, loginOtp, logout, signup, loading, verifySession, setSession: persistSession, isAuthenticated: !!user }}>
+      {children}
     </AuthContext.Provider>
   );
 };

@@ -1,5 +1,6 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { useToast } from './ToastContext';
 import * as api from '@/services/adminApi';
 
@@ -17,6 +18,9 @@ export const useAdminData = () => useContext(AdminDataContext);
  */
 export const AdminDataProvider = ({ children }) => {
   const toast = useToast();
+  const pathname = usePathname() || '';
+  const isAdminRoute = pathname.startsWith('/admin') && !pathname.startsWith('/admin/login');
+  const hasBootstrappedRef = useRef(false);
 
   // Per-entity state
   const [data, setData] = useState({
@@ -94,8 +98,11 @@ export const AdminDataProvider = ({ children }) => {
     setLoading(prev => ({ ...prev, [entity]: false }));
   }, []);
 
-  // ─── Initial data load ──────────────────────────────────────
+  // ─── Initial data load (ONLY on /admin routes so storefront never fires 22 admin requests) ───
   useEffect(() => {
+    if (!isAdminRoute || hasBootstrappedRef.current) return;
+    hasBootstrappedRef.current = true;
+
     fetchEntity('products', api.getProducts);
     fetchEntity('categories', api.getCategories);
 
@@ -119,7 +126,7 @@ export const AdminDataProvider = ({ children }) => {
     fetchEntity('shippingMethods', api.getShippingMethods);
     fetchEntity('faqs', api.getFaqs);
     fetchEntity('productCareSteps', api.getProductCareStepsGrouped);
-  }, [fetchEntity]);
+  }, [isAdminRoute, fetchEntity]);
 
   // ─── Memoized API Actions ──────────────────────────────────
   const memoizedRefetch = React.useMemo(() => ({

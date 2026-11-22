@@ -65,7 +65,6 @@ export function getFileUrl(path) {
     if (isLocalHost) {
       return `http://${window.location.hostname}:5000/api/uploads/${fileKey}`;
     }
-    return `${window.location.protocol}//${window.location.host}/api/uploads/${fileKey}`;
   }
 
   return `/api/uploads/${fileKey}`;

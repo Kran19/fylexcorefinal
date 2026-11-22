@@ -132,7 +132,7 @@ const Footer = () => {
           font-size: 0.68rem;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          color: #666666;
+          color: #999B98;
         }
 
         .footer-contact-item:hover {
@@ -160,7 +160,7 @@ const Footer = () => {
           font-size: 0.65rem;
           letter-spacing: 0.15em;
           text-transform: uppercase;
-          color: #777777;
+          color: #999B98;
           margin: 0;
         }
 
@@ -192,8 +192,8 @@ const Footer = () => {
         <div className="footer-grid-v1">
           {/* Brand & Entity Info */}
           <div className="footer-brand-v1">
-            <Link href="/" className="footer-logo-v1">
-              <img src="/fylex_logo_name.png" alt="Fylex" />
+            <Link href="/" className="footer-logo-v1" aria-label="FYLEX Home">
+              <img src="/fylex_logo_name.webp" alt="FYLEX" width={913} height={110} loading="lazy" decoding="async" />
             </Link>
             {/* <p className="footer-legal-ownership">
               Fylex Watches and Radhika Times is a brand owned and operated by <strong>Rajeshbhai Mohanbhai Limbasiya</strong>.
@@ -218,7 +218,7 @@ const Footer = () => {
 
           {/* Contact & Support */}
           <div className="footer-col-section">
-            <h4 className="footer-col-heading">Support & Inquiries</h4>
+            <h3 className="footer-col-heading">Support & Inquiries</h3>
             <ul className="footer-nav-list">
               <li>
                 <a href="https://wa.me/919664653623" target="_blank" rel="noreferrer" className="footer-contact-item">
@@ -242,7 +242,7 @@ const Footer = () => {
 
           {/* Legal & Policies */}
           <div className="footer-col-section">
-            <h4 className="footer-col-heading">Legal & Policies</h4>
+            <h3 className="footer-col-heading">Legal & Policies</h3>
             <ul className="footer-nav-list">
               <li>
                 <Link href="/policies/privacy" className="footer-link-v1">Privacy Policy</Link>

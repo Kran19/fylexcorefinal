@@ -345,7 +345,14 @@ const Header = () => {
 
       <header className={`nav-v1 ${isScrolled ? 'scrolled' : ''} ${scrollDir === 'down' && isScrolled && !isMenuOpen ? 'hidden' : ''}`}>
         <div className="header-left">
-          <button className="nav-trigger" onClick={toggleMenu} title={isMenuOpen ? 'Close' : 'Menu'}>
+          <button
+            type="button"
+            className="nav-trigger"
+            onClick={toggleMenu}
+            title={isMenuOpen ? 'Close' : 'Menu'}
+            aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={isMenuOpen}
+          >
             <div className={`hamburger-v1 ${isMenuOpen ? 'open' : ''}`}>
               <span></span>
               <span></span>
@@ -354,20 +361,20 @@ const Header = () => {
         </div>
 
         <div className="header-middle">
-          <Link className="logo-v1" href="/" onClick={closeAll}>
-            <img src="/fylex_logo.png" alt="FYLEX" />
+          <Link className="logo-v1" href="/" onClick={closeAll} aria-label="FYLEX Home">
+            <img src="/fylex_logo.webp" alt="FYLEX" width={260} height={144} decoding="async" />
           </Link>
         </div>
 
         <div className="header-right">
-          <Link href="/wishlist" className="header-right-item" onClick={closeAll} title="Wishlist">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <Link href="/wishlist" className="header-right-item" onClick={closeAll} title="Wishlist" aria-label="Wishlist">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78v0z" />
             </svg>
             {mounted && wishlistCount > 0 ? <div className="badge-v1">{wishlistCount}</div> : null}
           </Link>
-          <Link href="/cart" className="header-right-item" onClick={closeAll} title="Cart">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <Link href="/cart" className="header-right-item" onClick={closeAll} title="Cart" aria-label="Shopping Cart">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>

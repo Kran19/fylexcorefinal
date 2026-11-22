@@ -34,10 +34,20 @@ async function bootstrap() {
 
   // Automatic Production Media Optimization Interceptor Middleware
   app.use(['/uploads', '/api/uploads'], async (req: any, res: any, next: any) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000');
     const reqPath = req.path;
     if (reqPath && typeof reqPath === 'string' && !reqPath.includes('/optimized/') && !reqPath.includes('/archive/')) {
       const fileName = reqPath.replace(/^\/+/, '').split('/').pop();
       if (fileName) {
+        // Fast path for raw .MOV videos: serve compressed H.264 .mp4 sibling if available
+        if (/\.mov$/i.test(fileName)) {
+          const mp4Base = fileName.replace(/\.mov$/i, '.mp4');
+          const optVideoCandidate = join(process.cwd(), 'uploads/optimized/video', mp4Base);
+          if (fs.existsSync(optVideoCandidate)) {
+            res.type('video/mp4');
+            return res.sendFile(optVideoCandidate);
+          }
+        }
         try {
           const prismaService = app.get(PrismaService);
           const media = await prismaService.media.findFirst({
@@ -81,12 +91,14 @@ async function bootstrap() {
     next();
   });
   
-  // Serve static uploads under both /uploads/ and /api/uploads/ with automatic fallback
+  // Serve static uploads under both /uploads/ and /api/uploads/ with 30-day browser cache
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
+    maxAge: '30d',
   });
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/api/uploads/',
+    maxAge: '30d',
   });
 
   // Fallback for missing local upload files

@@ -32,12 +32,13 @@ export function DesignSystemProvider({ children }) {
   const [productOverrides, setProductOverrides] = useState(null);
   const [isReady, setIsReady] = useState(false);
 
-  // 1. Fetch live settings from API on load
+  // 1. Fetch live settings from API during browser idle time so critical LCP bandwidth stays uncontested
   useEffect(() => {
+    let cancelled = false;
     const fetchSettings = async () => {
       try {
         const response = await settingsService.getSettings();
-        if (response?.data) {
+        if (!cancelled && response?.data) {
           const dsSettings = response.data.filter(s => s.group === 'design_system');
           if (dsSettings.length > 0) {
             const dbTheme = {};
@@ -48,13 +49,24 @@ export function DesignSystemProvider({ children }) {
           }
         }
       } catch (err) {
-        console.error("Failed to load design system settings:", err);
+        // Fallback silently to defaultTheme
       } finally {
-        setIsReady(true);
+        if (!cancelled) setIsReady(true);
       }
     };
-    
-    fetchSettings();
+
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(() => { if (!cancelled) fetchSettings(); }, { timeout: 2000 });
+      } else {
+        fetchSettings();
+      }
+    }, 1200);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, []);
 
   // 2. Listen for 'postMessage' events from the Admin Panel for Live Preview

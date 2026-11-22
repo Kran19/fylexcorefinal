@@ -1,1457 +1,162 @@
-// @ts-nocheck
-"use client";
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import Link from 'next/link';
-import { fetchFeaturedProducts } from '@/lib/api';
-import cmsService from '@/services/cms.service';
-import { getFileUrl, getDisplayData } from '@/lib/utils';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Pagination } from 'swiper/modules';
-import 'swiper/css';
-import 'swiper/css/pagination';
-import productsData from '@/data/productsData';
-import { ProductSkeleton } from '@/components/ui/Skeleton';
+import React from 'react';
+import HomeClient, { HomeInitialData } from '@/components/HomeClient';
 
-gsap.registerPlugin(ScrollTrigger);
+export const dynamic = 'force-dynamic';
 
-const injectLogo = (text: string) => {
-  if (!text) return '';
-  return text.replace(/(Fylexx|Fylex|FYLEXX|FYLEX)/gi, '<img src="/fylex_logo_name.png" alt="$1" style="height: 0.7em; display: inline-block; vertical-align: middle; transform: translateY(-0.1em); filter: invert(1);" />');
-};
+// Lightweight 20-second in-memory SSR cache so repeat visits & PageSpeed runs respond in <15ms TTFB
+let cachedHomePayload: HomeInitialData | null = null;
+let cachedAtMs = 0;
+const SSR_CACHE_TTL_MS = 20_000;
 
-// ─── DATA ────────────────────────────────────────────────────────────────────
-
-const features = [
-  { title: "Carbon Fiber Strap", desc: "Lightweight, tactical, and incredibly durable.", img: "https://www.breitling.com/api/image-proxy/images.ctfassets.net/11yu5j5b14kx/7uDlGm6A8qj2hAOE9D2rgO/bf0a4269ce2d43f76081c48eeed2bfcf/SOH_men_hero_mobile.jpg?im=RegionOfInterestCrop%2Cwidth%3D2001%2Cheight%3D1501%2CregionOfInterest%3D%28400%2C250%29&format=auto" },
-  { title: "Kinetic Charging", desc: "Self-winding movement powered by your motion.", img: "https://images.unsplash.com/photo-1517502474097-f9b30659dadb?auto=format&fit=crop&q=80&w=1920" },
-  { title: "Modular Calibre", desc: "Precisely engineered parts for easy maintenance.", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4Lf9fG1n5h47n0yh_hy_OhrM-6kODEl5Z3w&s" },
-  { title: "Super-LumiNova®", desc: "Exceptional glow-in-the-dark visibility.", img: "https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?auto=format&fit=crop&q=80&w=1920" },
-  { title: "Deployment Clasp", desc: "Maximum security with a single click.", img: "https://images.unsplash.com/photo-1585123334904-845d60e97b29?auto=format&fit=crop&q=80&w=1920" },
-  { title: "Precision Rating", desc: "Certified chronometer for absolute accuracy.", img: "https://cdn.shopify.com/s/files/1/0699/3156/5284/files/longines.png?v=1727954696" },
-  { title: "Shock Resistant", desc: "Designed to withstand extreme g-forces.", img: "https://images.unsplash.com/photo-1517502474097-f9b30659dadb?auto=format&fit=crop&q=80&w=1920" },
-  { title: "Grand Complications", desc: "A masterpiece of mechanical complexity.", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4Lf9fG1n5h47n0yh_hy_OhrM-6kODEl5Z3w&s" },
-  { title: "Heritage Registry", desc: "Protect your investment with unique serial IDs.", img: "https://images.unsplash.com/photo-1585123334904-845d60e97b29?auto=format&fit=crop&q=80&w=1920" },
-  { title: "Ceramic Bezel", desc: "Scratch-resistant finish that never fades.", img: "https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?auto=format&fit=crop&q=80&w=1920" },
-  { title: "Dual Time Zone", desc: "Effortless GMT function for the global traveler.", img: "https://www.breitling.com/api/image-proxy/images.ctfassets.net/11yu5j5b14kx/7uDlGm6A8qj2hAOE9D2rgO/bf0a4269ce2d43f76081c48eeed2bfcf/SOH_men_hero_mobile.jpg?im=RegionOfInterestCrop%2Cwidth%3D2001%2Cheight%3D1501%2CregionOfInterest%3D%28400%2C250%29&format=auto" },
-  { title: "Master Chronometer", desc: "Exceeding the highest standards of horology.", img: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4Lf9fG1n5h47n0yh_hy_OhrM-6kODEl5Z3w&s" },
-  { title: "Sapphire Crystal", desc: "Ultra-clear, AR-coated for perfect legibility.", img: "https://cdn.shopify.com/s/files/1/0699/3156/5284/files/longines.png?v=1727954696" },
-  { title: "Power Reserve", desc: "Extended energy stored for every journey.", img: "https://images.unsplash.com/photo-1517502474097-f9b30659dadb?auto=format&fit=crop&q=80&w=1920" },
-  { title: "Signature Crown", desc: "The final touch of master craftsmanship.", img: "https://www.breitling.com/api/image-proxy/images.ctfassets.net/11yu5j5b14kx/7uDlGm6A8qj2hAOE9D2rgO/bf0a4269ce2d43f76081c48eeed2bfcf/SOH_men_hero_mobile.jpg?im=RegionOfInterestCrop%2Cwidth%3D2001%2Cheight%3D1501%2CregionOfInterest%3D%28400%2C250%29&format=auto" }
-];
-
-const gallery = [
-  { src: "https://www.breitling.com/api/image-proxy/images.ctfassets.net/11yu5j5b14kx/7uDlGm6A8qj2hAOE9D2rgO/bf0a4269ce2d43f76081c48eeed2bfcf/SOH_men_hero_mobile.jpg?im=RegionOfInterestCrop%2Cwidth%3D2001%2Cheight%3D1501%2CregionOfInterest%3D%28400%2C250%29&format=auto" },
-  { src: "https://images.unsplash.com/photo-1517502474097-f9b30659dadb?auto=format&fit=crop&q=80&w=1920" },
-  { src: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4Lf9fG1n5h47n0yh_hy_OhrM-6kODEl5Z3w&s" },
-  { src: "https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?auto=format&fit=crop&q=80&w=1920" },
-  { src: "https://zimsonwatches.com/cdn/shop/articles/Rado_2.png?v=1715152502&width=1100" },
-  { src: "https://www.breitling.com/api/image-proxy/images.ctfassets.net/11yu5j5b14kx/7uDlGm6A8qj2hAOE9D2rgO/bf0a4269ce2d43f76081c48eeed2bfcf/SOH_men_hero_mobile.jpg?im=RegionOfInterestCrop%2Cwidth%3D2001%2Cheight%3D1501%2CregionOfInterest%3D%28400%2C250%29&format=auto" },
-  { src: "https://images.unsplash.com/photo-1517502474097-f9b30659dadb?auto=format&fit=crop&q=80&w=1920" },
-  { src: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4Lf9fG1n5h47n0yh_hy_OhrM-6kODEl5Z3w&s" },
-  { src: "https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?auto=format&fit=crop&q=80&w=1920" },
-  { src: "https://zimsonwatches.com/cdn/shop/articles/Rado_2.png?v=1715152502&width=1100" },
-  { src: "https://www.breitling.com/api/image-proxy/images.ctfassets.net/11yu5j5b14kx/7uDlGm6A8qj2hAOE9D2rgO/bf0a4269ce2d43f76081c48eeed2bfcf/SOH_men_hero_mobile.jpg?im=RegionOfInterestCrop%2Cwidth%3D2001%2Cheight%3D1501%2CregionOfInterest%3D%28400%2C250%29&format=auto" },
-  { src: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4Lf9fG1n5h47n0yh_hy_OhrM-6kODEl5Z3w&s" },
-  { src: "https://images.unsplash.com/photo-1517502474097-f9b30659dadb?auto=format&fit=crop&q=80&w=1920" },
-  { src: "https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?auto=format&fit=crop&q=80&w=1920" },
-  { src: "https://zimsonwatches.com/cdn/shop/articles/Rado_2.png?v=1715152502&width=1100" },
-  { src: "https://www.breitling.com/api/image-proxy/images.ctfassets.net/11yu5j5b14kx/7uDlGm6A8qj2hAOE9D2rgO/bf0a4269ce2d43f76081c48eeed2bfcf/SOH_men_hero_mobile.jpg?im=RegionOfInterestCrop%2Cwidth%3D2001%2Cheight%3D1501%2CregionOfInterest%3D%28400%2C250%29&format=auto" },
-  { src: "https://images.unsplash.com/photo-1517502474097-f9b30659dadb?auto=format&fit=crop&q=80&w=1920" },
-  { src: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS4Lf9fG1n5h47n0yh_hy_OhrM-6kODEl5Z3w&s" },
-  { src: "https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?auto=format&fit=crop&q=80&w=1920" },
-  { src: "https://zimsonwatches.com/cdn/shop/articles/Rado_2.png?v=1715152502&width=1100" },
-  { src: "https://www.breitling.com/api/image-proxy/images.ctfassets.net/11yu5j5b14kx/7uDlGm6A8qj2hAOE9D2rgO/bf0a4269ce2d43f76081c48eeed2bfcf/SOH_men_hero_mobile.jpg?im=RegionOfInterestCrop%2Cwidth%3D2001%2Cheight%3D1501%2CregionOfInterest%3D%28400%2C250%29&format=auto" },
-  { src: "https://images.unsplash.com/photo-1517502474097-f9b30659dadb?auto=format&fit=crop&q=80&w=1920" }
-];
-
-// ─── DATA ────────────────────────────────────────────────────────────────────
-
-// ─── GALLERY HELPERS ─────────────────────────────────────────────────────────
-
-function buildGalleryColumns(items: any[]) {
-  const cols = [];
-  let idx = 0;
-  let big = true;
-  while (idx < items.length) {
-    const size = big ? 3 : 2;
-    const col = items.slice(idx, idx + size);
-    if (col.length) cols.push(col);
-    idx += size;
-    big = !big;
+function normalizeFileUrl(path: any): string {
+  if (!path) return '';
+  if (typeof path === 'object') {
+    const m = path.media || path;
+    path = m?.url || m?.filePath || m?.path || m?.fileName || '';
   }
-  return cols;
+  if (typeof path !== 'string') return '';
+  const clean = path.trim();
+  if (!clean) return '';
+  if (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('data:')) {
+    if (clean.includes('/uploads/')) {
+      return '/api/' + clean.slice(clean.indexOf('/uploads/') + 1);
+    }
+    return clean;
+  }
+  if (clean.startsWith('/assets/') || clean.startsWith('/watch/')) return clean;
+  const key = clean.replace(/^\/+/, '').replace(/^(api\/)?uploads\//, '');
+  return `/api/uploads/${key}`;
 }
 
-// ─── GALLERY CAROUSEL COMPONENT ──────────────────────────────────────────────
+async function fetchJsonFast(baseUrl: string, endpoint: string): Promise<any | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 900);
+  try {
+    const res = await fetch(`${baseUrl}${endpoint}`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data ?? json;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-const GalleryCarousel = ({ items }: { items?: any[] }) => {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const posRef = useRef<number>(0);
-  const velRef = useRef<number>(0);
-  const isDragging = useRef<boolean>(false);
-  const dragStartX = useRef<number>(0);
-  const dragStartPos = useRef<number>(0);
-  const lastDragX = useRef<number>(0);
-  const lastDragTime = useRef<number>(0);
-  const halfWidthRef = useRef<number>(0);
-  const AUTO_SPEED = 0.6; // px per frame
-
-  // Measure half-width after render
-  useEffect(() => {
-    const measure = () => {
-      if (trackRef.current) {
-        halfWidthRef.current = trackRef.current.scrollWidth / 2;
-      }
-    };
-    // Two rAFs to ensure layout is complete
-    requestAnimationFrame(() => requestAnimationFrame(measure));
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
-
-  // RAF animation loop
-  const tick = useCallback(() => {
-    const half = halfWidthRef.current;
-
-    if (!isDragging.current) {
-      velRef.current *= 0.92;
-      if (Math.abs(velRef.current) < 0.05) velRef.current = 0;
-    }
-
-    posRef.current -= (AUTO_SPEED + Math.max(0, velRef.current));
-
-    // Seamless loop reset
-    if (half > 0 && Math.abs(posRef.current) >= half) {
-      posRef.current += half;
-    }
-
-    if (trackRef.current) {
-      trackRef.current.style.transform = `translate3d(${posRef.current}px, 0, 0)`;
-    }
-
-    rafRef.current = requestAnimationFrame(tick);
-  }, []);
-
-  useEffect(() => {
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, [tick]);
-
-  // Pointer handlers
-  const onPointerDown = useCallback((e: React.PointerEvent | React.TouchEvent | any) => {
-    isDragging.current = true;
-    const clientX = 'clientX' in e ? e.clientX : (e as React.TouchEvent).touches?.[0]?.clientX ?? 0;
-    dragStartX.current = clientX;
-    dragStartPos.current = posRef.current;
-    lastDragX.current = clientX;
-    lastDragTime.current = performance.now();
-    velRef.current = 0;
-    if ((e as React.PointerEvent).pointerId != null) {
-      (trackRef.current as any)?.setPointerCapture?.((e as React.PointerEvent).pointerId);
-    }
-  }, []);
-
-  const onPointerMove = useCallback((e: React.PointerEvent | React.TouchEvent | any) => {
-    if (!isDragging.current) return;
-    const clientX = 'clientX' in e ? e.clientX : (e as React.TouchEvent).touches?.[0]?.clientX ?? 0;
-    const delta = clientX - dragStartX.current;
-
-    // Left-only drag: clamp to negative delta
-    const clampedDelta = Math.min(0, delta);
-    posRef.current = dragStartPos.current + clampedDelta;
-
-    const now = performance.now();
-    const dt = now - lastDragTime.current;
-    if (dt > 0) {
-      // velocity in px/frame (positive = moving left)
-      const rawVel = ((lastDragX.current - clientX) / dt) * (1000 / 60);
-      velRef.current = Math.max(0, rawVel);
-    }
-    lastDragX.current = clientX;
-    lastDragTime.current = now;
-  }, []);
-
-  const onPointerUp = useCallback(() => {
-    isDragging.current = false;
-  }, []);
-
-  // Guarantee visual stability: pad items to complete the 3-2-3 grid pattern & cover screen width
-  const sourceItems = items && items.length > 0 ? items : gallery;
-  let safeItems = [...sourceItems];
-
-  // 1. Must be at least as long as the original gallery to overflow standard screens and prevent gaps
-  while (safeItems.length < gallery.length) {
-    safeItems = [...safeItems, ...sourceItems];
+async function getHomeInitialData(): Promise<HomeInitialData | undefined> {
+  const now = Date.now();
+  if (cachedHomePayload && now - cachedAtMs < SSR_CACHE_TTL_MS) {
+    return cachedHomePayload;
   }
 
-  // 2. Must end cleanly on a grid cycle (length % 5 === 0 or length % 5 === 3)
-  while (safeItems.length % 5 !== 0 && safeItems.length % 5 !== 3) {
-    safeItems.push(sourceItems[safeItems.length % sourceItems.length]);
+  const candidateBases = [
+    process.env.INTERNAL_API_URL,
+    'http://backend:3001/api',
+    'http://127.0.0.1:5000/api',
+    'http://127.0.0.1:3001/api',
+  ].filter(Boolean) as string[];
+
+  let activeBase: string | null = null;
+  let sectionsRaw: any = null;
+
+  for (const base of candidateBases) {
+    const probe = await fetchJsonFast(base, '/cms/home-sections');
+    if (probe !== null) {
+      activeBase = base;
+      sectionsRaw = probe;
+      break;
+    }
   }
 
-  const cols = buildGalleryColumns(safeItems);
-  // Duplicate for seamless infinite loop
-  const allCols = [...cols, ...cols];
+  if (!activeBase) {
+    return undefined;
+  }
 
-  return (
-    <div
-      className="fylex-gallery-viewport"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
-      onTouchStart={(e: any) => onPointerDown({ clientX: e.touches[0].clientX })}
-      onTouchMove={(e: any) => onPointerMove({ clientX: e.touches[0].clientX })}
-      onTouchEnd={onPointerUp}
-    >
-      <div className="fylex-gallery-track" ref={trackRef}>
-        {allCols.map((col, ci) => (
-          <div className="fylex-gallery-col" key={ci}>
-            {col.map((g, i) => (
-              <div
-                className="fylex-gallery-item"
-                key={i}
-              >
-                <img 
-                  src={g.src} 
-                  alt={g.alt || 'Atelier'} 
-                  draggable={false} 
-                  style={g.rotation ? {
-                    transform: `rotate(${g.rotation}deg) ${(g.rotation % 180 !== 0) ? 'scale(1.35)' : 'scale(1)'}`,
-                    transition: 'transform 0.3s ease'
-                  } : undefined}
-                  onError={(e: any) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&q=80&w=1920';
-                  }}
-                />
-                <div className="fylex-overlay" />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+  const [featuredRaw, bannersRaw, settingsRaw, communityRaw] = await Promise.all([
+    fetchJsonFast(activeBase, '/products/featured'),
+    fetchJsonFast(activeBase, '/cms/banners'),
+    fetchJsonFast(activeBase, '/system/settings'),
+    fetchJsonFast(activeBase, '/cms/community-images'),
+  ]);
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
-
-// ─── MAIN HOME COMPONENT ──────────────────────────────────────────────────────
-
-// getImageUrl removed in favor of centralized getFileUrl
-
-const Home = () => {
-  const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
-  const [loadingFeatured, setLoadingFeatured] = useState(true);
-  const [lightboxImg, setLightboxImg] = useState(null);
-  const [flipValue, setFlipValue] = useState(246308291);
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
-  );
-  const [videoSettings, setVideoSettings] = useState<any>({});
-  const [homeSections, setHomeSections] = useState<Record<string, boolean>>({});
-  const [loadingHomeSections, setLoadingHomeSections] = useState(true);
-  const [banners, setBanners] = useState<any[]>([]);
-  const [communityImages, setCommunityImages] = useState<any[]>([]);
-
-  useEffect(() => {
-    const loadData = async () => {
-      const res = await fetchFeaturedProducts();
-      const data = res.data || res || [];
-      setFeaturedProducts(Array.isArray(data) ? data : []);
-      setLoadingFeatured(false);
-
-      try {
-        const { data: bData } = await cmsService.getBanners();
-        setBanners(Array.isArray(bData) ? bData : []);
-      } catch (err) {
-        console.error("Failed to load banners", err);
-      }
-
-      try {
-        const rawRes: any = await cmsService.getVideoSettings();
-        const settingsList = Array.isArray(rawRes?.data)
-          ? rawRes.data
-          : (Array.isArray(rawRes?.data?.data) ? rawRes.data.data : (Array.isArray(rawRes) ? rawRes : []));
-
-        if (settingsList && settingsList.length > 0) {
-          const videoMap: Record<string, any> = {};
-          settingsList.forEach((s: any) => {
-            if (s.key) videoMap[s.key] = s.value;
-          });
-          setVideoSettings(videoMap);
-        }
-      } catch (err) {
-        console.error("Failed to load video settings", err);
-      }
-
-      try {
-        const res: any = await cmsService.getHomeSections();
-        const hSections = res?.data ?? res;
-        const sectionList = Array.isArray(hSections) ? hSections : (Array.isArray(hSections?.data) ? hSections.data : []);
-        if (sectionList && sectionList.length > 0) {
-          const sectionMap: Record<string, boolean> = {};
-          sectionList.forEach((s: any) => {
-            const isVis = s.isActive === true || s.isActive === 'true' || s.isActive === 1 || s.isActive === '1' || s.status === true || s.status === 'true' || s.status === 1 || s.status === '1';
-            sectionMap[s.type] = isVis;
-            if (s.type === 'home_s1' || s.type === 's1' || s.type === 'Section 1') sectionMap.s1 = isVis;
-            if (s.type === 'home_s2' || s.type === 's2' || s.type === 'Section 2') sectionMap.s2 = isVis;
-            if (s.type === 'home_s3' || s.type === 's3' || s.type === 'Section 3') sectionMap.s3 = isVis;
-            if (s.type === 'home_s4' || s.type === 's4' || s.type === 'Section 4') sectionMap.s4 = isVis;
-          });
-          setHomeSections(sectionMap);
-        } else {
-          // Default fallbacks if database homeSections is empty
-          setHomeSections({ s1: true, s2: true, s3: true, s4: true, featured: true, gallery: true });
-        }
-        setTimeout(() => ScrollTrigger.refresh(), 100);
-      } catch (err) {
-        console.error("Failed to load home sections", err);
-        setHomeSections({ s1: true, s2: true, s3: true, s4: true, featured: true, gallery: true });
-      } finally {
-        setLoadingHomeSections(false);
-      }
-
-      try {
-        const res = await cmsService.getCommunityImages();
-        const cImages = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-        if (cImages && cImages.length > 0) {
-          setCommunityImages(cImages.map((img: any) => ({
-            src: getFileUrl(img.image || img.imageUrl || img.image_url || img.url),
-            alt: img.title || 'The FYLEX World',
-            rotation: Number(img.rotation) || 0,
-          })));
-        }
-      } catch (err) {
-        console.error('Failed to load community images', err);
-      }
-    };
-    loadData();
-
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Section refs for potential future use or ScrollTrigger targeting if needed
-  const sectionsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const galleryRef = useRef(null);
-  const containerRef = useRef(null);
-
-  // Scroll handling removed as we now use ScrollTrigger and Lenis
-
-  // ── Flip counter ─────────────────────────────────────────────
-  useEffect(() => {
-    const interval = setInterval(() => setFlipValue((prev: number) => prev + 1), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Section navigation helpers removed
-
-
-  // ── ScrollTrigger setup & Parallax Watch Dial Morph Wipe ─────────────
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const ctx = gsap.context(() => {
-      // 1. General Card text reveal triggers for standard hero sections
-      const sections = gsap.utils.toArray('.section');
-      sections.forEach((section: any) => {
-        const card = section.querySelector('.card');
-        if (card) {
-          ScrollTrigger.create({
-            trigger: section,
-            start: "top 75%",
-            end: "bottom 25%",
-            onEnter: () => card.classList.add('in'),
-            onEnterBack: () => card.classList.add('in'),
-          });
-          const rect = section.getBoundingClientRect();
-          if (rect.top < window.innerHeight && rect.bottom > 0) {
-            card.classList.add('in');
-          }
-        }
-      });
-
-      // 2. Parallax Dial Morph Scrub (Bottom-to-Top Wipe: Image 1 -> Image 2)
-      const wrap = document.querySelector('.dial-parallax-wrapper');
-      const revealLayer = document.querySelector('.dial-layer-reveal');
-      const sweepLine = document.querySelector('.dial-sweep-line');
-      const card1 = document.querySelector('.dial-card-1');
-      const card2 = document.querySelector('.dial-card-2');
-
-      if (wrap && revealLayer) {
-        gsap.set(revealLayer, { clipPath: 'inset(100% 0% 0% 0%)' });
-        if (sweepLine) gsap.set(sweepLine, { top: '100%', opacity: 0 });
-        if (card1) gsap.set(card1, { opacity: 1, y: 0 });
-        if (card2) gsap.set(card2, { opacity: 0, y: 40 });
-
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: wrap,
-            start: 'top top',
-            end: '+=160%',
-            pin: true,
-            pinSpacing: true,
-            scrub: 1,
-            anticipatePin: 1,
-            invalidateOnRefresh: true,
-          }
-        });
-
-        // Wipes image 2 (new dial color) upwards over image 1 from bottom (100%) to top (0%)
-        tl.to(revealLayer, {
-          clipPath: 'inset(0% 0% 0% 0%)',
-          ease: 'none',
-          duration: 1
-        }, 0);
-
-        if (sweepLine) {
-          tl.to(sweepLine, {
-            top: '0%',
-            opacity: 1,
-            ease: 'none',
-            duration: 1
-          }, 0);
-        }
-
-        // Card 1 (Movement) fades out as scroll progresses
-        if (card1) {
-          tl.to(card1, {
-            opacity: 0,
-            y: -40,
-            ease: 'power1.inOut',
-            duration: 0.35
-          }, 0.1);
-        }
-
-        // Card 2 (Design) fades into view as the new dial completes
-        if (card2) {
-          tl.to(card2, {
-            opacity: 1,
-            y: 0,
-            ease: 'power1.inOut',
-            duration: 0.4
-          }, 0.5);
-        }
-      }
-    }, containerRef);
-
-    const timer = setTimeout(() => ScrollTrigger.refresh(), 350);
-
-    return () => {
-      clearTimeout(timer);
-      ctx.revert();
-    };
-  }, [homeSections, banners]);
-
-  // Features focal-point animation removed as the section is currently inactive
-
-  // ── FlipDigit sub-component ───────────────────────────────────
-  const FlipDigit = ({ digit }: { digit: string }) => {
-    const [prevDigit, setPrevDigit] = useState(digit);
-    const [isAnimating, setIsAnimating] = useState(false);
-
-    useEffect(() => {
-      if (digit !== prevDigit) {
-        setIsAnimating(true);
-        const timer = setTimeout(() => {
-          setPrevDigit(digit);
-          setIsAnimating(false);
-        }, 350);
-        return () => clearTimeout(timer);
-      }
-    }, [digit, prevDigit]);
-
-    return (
-      <div className="flip-digit">
-        <div className="flip-top">{isAnimating ? digit : prevDigit}</div>
-        <div className="flip-bottom">{isAnimating ? digit : prevDigit}</div>
-        <div className={`flip-flap ${isAnimating ? 'animate' : ''}`} data-next={digit}>
-          {isAnimating ? prevDigit : digit}
-        </div>
-      </div>
-    );
+  const homeSections: Record<string, boolean> = {
+    s1: true,
+    s2: true,
+    s3: true,
+    s4: true,
+    featured: true,
+    gallery: true,
   };
 
-  const renderFlipCounter = () => {
-    const str = String(flipValue).padStart(9, '0');
-    const groups = [str.slice(0, 3), str.slice(3, 6), str.slice(6, 9)];
-    return (
-      <div className="flip-digits">
-        {groups.map((group, gi) => (
-          <div className="flip-group" key={gi}>
-            {[...group].map((d, di) => (
-              <FlipDigit key={gi * 3 + di} digit={d} />
-            ))}
-          </div>
-        ))}
-      </div>
-    );
+  const sectionList = Array.isArray(sectionsRaw)
+    ? sectionsRaw
+    : Array.isArray(sectionsRaw?.data)
+    ? sectionsRaw.data
+    : [];
+
+  if (sectionList.length > 0) {
+    const mapped: Record<string, boolean> = {};
+    sectionList.forEach((s: any) => {
+      const isVis =
+        s.isActive === true ||
+        s.isActive === 'true' ||
+        s.isActive === 1 ||
+        s.isActive === '1' ||
+        s.status === true ||
+        s.status === 'true' ||
+        s.status === 1 ||
+        s.status === '1';
+      mapped[s.type] = isVis;
+      if (s.type === 'home_s1' || s.type === 's1' || s.type === 'Section 1') mapped.s1 = isVis;
+      if (s.type === 'home_s2' || s.type === 's2' || s.type === 'Section 2') mapped.s2 = isVis;
+      if (s.type === 'home_s3' || s.type === 's3' || s.type === 'Section 3') mapped.s3 = isVis;
+      if (s.type === 'home_s4' || s.type === 's4' || s.type === 'Section 4') mapped.s4 = isVis;
+    });
+    Object.assign(homeSections, mapped);
+  }
+
+  const videoSettings: Record<string, any> = {};
+  const settingsList = Array.isArray(settingsRaw)
+    ? settingsRaw
+    : Array.isArray(settingsRaw?.data)
+    ? settingsRaw.data
+    : [];
+  settingsList.forEach((s: any) => {
+    if (s?.key) videoSettings[s.key] = s.value;
+  });
+
+  const communityList = Array.isArray(communityRaw)
+    ? communityRaw
+    : Array.isArray(communityRaw?.data)
+    ? communityRaw.data
+    : [];
+
+  const communityImages = communityList
+    .map((img: any) => ({
+      src: normalizeFileUrl(img.image || img.imageUrl || img.image_url || img.url),
+      alt: img.title || 'The FYLEX World',
+      rotation: Number(img.rotation) || 0,
+    }))
+    .filter((img: any) => Boolean(img.src));
+
+  const payload: HomeInitialData = {
+    hydratedFromServer: true,
+    featuredProducts: Array.isArray(featuredRaw) ? featuredRaw : [],
+    banners: Array.isArray(bannersRaw) ? bannersRaw : [],
+    videoSettings,
+    homeSections,
+    communityImages,
   };
 
-  // ── Render ────────────────────────────────────────────────────
-  const section2Banner = banners.find((b: any) => b.type === 'home_s2' || b.position === 'home_s2' || b.position === 'Section 2');
-  const section3Banner = banners.find((b: any) => b.type === 'home_s3' || b.position === 'home_s3' || b.position === 'Section 3');
+  cachedHomePayload = payload;
+  cachedAtMs = now;
+  return payload;
+}
 
-  const s2Bg = (section2Banner?.image && typeof section2Banner.image === 'string' && section2Banner.image.trim() !== '')
-    ? getFileUrl(section2Banner.image)
-    : '/Rim.webp';
-
-  const s3Bg = (section3Banner?.image && typeof section3Banner.image === 'string' && section3Banner.image.trim() !== '')
-    ? getFileUrl(section3Banner.image)
-    : '/Watch_1.webp';
-
-  return (
-    <div className="v1-home" ref={containerRef}>
-      <style>{`
-        .v1-home { background: #F9F9F7; position: relative; }
-
-        /* ── Parallax Watch Dial Morph Section (Bottom-to-Top Dial Color Wipe) ── */
-        .dial-parallax-wrapper {
-          position: relative;
-          width: 100%;
-          height: 100vh;
-          overflow: hidden;
-          background: #000000;
-          z-index: 2;
-        }
-
-        .dial-layer {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100vh;
-          overflow: hidden;
-        }
-
-        .dial-layer-base {
-          z-index: 1;
-        }
-
-        .dial-layer-reveal {
-          z-index: 2;
-          clip-path: inset(100% 0% 0% 0%);
-          will-change: clip-path;
-        }
-
-        .dial-watch-img {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          object-position: center center;
-          pointer-events: none;
-          -webkit-user-drag: none;
-          user-select: none;
-        }
-
-        .dial-overlay {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at center, transparent 35%, rgba(0,0,0,0.35) 100%);
-          pointer-events: none;
-        }
-
-        .dial-sweep-line {
-          display: none;
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.7) 20%, rgba(255, 255, 255, 0.95) 50%, rgba(212, 175, 55, 0.7) 80%, transparent 100%);
-          box-shadow: 0 0 14px 2px rgba(212, 175, 55, 0.5), 0 0 28px 4px rgba(255, 255, 255, 0.25);
-          pointer-events: none;
-          z-index: 5;
-        }
-
-        .dial-card-container {
-          position: absolute;
-          top: clamp(140px, 22vh, 260px);
-          left: 0;
-          right: 0;
-          bottom: auto;
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          padding-top: 0;
-          pointer-events: none;
-          z-index: 10;
-        }
-
-        .dial-card-container .card {
-          pointer-events: auto;
-          opacity: 1 !important;
-          transform: none !important;
-          padding: 0 20px !important;
-          margin: 0 !important;
-        }
-
-        .dial-card-container .label {
-          font-size: clamp(1.15rem, 2.2vw, 1.45rem);
-          font-weight: 600;
-          letter-spacing: 0.4em;
-          margin-bottom: 0 !important;
-        }
-
-        .dial-card-1 {
-          opacity: 1;
-        }
-
-        .dial-card-2 {
-          opacity: 0;
-        }
-
-        .section {
-          height: 100vh; min-height: 500px; width: 100%;
-          position: relative;
-          display: flex; align-items: center; justify-content: center;
-          padding-left: 0;
-          overflow: hidden;
-          background-size: cover; background-position: center; background-repeat: no-repeat;
-        }
-        .s1 { position: sticky; top: 0; z-index: 1; }
-        .s4 { position: sticky; top: 0; z-index: 4; }
-        .s5, .featured-grid-wrap {
-          position: relative; z-index: 5; background: #fff;
-          border-top-left-radius: 32px; border-top-right-radius: 32px;
-          box-shadow: 0 -30px 60px rgba(0,0,0,0.6);
-        }
-
-        .section-bg-inner {
-          position: absolute; inset: 0; z-index: 0; overflow: hidden;
-        }
-        .section-bg-img {
-          width: 100%; height: 120%; top: -10%; left: 0; position: absolute; object-fit: cover;
-          will-change: transform, filter, opacity;
-        }
-
-        .section::before { content: ''; position: absolute; inset: 0; z-index: 0; }
-        .s1::before { background: linear-gradient(135deg, rgba(10,8,4,0), rgba(40,28,10,.40)); }
-        .s1::after, .s4::after {
-          content: ''; position: absolute; inset: 0;
-          background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.4));
-          z-index: 1;
-        }
-
-        /* ── Featured Grid Section ── */
-        .featured-title {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: clamp(2.5rem, 5vw, 3.5rem);
-          font-weight: 400; 
-          color: #111;
-          letter-spacing: 0.03em;
-          margin: 0;
-        }
-        .featured-title em {
-          font-style: italic;
-          color: #d4af37;
-        }
-        .featured-subtitle {
-          font-family: 'Inter', sans-serif;
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          letter-spacing: 0.15em;
-          color: #8A8A8A;
-          margin-bottom: 8px;
-        }
-        .featured-grid-wrap {
-          display: flex; flex-direction: column;
-          padding: 60px 0 40px !important;
-          margin: 0 auto !important;
-          width: 100%;
-          max-width: 1920px;
-          height: auto !important;
-          min-height: auto;
-          border-radius: 0;
-          position: relative;
-          z-index: 5;
-          overflow: visible;
-          box-sizing: border-box;
-          background: #fff;
-        }
-        .featured-grid-header { 
-          padding: 0 4% 2rem; 
-          text-align: center;
-          width: 100%;
-        }
-        .featured-container {
-          width: 100%;
-          height: 600px;
-          display: block;
-          position: relative;
-          overflow: hidden;
-        }
-        .featured-swiper {
-          width: 100%;
-          height: 100%;
-        }
-        .featured-item-v2 {
-          position: relative; overflow: hidden;
-          background: #f5f5f5;
-          height: 580px;
-          width: 100%;
-        }
-        .featured-img-v2 {
-          position: absolute;
-          top: 48%;
-          left: 50%;
-          transform: translate(-50%, -52%);
-          width: auto;
-          max-width: 70%;
-          height: 68%;
-          object-fit: contain;
-          padding: 0;
-          z-index: 1;
-          mix-blend-mode: multiply;
-          transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .featured-item-v2:hover .featured-img-v2 {
-          transform: translate(-50%, -52%) scale(1.05);
-        }
-        
-        .featured-overlay-grad {
-          position: absolute; inset: 0;
-          background: linear-gradient(to top, rgba(0,0,0,0.3) 0%, transparent 50%);
-          z-index: 1;
-        }
-
-        .featured-content {
-          position: absolute; bottom: 80px; left: 48px;
-          z-index: 2; color: #fff;
-          max-width: 80%;
-        }
-        .f-label {
-          font-family: 'Inter', sans-serif; font-size: 0.85rem;
-          font-weight: 500;
-          opacity: 0.9;
-        }
-        .f-title {
-          font-family: 'Inter', sans-serif; font-size: 1.6rem;
-          font-weight: 600;
-          line-height: 1.2;
-        }
-        .f-shop-btn {
-          background: #1a1a1a; color: #fff !important;
-          padding: 8px 16px; border-radius: 999px;
-          font-size: 10px; font-weight: 700;
-          text-decoration: none; border: 1px solid #1a1a1a; cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-          display: inline-block;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-        }
-        .f-shop-btn:hover, .f-shop-btn:active { 
-          background: #ffffff !important; 
-          color: #000000 !important;
-          border-color: #ffffff;
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Custom Swiper Pagination */
-        .featured-swiper .swiper-pagination {
-          position: absolute !important;
-          bottom: 20px !important;
-          left: 50% !important;
-          transform: translateX(-50%) !important;
-          width: auto !important;
-          z-index: 10;
-          display: flex !important;
-          justify-content: center;
-          gap: 12px;
-        }
-        .featured-swiper .swiper-pagination-bullet {
-          width: 40px;
-          height: 4px;
-          background: #d1d5db; /* gray-300 */
-          border-radius: 2px;
-          opacity: 1;
-          margin: 0 !important;
-          transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        .featured-swiper .swiper-pagination-bullet-active {
-          width: 100px;
-          background: #1a1a1a;
-        }
-
-        /* Featured Grid mobile overrides */
-        @media (max-width: 768px) {
-          .featured-grid-wrap { 
-            padding: 0 !important; 
-            margin: 0 !important; 
-            width: 100%; height: auto;
-            min-height: 60vh;
-            border-radius: 0;
-          }
-          .featured-grid-header { padding: 40px 24px 24px; text-align: center; }
-          .featured-title { font-size: 2.2rem; }
-          .featured-container { display: block; height: 500px; }
-          .featured-item-v2 { height: 500px; border-radius: 0; }
-          .featured-content { bottom: 80px; left: 24px; }
-          .featured-swiper .swiper-pagination { bottom: 20px !important; }
-          
-        }
-
-        .s1, .s4 { padding: 0 !important; overflow: hidden; position: relative; }
-
-        /* ── Video container ── */
-        .iframe-container, .video-container {
-          position: absolute; top: 50%; left: 50%;
-          width: 100vw; height: 100vh;
-          transform: translate(-50%, -50%);
-          pointer-events: none; overflow: hidden;
-        }
-        .iframe-container iframe, .video-container video {
-          position: absolute; top: 50%; left: 50%;
-          min-width: 100%; min-height: 100%;
-          width: auto; height: auto;
-          transform: translate(-50%, -50%);
-          object-fit: cover;
-        }
-        .iframe-container {
-          height: 56.25vw;
-          min-height: 100vh;
-          min-width: 177.77vh;
-        }
-
-        /* ── Hero center overlay ── */
-        .hero-center {
-          position: absolute; inset: 0; z-index: 10;
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          text-align: center; padding: 0 40px;
-        }
-        .hero-title {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: clamp(2rem, 5vw, 3rem) !important;
-          font-weight: 300; color: #ededed !important;
-          margin-bottom: 0.5rem; letter-spacing: 0.1em;
-          text-shadow: 0 2px 12px rgba(0,0,0,0.3);
-        }
-        .hero-subtitle {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: clamp(1.1rem, 2.8vw, 1.9rem) !important;
-          font-weight: 400; color: #ededed !important;
-          margin-bottom: 1.5rem !important; line-height: 1.2;
-          letter-spacing: 0.22em !important;
-          text-shadow: 0 2px 15px rgba(0,0,0,0.5);
-        }
-        .cta-button {
-          background: #1a1a1a;
-          backdrop-filter: blur(15px);
-          -webkit-backdrop-filter: blur(15px);
-          color: #fff; padding: 8px 16px;
-          border-radius: 999px; font-size: 10px;
-          font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.15em;
-          border: 1px solid rgba(255,255,255,0.1);
-          transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1); cursor: pointer;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .cta-button:hover, .cta-button:active {
-          background: #ffffff !important;
-          color: #000000 !important;
-          border-color: #ffffff;
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        }
-
-        /* ── Story cards ── */
-        .card {
-          position: relative; z-index: 1; text-align: center;
-          padding: clamp(32px, 6vw, 64px) 24px;
-          max-width: min(640px, 92vw); width: 100%;
-          opacity: 0; transform: translateX(-30px);
-          transition: opacity 0.7s cubic-bezier(0.2,0,0.2,1),
-                      transform 0.7s cubic-bezier(0.2,0,0.2,1);
-          margin: 0 auto;
-        }
-        .card.in { opacity: 1; transform: translateX(0); }
-        .card h1 {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: clamp(2rem, 7vw, 5.2rem);
-          font-weight: 300; line-height: 1.1;
-          letter-spacing: .04em; color: var(--cream);
-          margin-bottom: 22px;
-        }
-        .card h1 em { font-style: italic; color: var(--gold-light); }
-        .card p {
-          font-size: clamp(0.65rem, 2vw, 0.78rem);
-          font-weight: 300; letter-spacing: .12em;
-          line-height: 1.9; color: rgba(245,240,232,.75);
-          text-transform: uppercase;
-        }
-
-        /* ── Features section ── */
-        .features-wrapper {
-          height: 100svh; display: flex;
-          align-items: center; justify-content: center;
-          background: #F9F9F7;
-        }
-        .features-section {
-          display: grid; grid-template-columns: 1fr 1fr;
-          width: 90%; height: 80vh;
-          border-radius: var(--curve);
-          border: 1px solid rgba(0,0,0,0.08);
-          overflow: hidden; background: #FFFFFF;
-          backdrop-filter: blur(14px); position: relative;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.06);
-        }
-        .features-left {
-          padding: 60px; border-right: 1px solid rgba(0,0,0,0.06);
-          height: 100%; overflow: hidden; position: relative;
-        }
-        .feature-items-inner {
-          position: absolute; top: 0; left: 0; width: 100%;
-          padding: 60px; display: flex; flex-direction: column;
-        }
-        .feature-item {
-          padding: 40px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
-          cursor: pointer; transition: all 0.4s; opacity: 0.2;
-          padding-left: 20px; position: relative;
-        }
-        .feature-item.active { opacity: 1; }
-        .feature-item h3 {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: clamp(1.2rem, 2.5vw, 2.2rem); color: #111111;
-        }
-        .features-right { position: relative; height: 100%; overflow: hidden; }
-        .image-stack img {
-          position: absolute; inset: 0; width: 100%; height: 100%;
-          object-fit: cover; opacity: 0;
-          transition: opacity 0.6s, transform 0.8s;
-          transform: scale(1.05);
-        }
-        .image-stack img.active { opacity: 1; transform: scale(1); }
-
-        /* ── Section 5 ── */
-        .s5 { background-image: none !important; }
-
-        /* ── Flip counter ── */
-        .flip-counter-section {
-          background: #F2F2EE;
-          border-top: 1px solid rgba(0,0,0,0.06);
-          padding: 80px 20px;
-          display: flex; justify-content: center; align-items: center;
-        }
-        .flip-digit {
-          position: relative; width: 56px; height: 76px;
-          background: var(--navy); border-radius: 8px; overflow: hidden;
-        }
-        .flip-top, .flip-bottom, .flip-flap {
-          position: absolute; inset: 0;
-          display: flex; align-items: center; justify-content: center;
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: 2.4rem; font-weight: 700; color: #fff;
-        }
-        .flip-top  { clip-path: inset(0 0 50% 0); }
-        .flip-bottom { clip-path: inset(50% 0 0 0); background: #152238; color: #ddd; }
-        .flip-flap {
-          clip-path: inset(0 0 50% 0); background: var(--navy);
-          transform-origin: center; z-index: 3;
-          backface-visibility: hidden; transform-style: preserve-3d;
-        }
-        .flip-flap.animate { animation: flipDown 0.35s forwards; }
-        @keyframes flipDown { to { transform: rotateX(-180deg); } }
-        .flip-flap::after {
-          content: attr(data-next); position: absolute; inset: 0;
-          background: #152238; color: #ddd;
-          display: flex; justify-content: center; align-items: center;
-          transform: rotateX(180deg); backface-visibility: hidden;
-          clip-path: inset(50% 0 0 0);
-        }
-        .flip-digits { display: flex; gap: 4px; }
-        .flip-group  { display: flex; gap: 4px; }
-        .flip-group + .flip-group { margin-left: 8px; position: relative; }
-        .flip-group + .flip-group::before {
-          content: ''; position: absolute; left: -6px;
-          top: 10%; height: 80%; width: 1px;
-          background: rgba(0,0,0,0.1);
-        }
-
-        /* ── Gallery (new RAF marquee) ── */
-        .fylex-gallery-section {
-          position: relative;
-          z-index: 10;
-          padding: 80px 0 60px;
-          background: #F9F9F7;
-          border-top: 1px solid rgba(0,0,0,0.06);
-          border-radius: var(--curve, 24px) var(--curve, 24px) 0 0;
-          overflow: hidden;
-          width: 100%;
-          clear: both;
-          margin-top: 0;
-        }
-        .fylex-gallery-header {
-          text-align: center;
-          margin-bottom: 52px;
-          padding: 0 40px;
-          position: relative;
-          z-index: 2;
-        }
-        .fylex-gallery-header h2 {
-          font-family: 'Avenir', 'Neue Haas Grotesk Display Pro', 'Inter', sans-serif;
-          font-size: clamp(2rem, 5vw, 3rem);
-          font-weight: 400; color: #111111;
-          letter-spacing: 0.03em; margin: 0 0 12px;
-        }
-        .fylex-gallery-header p {
-          color: #8A8A8A; font-size: 0.75rem;
-          text-transform: uppercase; letter-spacing: 0.15em;
-        }
-        .fylex-gallery-viewport {
-          width: 100%; overflow: hidden;
-          cursor: grab; user-select: none;
-          -webkit-user-select: none;
-          touch-action: pan-y;
-          padding: 20px 0 32px;
-          position: relative;
-          z-index: 2;
-        }
-        .fylex-gallery-viewport:active { cursor: grabbing; }
-        .fylex-gallery-track {
-          display: flex; gap: 16px;
-          width: max-content;
-          will-change: transform;
-        }
-        .fylex-gallery-col {
-          display: flex; flex-direction: column;
-          gap: 16px; width: 240px;
-          flex-shrink: 0; align-self: center;
-        }
-        .fylex-gallery-item {
-          position: relative; border-radius: 14px;
-          overflow: hidden;
-          border: 1px solid rgba(0,0,0,0.05);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-          transition: transform 0.4s cubic-bezier(0.165,0.84,0.44,1),
-                      box-shadow 0.4s cubic-bezier(0.165,0.84,0.44,1);
-          background: #1a1a1a;
-          height: 260px;
-          width: 100%;
-        }
-        .fylex-gallery-item img {
-          width: 100%; height: 100%; object-fit: cover;
-          display: block;
-          transition: transform 0.7s cubic-bezier(0.165,0.84,0.44,1);
-          pointer-events: none; -webkit-user-drag: none;
-        }
-        .fylex-overlay {
-          position: absolute; inset: 0;
-          background: linear-gradient(to top, rgba(0,0,0,0.28), transparent);
-          opacity: 0; transition: opacity 0.35s;
-        }
-        .fylex-gallery-item:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 20px 44px rgba(0,0,0,0.10);
-        }
-        .fylex-gallery-item:hover img { transform: scale(1.06); }
-        .fylex-gallery-item:hover .fylex-overlay { opacity: 1; }
-
-        /* ── Mobile overrides ── */
-        @media (max-width: 768px) {
-          .section, .s2, .s3, .s4 {
-            background-attachment: scroll !important;
-            background-size: cover !important;
-            background-position: center !important;
-          }
-          .card {
-            opacity: 1 !important;
-            transform: none !important;
-            padding: 40px 20px !important;
-          }
-          .card h1 {
-            font-size: clamp(1.8rem, 6vw, 2.8rem) !important;
-          }
-          .features-wrapper {
-            height: 100svh; width: 100%;
-            display: flex; align-items: center; justify-content: center;
-            background: #F9F9F7; position: relative;
-          }
-          .features-section {
-            display: flex; flex-direction: column;
-            height: 700px; width: 92vw;
-            border-radius: var(--curve-sm); position: relative;
-            margin-top: 60px;
-          }
-          .features-left {
-            border-right: none; flex: 1; padding: 30px 20px;
-            overflow: hidden; position: relative;
-          }
-          .feature-items-inner {
-            padding: 0 20px; top: 0; position: absolute; width: 100%;
-            transition: transform 0.6s cubic-bezier(0.23,1,0.32,1);
-          }
-          .feature-item { padding: 30px 0; border-bottom: 1px solid rgba(0,0,0,0.06); }
-          .feature-item h3 { font-size: 1.4rem; }
-          .feature-item p { font-size: 0.8rem; line-height: 1.6; }
-          .features-right {
-            position: absolute; bottom: 25px; right: 25px;
-            width: 150px; height: 150px; z-index: 50; pointer-events: none;
-          }
-          .image-stack { width: 150px; height: 150px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 15px 40px rgba(0,0,0,0.12); }
-          .image-stack img { width: 100%; height: 100%; object-fit: cover; }
-          .feature-counter { position: absolute; bottom: -30px; right: 0; font-size: 0.65rem; color: var(--gold); font-weight: 500; }
-          /* Gallery mobile */
-          .fylex-gallery-section { padding: 60px 0 40px; }
-          .fylex-gallery-col { width: 160px; }
-          .fylex-gallery-track { gap: 10px; }
-          /* Flip counter mobile */
-          .flip-digit { width: 32px; height: 48px; border-radius: 4px; }
-          .flip-top, .flip-bottom, .flip-flap { font-size: 1.4rem; }
-          .flip-digits { gap: 2px; }
-          .flip-group + .flip-group::before { left: -4px; }
-          /* Featured Timepieces mobile layout fix */
-          @media (max-width: 768px) {
-            .featured-container {
-              height: 410px !important;
-            }
-            .featured-item-v2 {
-              height: 410px !important;
-              position: relative !important;
-              overflow: hidden !important;
-            }
-            .featured-img-v2 {
-              position: absolute !important;
-              top: 10px !important;
-              left: 50% !important;
-              transform: translateX(-50%) !important;
-              width: auto !important;
-              max-width: 85% !important;
-              height: 230px !important;
-              object-fit: contain !important;
-              padding: 0 !important;
-              transition: none !important;
-              pointer-events: none !important;
-              -webkit-user-drag: none !important;
-            }
-            .featured-item-v2:hover .featured-img-v2,
-            .featured-item-v2:active .featured-img-v2,
-            .featured-item-v2:focus .featured-img-v2 {
-              transform: translateX(-50%) !important;
-            }
-            .featured-content {
-              position: absolute !important;
-              bottom: 42px !important;
-              left: 16px !important;
-              right: 16px !important;
-              max-width: calc(100% - 32px) !important;
-              z-index: 5 !important;
-            }
-            .featured-swiper .swiper-pagination {
-              bottom: 10px !important;
-              z-index: 10 !important;
-            }
-            .f-label {
-              font-size: 0.65rem !important;
-              line-height: 1.2 !important;
-              margin-bottom: 2px !important;
-              opacity: 0.8 !important;
-            }
-            .f-title {
-              font-size: 1.15rem !important;
-              line-height: 1.1 !important;
-              font-weight: 700 !important;
-              margin-bottom: 2px !important;
-            }
-            .f-price {
-              font-size: 0.8rem !important;
-              font-weight: 600 !important;
-              margin: 2px 0 6px !important;
-            }
-            .f-shop-btn {
-              padding: 6px 18px !important;
-              font-size: 0.62rem !important;
-              letter-spacing: 0.12em !important;
-              font-weight: 700 !important;
-              border-radius: 999px !important;
-              display: inline-block !important;
-              border: 1px solid #1a1a1a !important;
-              margin-top: 2px !important;
-            }
-          }
-        }
-      `}</style>
-
-      {loadingHomeSections ? (
-        <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
-          {/* Subtle minimal loader */}
-          <div style={{ width: 40, height: 40, border: '2px solid #f3f3f3', borderTop: '2px solid #111', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-        </div>
-      ) : (
-        <>
-          {/* ── Sticky Hero Sections Group (Sections 1-4) ── */}
-          <div className="sticky-hero-group" style={{ position: 'relative', width: '100%' }}>
-            {/* ── Hero Section 1 ── */}
-            {(homeSections.s1 || homeSections.home_s1 || homeSections['Section 1'] || homeSections.s1 === undefined) && (
-              <div className="section s1" ref={el => { sectionsRef.current[0] = el; }}>
-                <div className="video-container">
-                  <video
-                    src={getFileUrl(videoSettings.home_hero_video) || "/assets/Fylexxx.mp4"}
-                    autoPlay muted defaultMuted loop playsInline preload="auto"
-
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
-                  />
-                </div>
-                <div className="hero-center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  {/* Line 1: Stylized FYLEX Brand Wordmark Logo Image */}
-                  <div style={{ textAlign: 'center', margin: '0 0 10px 0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <img 
-                      src="/fylex_logo_name.png" 
-                      alt="FYLEX" 
-                      style={{ 
-                        height: 'clamp(1.2rem, 3.2vw, 2.2rem)', 
-                        width: 'auto', 
-                        objectFit: 'contain',
-                        filter: 'drop-shadow(0 2px 15px rgba(0,0,0,0.6))',
-                        display: 'block'
-                      }} 
-                    />
-                  </div>
-
-                  {/* Line 2: WEAR YOUR CHOICE Subtitle */}
-                  <p className="hero-subtitle" style={{ color: '#ededed', textAlign: 'center', width: '100%', margin: '0 0 24px 0', textShadow: '0 2px 15px rgba(0,0,0,0.4)', display: 'block', textTransform: 'uppercase' }}>
-                    WEAR YOUR CHOICE
-                  </p>
-                  <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
-                    <Link href="/pre-configure">
-                      <button className="cta-button">Explore</button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Pinned Parallax Watch Dial Morph Section (Section 2 -> Section 3) ── */}
-            {((homeSections.s2 || homeSections.home_s2 || homeSections['Section 2'] || homeSections.s2 === undefined) ||
-              (homeSections.s3 || homeSections.home_s3 || homeSections['Section 3'] || homeSections.s3 === undefined)) && (
-              <div className="dial-parallax-wrapper" ref={el => { sectionsRef.current[1] = el; }}>
-                {/* Base Layer: Image 1 (Rim / Dial 1) */}
-                <div className="dial-layer dial-layer-base">
-                  <img src={s2Bg} alt="Watch Dial Base" className="dial-watch-img" />
-                  <div className="dial-overlay" />
-                </div>
-
-                {/* Reveal Layer: Image 2 (Watch_1 / Dial 2) Wiped Bottom-to-Top */}
-                <div className="dial-layer dial-layer-reveal">
-                  <img src={s3Bg} alt="Watch Dial Reveal" className="dial-watch-img" />
-                  <div className="dial-overlay" />
-                  <div className="dial-sweep-line" />
-                </div>
-
-                {/* Story Card 1 (Movement - Initial) */}
-                <div className="dial-card-container dial-card-1">
-                  <div className="card in" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>
-                    <div className="label" style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}}>{section2Banner?.subtitle || 'II · Movement'}</div>
-                    <h1 style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.title || 'The <em>Heart</em> Within' }} />
-                    <div className="divider"></div>
-                    <p style={section2Banner?.textColor ? { color: section2Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section2Banner?.content || 'Hundreds of hand-finished bridges and jewels.<br />A calibre beating 28,800 times each hour.' }} />
-                  </div>
-                </div>
-
-                {/* Story Card 2 (Design - Revealed with Dial 2) */}
-                <div className="dial-card-container dial-card-2">
-                  <div className="card in" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>
-                    <div className="label" style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}}>{section3Banner?.subtitle || 'III · Design'}</div>
-                    <h1 style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.title || 'Form Follows <em>Time</em>' }} />
-                    <div className="divider"></div>
-                    <p style={section3Banner?.textColor ? { color: section3Banner.textColor } : {}} dangerouslySetInnerHTML={{ __html: section3Banner?.content || 'Sapphire crystal, polished steel, supple leather.<br />Every element chosen for eternity, not fashion.' }} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Hero Section 4 (video) ── */}
-            {(homeSections.s4 || homeSections.home_s4 || homeSections['Section 4'] || homeSections.s4 === undefined) && (
-              <div className="section s4" ref={el => { sectionsRef.current[3] = el; }}>
-                <div className="video-container">
-                  <video
-                    src={getFileUrl(videoSettings.home_legacy_video) || "/assets/Fylexx.mp4"}
-                    autoPlay muted defaultMuted loop playsInline preload="auto"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }}
-                  />
-                </div>
-                <div className="card" style={{ zIndex: 10 }}>
-                  <h1 dangerouslySetInnerHTML={{ __html: (videoSettings.home_legacy_video_title || "Not Everyone Follows The Same Path.").replace(/Same Path\./g, '<em>Same Path.</em>') }}></h1>
-                  <p className="legacy-text" dangerouslySetInnerHTML={{ __html: videoSettings.home_legacy_video_subtitle || "Different Ambitions. Different Routines. Different Stories." }}></p>
-                  <div style={{ marginTop: '40px', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.2em', color: '#fff', textTransform: 'uppercase' }}>
-                    IT'S YOUR TIME.
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-
-
-          {/* ── Hero Section 6 (Featured Grid) ── */}
-          {homeSections.featured && (
-            <div className="featured-grid-wrap s5" ref={el => { sectionsRef.current[5] = el; }}>
-              <div className="featured-grid-header">
-                <p className="featured-subtitle">Curated Collection</p>
-                <h2 className="featured-title"><em>Featured</em> Timepieces</h2>
-              </div>
-              <div className="featured-container">
-                {loadingFeatured ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', height: '100%', width: '100%' }}>
-                    <ProductSkeleton />
-                    {!isMobile && <ProductSkeleton />}
-                  </div>
-                ) : (
-                  <>
-                    {featuredProducts.length > 0 ? (
-                      <Swiper
-                        modules={[Autoplay, Pagination]}
-                        spaceBetween={0}
-                        slidesPerView={isMobile ? 1 : 2}
-                        autoplay={{ delay: 5000, disableOnInteraction: false }}
-                        pagination={{
-                          clickable: true,
-                          dynamicBullets: false
-                        }}
-                        loop={featuredProducts.length >= (isMobile ? 1 : 2)}
-                        className="featured-swiper"
-                      >
-                        {featuredProducts.map((p) => {
-                          const display = getDisplayData(p);
-
-                          return (
-                            <SwiperSlide key={p.id}>
-                              <div className="featured-item-v2" style={{ background: p.gradient || p.bgColor || '#f5f5f5' }}>
-                                {display.image && (
-                                  <img
-                                    src={display.image}
-                                    alt={display.name}
-                                    className="featured-img-v2"
-                                  />
-                                )}
-                                <div className="featured-content" style={{ color: p.textColor || '#111', zIndex: 2 }}>
-                                  <div className="f-label" style={{ color: p.accentColor || '#666' }}>{p.subtitle || p.tagline}</div>
-                                  <div className="f-title" style={{ color: 'inherit' }}>{display.name} <em>{p.titleAccent || ''}</em></div>
-                                  <div className="f-price flex items-baseline gap-2" style={{ margin: '4px 0 14px', fontSize: '1.1rem', fontWeight: 500 }}>
-                                    <span>{display.isConfigurable ? 'From ' : ''}{display.formattedPrice}</span>
-                                    {display.isDiscounted && display.formattedComparePrice && (
-                                      <span className="line-through text-xs opacity-50 font-normal">
-                                        {display.formattedComparePrice}
-                                      </span>
-                                    )}
-                                    {display.isDiscounted && display.discountPercent > 0 && (
-                                      <span className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                                        {display.discountPercent}% OFF
-                                      </span>
-                                    )}
-                                  </div>
-                                  <Link href={`/configure?watch=${p.id}`} className="f-shop-btn">Shop</Link>
-                                </div>
-                              </div>
-                            </SwiperSlide>
-                          );
-                        })}
-                      </Swiper>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '60px 20px', color: '#888', textAlign: 'center' }}>
-                        <p style={{ fontSize: '1.1rem', letterSpacing: '0.05em', fontWeight: 500, color: '#444' }}>No featured timepieces available.</p>
-                        <p style={{ fontSize: '0.85rem', opacity: 0.7, marginTop: '8px' }}>Add products from the Admin Panel to feature them here.</p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ── Features Section (commented-out in original, preserved here) ── */}
-          {/* <div className="features-wrapper" id="featuresWrapper" ref={featuresRef}>
-        <section className="features-section" id="features">
-          <div className="features-left" ref={featureListRef}>
-            <div className="feature-items-inner" ref={featureInnerRef}>
-              {features.map((f, i) => (
-                <div key={i} className={`feature-item ${i === currentFeat ? 'active' : ''}`} onClick={() => setCurrentFeat(i)}>
-                  <h3>{f.title}</h3>
-                  <p>{f.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="features-right">
-            <div className="image-stack">
-              {features.map((f, i) => (
-                <img key={i} src={f.img} alt={f.title} className={i === currentFeat ? 'active' : ''} />
-              ))}
-            </div>
-            <div className="feature-counter">
-              <span>{String(currentFeat + 1).padStart(2, '0')}</span> / {String(features.length).padStart(2, '0')}
-            </div>
-          </div>
-        </section>
-      </div> */}
-
-          {/* ── Gallery Section (new smooth RAF marquee) ── */}
-          {homeSections.gallery && (
-            <div ref={galleryRef}>
-              <section className="fylex-gallery-section" id="gallery">
-                <div className="fylex-gallery-header">
-                  <h2 dangerouslySetInnerHTML={{ __html: injectLogo("The FYLEX World.") }} />
-                </div>
-                <GalleryCarousel items={communityImages.length > 0 ? communityImages : gallery} />
-              </section>
-            </div>
-          )}
-
-          {/* ── Flip Counter Section ── */}
-          {/* {homeSections.counter && (
-        <section className="flip-counter-section">
-          <div className="flip-counter-wrapper">
-            {renderFlipCounter()}
-            <p style={{
-              marginTop: '24px', fontSize: '1rem', color: '#555555',
-              textTransform: 'uppercase', textAlign: 'center'
-            }}>
-              Seconds of watchmaking excellence
-            </p>
-          </div>
-        </section>
-      )} */}
-        </>
-      )}
-
-      {/* ── Lightbox ── */}
-      {lightboxImg && (
-        <div
-          className="fixed inset-0 z-[2000] bg-black/95 flex items-center justify-center backdrop-blur-sm"
-          onClick={() => setLightboxImg(null)}
-        >
-          <button
-            className="absolute top-10 right-10 text-gold border border-gold-dim w-12 h-12 rounded-full flex items-center justify-center hover:bg-gold hover:text-dark transition-all"
-            onClick={() => setLightboxImg(null)}
-          >
-            ✕
-          </button>
-          <img
-            src={lightboxImg}
-            alt="Lightbox"
-            className="max-w-[90vw] max-h-[85vh] object-contain border border-gold-dim rounded"
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default Home;
+export default async function HomePage() {
+  const initialData = await getHomeInitialData();
+  return <HomeClient initialData={initialData} />;
+}

@@ -10,7 +10,7 @@ const WishlistContext = createContext(null);
 
 export function WishlistProvider({ children }) {
   const [wishlist, setWishlist] = useState([]);
-  const { user, guestId } = useAuth() || {};
+  const { user, guestId, hasExistingGuestSession } = useAuth() || {};
   const { success, info, error: toastError } = useToast() || {};
   const userId = user?.id || guestId;
 
@@ -66,10 +66,12 @@ export function WishlistProvider({ children }) {
   };
 
   useEffect(() => {
-    loadWishlist();
+    if (user?.id || hasExistingGuestSession) {
+      loadWishlist();
+    }
     const unsub = eventBus.on(EVENTS.WISHLIST_UPDATED, loadWishlist);
     return () => unsub();
-  }, [userId]);
+  }, [userId, user?.id, hasExistingGuestSession]);
 
   const toggleWishlist = async (product) => {
     if (!userId) {

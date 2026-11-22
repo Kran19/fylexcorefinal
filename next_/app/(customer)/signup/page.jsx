@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -32,7 +32,7 @@ function InputField({ label, type = 'text', id, value, onChange, placeholder, hi
   );
 }
 
-export default function Signup() {
+function SignupContent() {
   const searchParams = useSearchParams();
   const mobileFromLogin = searchParams.get('mobile') || '';
   const otpFromLogin = searchParams.get('otp') || '';
@@ -656,5 +656,13 @@ export default function Signup() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function Signup() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#000' }} />}>
+      <SignupContent />
+    </Suspense>
   );
 }

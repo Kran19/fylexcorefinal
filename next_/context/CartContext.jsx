@@ -14,7 +14,7 @@ export function CartProvider({ children }) {
   const [totals, setTotals] = useState({ subtotal: 0, grandTotal: 0 });
   const [loading, setLoading] = useState(false);
   const [processingItems, setProcessingItems] = useState(new Set()); // IDs of items currently being updated
-  const { user, guestId } = useAuth() || {};
+  const { user, guestId, hasExistingGuestSession } = useAuth() || {};
   const { success, error: toastError, info } = useToast() || {};
   const userId = user?.id || guestId;
 
@@ -123,13 +123,21 @@ export function CartProvider({ children }) {
             console.error('Failed to merge guest cart on login:', err);
           }
         }
+        await loadCart();
+        return;
       }
+
+      // Skip cold-guest DB round-trip when a brand-new guest ID was just minted on this page load
+      if (!user?.id && !hasExistingGuestSession) {
+        return;
+      }
+
       await loadCart();
     };
     initAndMerge();
     const unsub = eventBus.on(EVENTS.CART_UPDATED, loadCart);
     return () => unsub();
-  }, [user?.id, userId]);
+  }, [user?.id, userId, hasExistingGuestSession]);
 
   const addToCart = async (variantId, quantity = 1) => {
     const activeId = getEffectiveUserId();
