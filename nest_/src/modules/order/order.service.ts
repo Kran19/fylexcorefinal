@@ -2110,7 +2110,11 @@ export class OrderService {
       const sku = (variant?.sku || (belt ? `BELT-${belt.id}` : `FYL-${item.id}`)).slice(0, 64);
       const variantIdStr = String(item.productVariantId || (belt ? `belt-${belt.id}` : item.id));
       const baseName = product?.name || belt?.name || 'FYLEX Luxury Timepiece';
-      const itemName = (isPartialCod ? `${baseName} (Partial COD Booking)` : baseName).slice(0, 120);
+      const itemName = (
+        isPartialCod
+          ? `${baseName} — Partial COD (₹${Math.round(totals.partialCodBalance)} on Delivery)`
+          : baseName
+      ).slice(0, 120);
 
       const attrLabels = (variant?.variantAttributes || [])
         .map((va: any) => va.attributeValue?.label || va.attributeValue?.value)
@@ -2138,11 +2142,12 @@ export class OrderService {
       const remainderDiscount = itemDiscountPaise - baseUnitDiscount * qty;
 
       const buildLine = (lineQty: number, offerUnitPaise: number, suffix = '') => {
+        const safeOfferPaise = Math.max(0, offerUnitPaise);
         const line: any = {
           sku: suffix ? `${sku}-${suffix}`.slice(0, 64) : sku,
           variant_id: variantIdStr,
-          price: unitPaise,
-          offer_price: Math.max(0, offerUnitPaise),
+          price: isPartialCod ? safeOfferPaise : unitPaise,
+          offer_price: safeOfferPaise,
           tax_amount: 0,
           quantity: lineQty,
           name: itemName,

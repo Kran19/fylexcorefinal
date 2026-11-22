@@ -356,12 +356,19 @@ function CartContent() {
     [setSession, prependRawOrder, refreshOrders, clearCart, navigate, serverTotals.total, itemsFallbackSubtotal, items, appliedCoupon],
   );
 
-  // Core 1-Click Magic Checkout Launcher
-  const handleOneClickCheckout = useCallback(async () => {
+  // Core 1-Click Magic Checkout Launcher (accepts explicit mode: 'prepaid' | 'partial_cod')
+  const handleOneClickCheckout = useCallback(async (requestedMode) => {
     if (isCheckingOut || items.length === 0) return;
+    const chosenMode =
+      typeof requestedMode === 'string' ? requestedMode : paymentMode;
+    setPaymentMode(chosenMode);
     setCheckoutError('');
     setIsCheckingOut(true);
-    setCheckoutStatusText('Opening 1-Click Checkout...');
+    setCheckoutStatusText(
+      chosenMode === 'partial_cod'
+        ? `Opening ₹${Math.round(serverTotals.partialCodAdvance || 500)} Partial COD Booking...`
+        : 'Opening 1-Click Checkout...',
+    );
     paymentHandledRef.current = false;
 
     try {
@@ -369,7 +376,7 @@ function CartContent() {
       const validCoupon = !couponErrorMsg && appliedCoupon ? appliedCoupon : '';
 
       const activeMode =
-        paymentMode === 'partial_cod' && serverTotals.partialCodEnabled && serverTotals.partialCodAdvance > 0
+        chosenMode === 'partial_cod' && serverTotals.partialCodEnabled && serverTotals.partialCodAdvance > 0
           ? 'partial_cod'
           : 'prepaid';
 
@@ -480,7 +487,10 @@ function CartContent() {
     }
   }, [
     isCheckingOut,
-    items.length,
+    items,
+    itemsFallbackSubtotal,
+    paymentMode,
+    serverTotals,
     getEffectiveUserId,
     couponErrorMsg,
     appliedCoupon,
@@ -752,84 +762,80 @@ function CartContent() {
                 <span>₹{Math.round(total).toLocaleString('en-IN')}</span>
               </div>
 
-              {/* ⚡ 1-CLICK PAYMENT MODE SELECTOR: FULL PREPAID vs PARTIAL COD */}
-              {total > 0 && serverTotals.partialCodEnabled && serverTotals.partialCodAdvance > 0 && serverTotals.partialCodBalance > 0 && (
-                <div className="cart-paymode-wrap">
-                  <div className="cart-paymode-label">Choose 1-Click Payment Option</div>
-                  <div className="cart-paymode-grid">
-                    <button
-                      type="button"
-                      className={`cart-paymode-card ${paymentMode === 'prepaid' ? 'active' : ''}`}
-                      onClick={() => setPaymentMode('prepaid')}
-                    >
-                      <div className="cart-paymode-top">
-                        <span className="cart-paymode-radio" />
-                        <span className="cart-paymode-title">Pay Full Online</span>
-                      </div>
-                      <div className="cart-paymode-amt">₹{Math.round(total).toLocaleString('en-IN')}</div>
-                      <div className="cart-paymode-sub">100% Prepaid • Priority Dispatch</div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`cart-paymode-card partial ${paymentMode === 'partial_cod' ? 'active' : ''}`}
-                      onClick={() => setPaymentMode('partial_cod')}
-                    >
-                      <div className="cart-paymode-top">
-                        <span className="cart-paymode-radio" />
-                        <span className="cart-paymode-title">Partial COD</span>
-                      </div>
-                      <div className="cart-paymode-amt">
-                        Pay ₹{Math.round(serverTotals.partialCodAdvance).toLocaleString('en-IN')} Now
-                      </div>
-                      <div className="cart-paymode-sub">
-                        + ₹{Math.round(serverTotals.partialCodBalance).toLocaleString('en-IN')} on Delivery
-                      </div>
-                    </button>
-                  </div>
-
-                  {paymentMode === 'partial_cod' && (
-                    <div className="cart-partial-breakdown">
-                      <div className="cart-partial-row">
-                        <span>Pay Now (Online Booking)</span>
-                        <strong>₹{Math.round(serverTotals.partialCodAdvance).toLocaleString('en-IN')}</strong>
-                      </div>
-                      <div className="cart-partial-row balance">
-                        <span>Pay on Delivery (Cash / UPI)</span>
-                        <strong>₹{Math.round(serverTotals.partialCodBalance).toLocaleString('en-IN')}</strong>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {checkoutError && <div className="cart-checkout-error">{checkoutError}</div>}
 
-              <button
-                className="cart-checkout-btn"
-                onClick={handleOneClickCheckout}
-                disabled={isCheckingOut || isCalculating}
-              >
-                {isCheckingOut ? (
-                  <>
-                    <div className="cart-btn-spinner" />
-                    <span>{checkoutStatusText || 'Launching 1-Click Checkout...'}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>
-                      {total <= 0
-                        ? 'Claim Complimentary Order ⚡'
-                        : paymentMode === 'partial_cod' && serverTotals.partialCodEnabled
-                        ? `Pay ₹${Math.round(serverTotals.partialCodAdvance).toLocaleString('en-IN')} & Book COD ⚡`
-                        : 'Proceed to 1-Click Checkout ⚡'}
-                    </span>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </>
-                )}
-              </button>
+              {total > 0 && serverTotals.partialCodEnabled && serverTotals.partialCodAdvance > 0 && serverTotals.partialCodBalance > 0 ? (
+                <div className="cart-dual-cta-stack">
+                  {/* Direct 1-Click Button 1: Full Prepaid */}
+                  <button
+                    type="button"
+                    className="cart-checkout-btn"
+                    onClick={() => handleOneClickCheckout('prepaid')}
+                    disabled={isCheckingOut || isCalculating}
+                  >
+                    {isCheckingOut && paymentMode === 'prepaid' ? (
+                      <>
+                        <div className="cart-btn-spinner" />
+                        <span>{checkoutStatusText || 'Launching 1-Click Checkout...'}</span>
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.25 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          Pay Full Online — ₹{Math.round(total).toLocaleString('en-IN')} ⚡
+                        </span>
+                        <span style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.06em', opacity: 0.72, marginTop: 2 }}>
+                          100% Prepaid • Priority Insured Dispatch
+                        </span>
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Direct 1-Click Button 2: Partial COD */}
+                  <button
+                    type="button"
+                    className="cart-partial-cod-btn"
+                    onClick={() => handleOneClickCheckout('partial_cod')}
+                    disabled={isCheckingOut || isCalculating}
+                  >
+                    {isCheckingOut && paymentMode === 'partial_cod' ? (
+                      <>
+                        <div className="cart-btn-spinner gold" />
+                        <span>{checkoutStatusText || 'Opening Partial COD...'}</span>
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.3 }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#facc15' }}>
+                          Book via Partial COD — Pay ₹{Math.round(serverTotals.partialCodAdvance).toLocaleString('en-IN')} Now ⚡
+                        </span>
+                        <span style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.04em', color: '#e5e7eb', marginTop: 3 }}>
+                          Pay remaining ₹{Math.round(serverTotals.partialCodBalance).toLocaleString('en-IN')} Cash / UPI on Delivery
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="cart-checkout-btn"
+                  onClick={() => handleOneClickCheckout('prepaid')}
+                  disabled={isCheckingOut || isCalculating}
+                >
+                  {isCheckingOut ? (
+                    <>
+                      <div className="cart-btn-spinner" />
+                      <span>{checkoutStatusText || 'Launching 1-Click Checkout...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{total <= 0 ? 'Claim Complimentary Order ⚡' : 'Proceed to 1-Click Checkout ⚡'}</span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              )}
 
               <div className="cart-magic-hint">
                 ⚡ Auto-fills saved address via mobile number • UPI, Cards, Netbanking &amp; Partial COD
@@ -1219,118 +1225,47 @@ function CartContent() {
           color: #ffffff; margin-bottom: 18px;
         }
 
-        /* 1-Click Full Prepaid vs Partial COD Selector */
-        .cart-paymode-wrap {
-          margin-bottom: 18px;
-        }
-        .cart-paymode-label {
-          font-size: 10.5px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #9ca3af;
-          margin-bottom: 8px;
-        }
-        .cart-paymode-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-        .cart-paymode-card {
-          background: #0a0a0a;
-          border: 1px solid #2a2a2a;
-          border-radius: 10px;
-          padding: 11px 12px;
-          text-align: left;
-          cursor: pointer;
-          transition: all 0.22s ease;
-          color: #ffffff;
-        }
-        .cart-paymode-card:hover {
-          border-color: #525252;
-        }
-        .cart-paymode-card.active {
-          border-color: #ffffff;
-          background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
-        }
-        .cart-paymode-card.partial.active {
-          border-color: #d4af37;
-          background: rgba(212, 175, 55, 0.09);
-          box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.25);
-        }
-        .cart-paymode-top {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          margin-bottom: 5px;
-        }
-        .cart-paymode-radio {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          border: 1.5px solid #6b7280;
-          display: inline-block;
-          position: relative;
-          flex-shrink: 0;
-        }
-        .cart-paymode-card.active .cart-paymode-radio {
-          border-color: #ffffff;
-        }
-        .cart-paymode-card.active .cart-paymode-radio::after {
-          content: '';
-          position: absolute;
-          inset: 2px;
-          border-radius: 50%;
-          background: #ffffff;
-        }
-        .cart-paymode-card.partial.active .cart-paymode-radio {
-          border-color: #d4af37;
-        }
-        .cart-paymode-card.partial.active .cart-paymode-radio::after {
-          background: #d4af37;
-        }
-        .cart-paymode-title {
-          font-size: 11.5px;
-          font-weight: 700;
-          color: #f3f4f6;
-        }
-        .cart-paymode-amt {
-          font-size: 13px;
-          font-weight: 800;
-          color: #ffffff;
-          margin-bottom: 2px;
-        }
-        .cart-paymode-card.partial.active .cart-paymode-amt {
-          color: #facc15;
-        }
-        .cart-paymode-sub {
-          font-size: 10px;
-          color: #9ca3af;
-          line-height: 1.3;
-        }
-        .cart-partial-breakdown {
-          margin-top: 10px;
-          padding: 10px 12px;
-          border-radius: 8px;
-          background: rgba(212, 175, 55, 0.08);
-          border: 1px solid rgba(212, 175, 55, 0.28);
+        .cart-dual-cta-stack {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 10px;
+          margin-bottom: 12px;
         }
-        .cart-partial-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 11.5px;
-          color: #e5e7eb;
+        .cart-dual-cta-stack .cart-checkout-btn {
+          margin-bottom: 0;
         }
-        .cart-partial-row strong {
-          color: #34d399;
+        .cart-partial-cod-btn {
+          width: 100%;
+          min-height: 54px;
+          padding: 12px 18px;
+          background: rgba(212, 175, 55, 0.1);
+          color: #ffffff;
+          border: 1.5px solid rgba(250, 204, 21, 0.65);
+          border-radius: 999px;
+          font-size: 11px;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
           font-weight: 800;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: all 0.28s ease;
         }
-        .cart-partial-row.balance strong {
-          color: #fbbf24;
+        .cart-partial-cod-btn:hover:not(:disabled) {
+          background: rgba(212, 175, 55, 0.18);
+          border-color: #facc15;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(250, 204, 21, 0.18);
+        }
+        .cart-partial-cod-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+        .cart-btn-spinner.gold {
+          border-color: rgba(250, 204, 21, 0.3);
+          border-top-color: #facc15;
         }
 
         .cart-checkout-error {
